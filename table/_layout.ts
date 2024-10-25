@@ -88,6 +88,49 @@ export class TableLayout {
           : this.options.padding);
     }
 
+    /* Try to get the total table width within a maximum */
+    const totalWidth = width.reduce((a, b) => a + b);
+    const maxAllowable = this.options.maxTableWidth -
+      padding.filter((x) => x).reduce((a, b) => a + b);
+    if (totalWidth > maxAllowable && this.options.colRigidity != 1) {
+      const rigidity = width.map(
+        (w, i) => (
+          Array.isArray(this.options.colRigidity)
+            ? this.options.colRigidity[i]
+            : this.options.colRigidity
+        ),
+      );
+      const rigidTotal = width.map((w, i) => rigidity[i] >= 1 ? w : 0).reduce(
+        (a, b) => a + b,
+      );
+
+      const slack = maxAllowable - rigidTotal;
+      if (slack > 0) {
+        const flexTotal = width.map((w, i) => rigidity[i] < 1 ? w : 0).reduce(
+          (a, b) => a + b,
+        );
+        const flexFactor = slack / flexTotal;
+        for (let colIndex = 0; colIndex < width.length; colIndex++) {
+          if (rigidity[colIndex] < 1) {
+            const column = this.options.columns.at(colIndex);
+            const minColWidth: number = column?.getMinWidth() ??
+              (Array.isArray(this.options.minColWidth)
+                ? this.options.minColWidth[colIndex]
+                : this.options.minColWidth);
+            const maxColWidth: number = column?.getMaxWidth() ??
+              (Array.isArray(this.options.maxColWidth)
+                ? this.options.maxColWidth[colIndex]
+                : this.options.maxColWidth);
+
+            width[colIndex] = Math.min(
+              maxColWidth,
+              Math.max(minColWidth, Math.floor(width[colIndex] * flexFactor)),
+            );
+          }
+        }
+      }
+    }
+
     return {
       padding,
       width,
