@@ -94,7 +94,7 @@ export class TableLayout {
       padding.filter((x) => x).reduce((a, b) => a + b);
     if (totalWidth > maxAllowable && this.options.colRigidity != 1) {
       const rigidity = width.map(
-        (w, i) => (
+        (_w, i) => (
           Array.isArray(this.options.colRigidity)
             ? this.options.colRigidity[i]
             : this.options.colRigidity
