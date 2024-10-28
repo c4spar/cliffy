@@ -55,7 +55,11 @@ export class HelpGenerator {
     private cmd: Command,
     options: HelpOptions = {},
   ) {
-    this.width = Math.min(Deno.consoleSize()?.columns, 150);
+    try {
+      this.width = Math.min(Deno.consoleSize().columns, 150);
+    } catch (_err) {
+      this.width = 150;
+    }
     this.options = {
       types: false,
       hints: true,
