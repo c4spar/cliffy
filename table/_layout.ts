@@ -5,6 +5,9 @@ import { Row, type RowType } from "./row.ts";
 import type { BorderOptions, Table, TableSettings } from "./table.ts";
 import { getUnclosedAnsiRuns, longest, strLength } from "./_utils.ts";
 
+const sum = (numList: Array<number>): number =>
+  numList.reduce((a, b) => a + b, 0);
+
 /** Layout render settings. */
 interface RenderSettings {
   padding: Array<number>;
@@ -89,9 +92,9 @@ export class TableLayout {
     }
 
     /* Try to get the total table width within a maximum */
-    const totalWidth = width.reduce((a, b) => a + b);
+    const totalWidth = sum(width);
     const maxAllowable = this.options.maxTableWidth -
-      padding.filter((x) => x).reduce((a, b) => a + b);
+      sum(padding.filter((x) => x));
     if (totalWidth > maxAllowable && this.options.colRigidity != 1) {
       const rigidity = width.map(
         (_w, i) => (
@@ -100,15 +103,11 @@ export class TableLayout {
             : this.options.colRigidity
         ),
       );
-      const rigidTotal = width.map((w, i) => rigidity[i] >= 1 ? w : 0).reduce(
-        (a, b) => a + b,
-      );
+      const rigidTotal = sum(width.map((w, i) => rigidity[i] >= 1 ? w : 0));
 
       const slack = maxAllowable - rigidTotal;
       if (slack > 0) {
-        const flexTotal = width.map((w, i) => rigidity[i] < 1 ? w : 0).reduce(
-          (a, b) => a + b,
-        );
+        const flexTotal = sum(width.map((w, i) => rigidity[i] < 1 ? w : 0));
         const flexFactor = slack / flexTotal;
         for (let colIndex = 0; colIndex < width.length; colIndex++) {
           if (rigidity[colIndex] < 1) {
