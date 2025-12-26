@@ -124,6 +124,8 @@ interface CommandSettings {
   noGlobals?: boolean;
   meta: Record<string, string>;
   commands: Map<string, Command<any>>;
+  commandAliases: Map<string, Command<any>>;
+  lazyCommands: Map<Command<any>, LazyCommand>;
   versionOptions?: DefaultOption | false;
   helpOptions?: DefaultOption | false;
   autoHelp?: boolean;
@@ -169,6 +171,13 @@ export interface CustomHelpOptions {
    */
   auto?: boolean;
 }
+
+type LazyCommandFn = () =>
+  | Command<any>
+  | Promise<Command<any>>
+  | Promise<{ default: Command<any> }>;
+
+type LazyCommand = () => Promise<Command<any>>;
 
 /**
  * Chainable command factory class.
@@ -284,6 +293,8 @@ export class Command<
     aliases: [],
     meta: {},
     commands: new Map<string, Command<any>>(),
+    commandAliases: new Map<string, Command<any>>(),
+    lazyCommands: new Map<Command<any>, LazyCommand>(),
   };
   builder: BuilderProps = {
     groupName: null,
@@ -566,7 +577,9 @@ export class Command<
         : Merge<TParentCommandTypes, TCommandTypes>),
   >(
     name: string,
-    cmd: TCommand,
+    cmd:
+      | TCommand
+      | (() => TCommand | Promise<TCommand | { default: TCommand }>),
     options?: SubCommandOptions,
   ): ReturnType<TCommand["reset"]> extends Command<
     Record<string, unknown> | void,
@@ -615,7 +628,9 @@ export class Command<
         : Merge<TParentCommandTypes, TCommandTypes>),
   >(
     name: string,
-    cmd: TCommand,
+    cmd:
+      | TCommand
+      | (() => TCommand | Promise<TCommand | { default: TCommand }>),
     options?: SubCommandOptions,
   ): TCommand extends Command<
     Record<string, unknown> | void,
@@ -677,7 +692,7 @@ export class Command<
    */
   command(
     nameAndArguments: string,
-    cmdOrDescription?: Command<any> | string,
+    cmdOrDescription?: Command<any> | LazyCommandFn | string,
     { override }: SubCommandOptions = {},
   ): Command<any> {
     this.reset();
@@ -698,25 +713,32 @@ export class Command<
       this.removeCommand(name);
     }
 
-    let description: string | undefined;
     let cmd: Command<any>;
 
-    if (typeof cmdOrDescription === "string") {
-      description = cmdOrDescription;
-    }
-
-    if (cmdOrDescription instanceof Command) {
-      cmd = cmdOrDescription.reset();
-    } else {
+    if (typeof cmdOrDescription === "function") {
       cmd = new Command();
+      this.settings.lazyCommands.set(cmd, async () => {
+        let lazyCmd = await cmdOrDescription();
+        if (!(lazyCmd instanceof Command)) {
+          lazyCmd = lazyCmd.default;
+        }
+        // return baseCommand.extends(parentCommand);
+        return lazyCmd.merge(cmd);
+      });
+    } else {
+      if (cmdOrDescription instanceof Command) {
+        cmd = cmdOrDescription.reset();
+      } else {
+        cmd = new Command();
+
+        if (typeof cmdOrDescription === "string") {
+          cmd.description(cmdOrDescription);
+        }
+      }
     }
 
     cmd.settings.name = name;
     cmd.parent = this;
-
-    if (description) {
-      cmd.description(description);
-    }
 
     if (result.typeDefinition) {
       cmd.arguments(result.typeDefinition);
@@ -728,6 +750,81 @@ export class Command<
 
     this.select(name);
 
+    return this;
+  }
+
+  extends(parentCommand: Command<any>): Command<any> {
+    this.builder = {
+      groupName: parentCommand.builder.groupName || this.builder.groupName,
+      options: [...parentCommand.builder.options, ...this.builder.options],
+      envVars: [...parentCommand.builder.envVars, ...this.builder.envVars],
+      types: new Map([...parentCommand.builder.types, ...this.builder.types]),
+      completions: new Map([
+        ...parentCommand.builder.completions,
+        ...this.builder.completions,
+      ]),
+    };
+    this.settings = {
+      ...parentCommand.settings,
+      ...this.settings,
+      name: this.settings.name || parentCommand.settings.name,
+      description: this.settings.description ||
+        parentCommand.settings.description,
+      examples: [
+        ...parentCommand.settings.examples,
+        ...this.settings.examples,
+      ],
+      aliases: [...parentCommand.settings.aliases, ...this.settings.aliases],
+      meta: { ...parentCommand.settings.meta, ...this.settings.meta },
+      commands: new Map([
+        ...parentCommand.settings.commands,
+        ...this.settings.commands,
+      ]),
+      commandAliases: new Map([
+        ...parentCommand.settings.commandAliases,
+        ...this.settings.commandAliases,
+      ]),
+      lazyCommands: new Map([
+        ...parentCommand.settings.lazyCommands,
+        ...this.settings.lazyCommands,
+      ]),
+    };
+    return this;
+  }
+
+  merge(cmd: Command<any>): Command<any> {
+    this.builder = {
+      groupName: this.builder.groupName || cmd.builder.groupName,
+      options: [...this.builder.options, ...cmd.builder.options],
+      envVars: [...this.builder.envVars, ...cmd.builder.envVars],
+      types: new Map([...this.builder.types, ...cmd.builder.types]),
+      completions: new Map([
+        ...this.builder.completions,
+        ...cmd.builder.completions,
+      ]),
+    };
+    this.parent = cmd.parent;
+    this.settings = {
+      ...this.settings,
+      ...cmd.settings,
+      name: cmd.settings.name || this.settings.name,
+      description: cmd.settings.description || this.settings.description,
+      examples: [...this.settings.examples, ...cmd.settings.examples],
+      aliases: [...this.settings.aliases, ...cmd.settings.aliases],
+      meta: { ...this.settings.meta, ...cmd.settings.meta },
+      commands: new Map([
+        ...this.settings.commands,
+        ...cmd.settings.commands,
+      ]),
+      commandAliases: new Map([
+        ...this.settings.commandAliases,
+        ...cmd.settings.commandAliases,
+      ]),
+      lazyCommands: new Map([
+        ...this.settings.lazyCommands,
+        ...cmd.settings.lazyCommands,
+      ]),
+    };
     return this;
   }
 
@@ -745,6 +842,9 @@ export class Command<
     }
 
     this.cmd.settings.aliases.push(alias);
+    if (this.cmd.parent) {
+      this.cmd.parent.settings.commandAliases.set(alias, this.cmd);
+    }
 
     return this;
   }
@@ -2193,7 +2293,7 @@ export class Command<
       // Pre parse globals to support: cmd --global-option sub-command --option
       if (ctx.unknown.length > 0) {
         // Detect sub command.
-        subCommand = this.getSubCommand(ctx);
+        subCommand = await this.getSubCommand(ctx);
 
         if (!subCommand) {
           // Only pre parse globals if first arg ist a global option.
@@ -2208,7 +2308,7 @@ export class Command<
       }
 
       if (subCommand || ctx.unknown.length > 0) {
-        subCommand ??= this.getSubCommand(ctx);
+        subCommand ??= await this.getSubCommand(ctx);
 
         if (subCommand) {
           subCommand.props.globalParent = this;
@@ -2249,8 +2349,8 @@ export class Command<
     }
   }
 
-  private getSubCommand(ctx: ParseContext): Command<any> | undefined {
-    const subCommand = this.getCommand(ctx.unknown[0], true);
+  private async getSubCommand(ctx: ParseContext): Promise<Command<any> | undefined> {
+    const subCommand = await this.loadCommand(ctx.unknown[0], true);
 
     if (subCommand) {
       ctx.unknown.shift();
@@ -2386,11 +2486,14 @@ export class Command<
           standalone: true,
           global: true,
           prepend: true,
-          action: async function () {
+          action: async function (this: Command<any>) {
+            await Promise.all([
+              checkVersion(this),
+              this.loadBaseCommands(),
+            ]);
             const long = this.getRawArgs().includes(
               `--${this.getHelpOption()?.name}`,
             );
-            await checkVersion(this);
             this.showHelp({ long });
             this.exit();
           },
@@ -2968,7 +3071,50 @@ export class Command<
    * @param hidden Include hidden commands.
    */
   public hasCommands(hidden?: boolean): boolean {
-    return this.getCommands(hidden).length > 0;
+    return this.hasBaseCommands(hidden) || this.hasGlobalCommands(hidden);
+  }
+
+  public hasGlobalCommands(hidden?: boolean): boolean {
+    const hasCommands = (
+      command: Command<any>,
+      noGlobals: boolean | undefined,
+    ): boolean => {
+      for (const [_, cmd] of command.settings.commands) {
+        if (this.matchGlobalCommand(cmd, hidden)) {
+          if (noGlobals && cmd?.getName() !== "help") {
+            continue;
+          }
+          return true;
+        }
+      }
+
+      return command.parent
+        ? hasCommands(
+          command.parent,
+          noGlobals || command.settings.noGlobals,
+        )
+        : false;
+    };
+
+    return this.parent
+      ? hasCommands(this.parent, this.settings.noGlobals)
+      : false;
+  }
+
+  private matchGlobalCommand(cmd: Command<any>, hidden?: boolean): boolean {
+    return cmd.settings.isGlobal === true &&
+      this !== cmd &&
+      !this.settings.commands.has(cmd.settings.name) &&
+      !this.settings.commandAliases.has(cmd.settings.name) &&
+      (hidden || !cmd.settings.isHidden);
+  }
+
+  public hasBaseCommands(hidden?: boolean): boolean {
+    return hidden
+      ? this.settings.commands.size > 0
+      : this.settings.commands.values().some((command) =>
+        !command.settings.isHidden
+      );
   }
 
   /**
@@ -2991,6 +3137,21 @@ export class Command<
   }
 
   /**
+   * Lazy load and get all base commands.
+   *
+   * @param hidden Include hidden commands.
+   */
+  public async loadBaseCommands(
+    hidden?: boolean,
+  ): Promise<void> {
+    await Promise.all(
+      this.settings.commands.keys().map(async (name) => {
+        await this.loadBaseCommand(name, hidden);
+      }),
+    );
+  }
+
+  /**
    * Get global commands.
    *
    * @param hidden Include hidden commands.
@@ -3000,24 +3161,19 @@ export class Command<
       command: Command<any>,
       noGlobals: boolean | undefined,
       commands: Array<Command<any>> = [],
-      names: string[] = [],
+      names: Set<string> = new Set(),
     ): Array<Command<any>> => {
-      if (command.settings.commands.size) {
-        for (const [_, cmd] of command.settings.commands) {
-          if (
-            cmd.settings.isGlobal &&
-            this !== cmd &&
-            !this.settings.commands.has(cmd.settings.name) &&
-            names.indexOf(cmd.settings.name) === -1 &&
-            (hidden || !cmd.settings.isHidden)
-          ) {
-            if (noGlobals && cmd?.getName() !== "help") {
-              continue;
-            }
-
-            names.push(cmd.settings.name);
-            commands.push(cmd);
+      for (const [_, cmd] of command.settings.commands) {
+        if (
+          this.matchGlobalCommand(cmd, hidden) &&
+          !names.has(cmd.settings.name)
+        ) {
+          if (noGlobals && cmd?.getName() !== "help") {
+            continue;
           }
+
+          names.add(cmd.settings.name);
+          commands.push(cmd);
         }
       }
 
@@ -3059,6 +3215,20 @@ export class Command<
   }
 
   /**
+   * Get command by name or alias.
+   *
+   * @param name Name or alias of the command.
+   * @param hidden Include hidden commands.
+   */
+  private async loadCommand<TCommand extends Command<any>>(
+    name: string,
+    hidden?: boolean,
+  ): Promise<TCommand | undefined> {
+    return await this.loadBaseCommand(name, hidden) ??
+      await this.loadGlobalCommand(name, hidden);
+  }
+
+  /**
    * Get base command by name or alias.
    *
    * @param name Name or alias of the command.
@@ -3068,13 +3238,34 @@ export class Command<
     name: string,
     hidden?: boolean,
   ): TCommand | undefined {
-    for (const cmd of this.settings.commands.values()) {
-      if (cmd.settings.name === name || cmd.settings.aliases.includes(name)) {
-        return (cmd && (hidden || !cmd.settings.isHidden) ? cmd : undefined) as
-          | TCommand
-          | undefined;
+    const cmd = this.settings.commands.get(name) ||
+      this.settings.commandAliases.get(name);
+    if (cmd && (hidden || !cmd.settings.isHidden)) {
+      return cmd as TCommand;
+    }
+  }
+
+  /**
+   * Lazy load and get base command by name or alias.
+   *
+   * @param name Name or alias of the command.
+   * @param hidden Include hidden commands.
+   */
+  public async loadBaseCommand<TCommand extends Command<any>>(
+    name: string,
+    hidden?: boolean,
+  ): Promise<TCommand | undefined> {
+    let cmd: Command<any> | undefined = this.getBaseCommand(name, hidden);
+    const loadCmd = cmd && this.settings.lazyCommands.get(cmd);
+    if (loadCmd) {
+      cmd = await loadCmd();
+      this.settings.lazyCommands.delete(cmd);
+      this.settings.commands.set(cmd.getName(), cmd);
+      for (const alias of cmd.getAliases()) {
+        this.settings.commandAliases.set(alias, cmd);
       }
     }
+    return cmd as TCommand;
   }
 
   /**
@@ -3112,6 +3303,51 @@ export class Command<
   }
 
   /**
+   * Get global command by name or alias.
+   *
+   * @param name Name or alias of the command.
+   * @param hidden Include hidden commands.
+   */
+  public async loadGlobalCommand<TCommand extends Command<any>>(
+    name: string,
+    hidden?: boolean,
+  ): Promise<TCommand | undefined> {
+    const cmd = this.getGlobalCommand(name, hidden);
+    if (cmd) {
+      return cmd as TCommand;
+    }
+
+    const loadGlobalCommand = async (
+      parent: Command,
+      noGlobals?: boolean,
+    ): Promise<Command | undefined> => {
+      const cmd: Command | undefined = await parent.loadBaseCommand(
+        name,
+        hidden,
+      );
+
+      if (!cmd || !cmd.settings.isGlobal) {
+        return parent.parent &&
+          loadGlobalCommand(
+            parent.parent,
+            noGlobals || parent.settings.noGlobals,
+          );
+      }
+      if (noGlobals && cmd.getName() !== "help") {
+        return;
+      }
+
+      return cmd;
+    };
+
+    return this.parent &&
+      await loadGlobalCommand(
+        this.parent,
+        this.settings.noGlobals,
+      ) as TCommand;
+  }
+
+  /**
    * Remove sub-command by name or alias.
    *
    * @param name Name or alias of the command.
@@ -3121,6 +3357,9 @@ export class Command<
 
     if (command) {
       this.settings.commands.delete(command.settings.name);
+      for (const alias of command.getAliases()) {
+        this.settings.commandAliases.delete(alias);
+      }
     }
 
     return command;
