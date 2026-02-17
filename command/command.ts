@@ -722,7 +722,6 @@ export class Command<
         if (!(lazyCmd instanceof Command)) {
           lazyCmd = lazyCmd.default;
         }
-        // return baseCommand.extends(parentCommand);
         return lazyCmd.merge(cmd);
       });
     } else {
@@ -753,46 +752,46 @@ export class Command<
     return this;
   }
 
-  extends(parentCommand: Command<any>): Command<any> {
-    this.builder = {
-      groupName: parentCommand.builder.groupName || this.builder.groupName,
-      options: [...parentCommand.builder.options, ...this.builder.options],
-      envVars: [...parentCommand.builder.envVars, ...this.builder.envVars],
-      types: new Map([...parentCommand.builder.types, ...this.builder.types]),
-      completions: new Map([
-        ...parentCommand.builder.completions,
-        ...this.builder.completions,
-      ]),
-    };
-    this.settings = {
-      ...parentCommand.settings,
-      ...this.settings,
-      name: this.settings.name || parentCommand.settings.name,
-      description: this.settings.description ||
-        parentCommand.settings.description,
-      examples: [
-        ...parentCommand.settings.examples,
-        ...this.settings.examples,
-      ],
-      aliases: [...parentCommand.settings.aliases, ...this.settings.aliases],
-      meta: { ...parentCommand.settings.meta, ...this.settings.meta },
-      commands: new Map([
-        ...parentCommand.settings.commands,
-        ...this.settings.commands,
-      ]),
-      commandAliases: new Map([
-        ...parentCommand.settings.commandAliases,
-        ...this.settings.commandAliases,
-      ]),
-      lazyCommands: new Map([
-        ...parentCommand.settings.lazyCommands,
-        ...this.settings.lazyCommands,
-      ]),
-    };
-    return this;
-  }
+  // extends(parentCommand: Command<any>): Command<any> {
+  //   this.builder = {
+  //     groupName: parentCommand.builder.groupName || this.builder.groupName,
+  //     options: [...parentCommand.builder.options, ...this.builder.options],
+  //     envVars: [...parentCommand.builder.envVars, ...this.builder.envVars],
+  //     types: new Map([...parentCommand.builder.types, ...this.builder.types]),
+  //     completions: new Map([
+  //       ...parentCommand.builder.completions,
+  //       ...this.builder.completions,
+  //     ]),
+  //   };
+  //   this.settings = {
+  //     ...parentCommand.settings,
+  //     ...this.settings,
+  //     name: this.settings.name || parentCommand.settings.name,
+  //     description: this.settings.description ||
+  //       parentCommand.settings.description,
+  //     examples: [
+  //       ...parentCommand.settings.examples,
+  //       ...this.settings.examples,
+  //     ],
+  //     aliases: [...parentCommand.settings.aliases, ...this.settings.aliases],
+  //     meta: { ...parentCommand.settings.meta, ...this.settings.meta },
+  //     commands: new Map([
+  //       ...parentCommand.settings.commands,
+  //       ...this.settings.commands,
+  //     ]),
+  //     commandAliases: new Map([
+  //       ...parentCommand.settings.commandAliases,
+  //       ...this.settings.commandAliases,
+  //     ]),
+  //     lazyCommands: new Map([
+  //       ...parentCommand.settings.lazyCommands,
+  //       ...this.settings.lazyCommands,
+  //     ]),
+  //   };
+  //   return this;
+  // }
 
-  merge(cmd: Command<any>): Command<any> {
+  private merge(cmd: Command<any>): Command<any> {
     this.builder = {
       groupName: this.builder.groupName || cmd.builder.groupName,
       options: [...this.builder.options, ...cmd.builder.options],
@@ -842,9 +841,7 @@ export class Command<
     }
 
     this.cmd.settings.aliases.push(alias);
-    if (this.cmd.parent) {
-      this.cmd.parent.settings.commandAliases.set(alias, this.cmd);
-    }
+    this.cmd.parent?.settings.commandAliases.set(alias, this.cmd);
 
     return this;
   }
@@ -3145,9 +3142,9 @@ export class Command<
     hidden?: boolean,
   ): Promise<void> {
     await Promise.all(
-      this.settings.commands.keys().map(async (name) => {
-        await this.loadBaseCommand(name, hidden);
-      }),
+      this.settings.commands.keys().map((name) =>
+        this.loadBaseCommand(name, hidden)
+      ),
     );
   }
 
