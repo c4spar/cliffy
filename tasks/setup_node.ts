@@ -16,6 +16,10 @@ await Promise.all(projects.map(async (project) => {
     exports = { ".": exports };
   }
 
+  if (!exports || typeof exports !== "object") {
+    return;
+  }
+
   for (const [specifier, path] of Object.entries(exports)) {
     paths[join("@cliffy", project, specifier)] = [`./${join(project, path)}`];
   }
@@ -50,9 +54,6 @@ for (const [specifier, version] of Object.entries(denoConfig.imports)) {
     : version;
 }
 
-console.log("PATH:", Deno.env.get("PATH"));
-console.log("PNPM_HOME:", Deno.env.get("PNPM_HOME"));
-
 await Deno.writeTextFile(
   "./package.json",
   JSON.stringify({
@@ -69,17 +70,17 @@ await Deno.writeTextFile("./.npmrc", "@jsr:registry=https://npm.jsr.io\n");
 
 await new Deno.Command("deno", {
   args: ["fmt", "tsconfig.json", "package.json"],
-}).spawn().output();
+}).output();
 
 if (!Deno.args.includes("--no-install")) {
   if (Deno.args.includes("--bun")) {
     await new Deno.Command("bun", {
       args: ["install"],
-    }).spawn().output();
+    }).output();
   } else {
     await new Deno.Command("pnpm", {
       args: ["install"],
-    }).spawn().output();
+    }).output();
   }
 }
 

@@ -36,7 +36,7 @@
     "setup:deno": "echo nothing todo",
     "setup:node": "deno run -A ./tasks/setup_node.ts",
     "setup:bun": "deno run -A ./tasks/setup_node.ts --bun",
-    "clean": "rm -rf dist node_modules .npmrc bun.lockb package.json pnpm-lock.yaml tsconfig.json",
+    "clean": "rm -rf dist node_modules .npmrc bun.lock bun.lockb package.json pnpm-lock.yaml tsconfig.json",
     "update": "deno run --allow-read=./ --allow-net --allow-write=./ https://deno.land/x/deno_outdated@0.2.5/cli.ts --ignore README.md CHANGELOG.md CONTRIBUTING.md"
   },
   "imports": {
