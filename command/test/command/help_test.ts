@@ -2,6 +2,8 @@ import { test } from "@cliffy/internal/testing/test";
 import { assertEquals } from "@std/assert";
 import { Command } from "../../command.ts";
 import { snapshotTest } from "../../../testing/mod.ts";
+import { deleteEnv } from "../../../internal/runtime/delete_env.ts";
+import { setEnv } from "../../../internal/runtime/set_env.ts";
 
 test("[command] help - help string", () => {
   const cmd = new Command()
@@ -234,5 +236,103 @@ await snapshotTest({
       .action(() => console.log("Fetching..."));
 
     await cmd.parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should not show help when auto help option is enabled if action handler is defined even if no arguments are provided",
+  meta: import.meta,
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+    barCommand: { args: ["foo", "bar"] },
+  },
+  async fn(): Promise<void> {
+    const fooCommand = new Command()
+      .action(() => {})
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .help({ auto: true })
+      .noExit()
+      .action(() => {})
+      .command("foo", fooCommand)
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should show help when auto help option is enabled for commands with subcommands and no action handler if no arguments are provided",
+  meta: import.meta,
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+    barCommand: { args: ["foo", "bar"] },
+  },
+  async fn(): Promise<void> {
+    const fooCommand = new Command()
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .help({ auto: true })
+      .noExit()
+      .command("foo", fooCommand)
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should show help when auto help option is enabled with global environment variable defined",
+  meta: import.meta,
+  denoArgs: ["--quiet", "--allow-env"],
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+    barCommand: { args: ["foo", "bar"] },
+  },
+  async fn(): Promise<void> {
+    setEnv("NO_COLOR", "1");
+
+    const fooCommand = new Command()
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .globalEnv("NO_COLOR", "Disable colors in help output.")
+      .help({ auto: true })
+      .noExit()
+      .command("foo", fooCommand)
+      .parse();
+
+    deleteEnv("NO_COLOR");
+  },
+});
+
+await snapshotTest({
+  name:
+    "should not show help when auto help option is enabled but no subcommands are defined",
+  meta: import.meta,
+  steps: {
+    noArgs: { args: [] },
+    withArgs: { args: ["-f"] },
+  },
+  async fn(): Promise<void> {
+    await new Command()
+      .option("-f, --foo", "Foo option.")
+      .option("-b, --bar", "Bar option.")
+      .help({ auto: true })
+      .noExit()
+      .parse();
   },
 });
