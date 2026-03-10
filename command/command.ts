@@ -2068,17 +2068,20 @@ export class Command<
       this.props.rawArgs = ctx.unknown.slice();
 
       if (!ctx.unknown.length && this.settings.defaultCommand) {
-          const defaultCommand = this.getCommand(this.settings.defaultCommand, true);
+        const defaultCommand = this.getCommand(
+          this.settings.defaultCommand,
+          true,
+        );
 
-          if (!defaultCommand) {
-            throw new DefaultCommandNotFoundError(
-              this.settings.defaultCommand,
-              this.getCommands(),
-            );
-          }
-          defaultCommand.props.globalParent = this;
+        if (!defaultCommand) {
+          throw new DefaultCommandNotFoundError(
+            this.settings.defaultCommand,
+            this.getCommands(),
+          );
+        }
+        defaultCommand.props.globalParent = this;
 
-          return defaultCommand.parseCommand(ctx);
+        return defaultCommand.parseCommand(ctx);
       }
 
       if (this.settings.useRawArgs) {
