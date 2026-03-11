@@ -17,6 +17,7 @@ export interface SnapshotTestStep {
   args?: Array<string>;
   /** If enabled, test error will be ignored. */
   canFail?: true;
+  env?: Record<string, string>;
 }
 
 /** Snapshot test options. */
@@ -181,11 +182,18 @@ async function executeTest(
 
   try {
     let denoArgs: Array<string>;
+    const env = {
+      SNAPSHOT_TEST_NAME: options.name,
+      ...options.colors ? {} : { NO_COLOR: "true" },
+      ...options?.env ?? {},
+      ...step?.env ?? {},
+    };
+    const envNames = Object.keys(env);
 
     if (options.denoArgs) {
       denoArgs = options.denoArgs;
     } else {
-      denoArgs = ["--quiet", "--allow-env=SNAPSHOT_TEST_NAME"];
+      denoArgs = ["--quiet", `--allow-env=${envNames.join(",")}`];
     }
 
     const cmd = new Deno.Command("deno", {
@@ -199,10 +207,7 @@ async function executeTest(
         ...options.args ?? [],
         ...step?.args ?? [],
       ],
-      env: {
-        SNAPSHOT_TEST_NAME: options.name,
-        ...options.colors ? {} : { NO_COLOR: "true" },
-      },
+      env,
     });
     const child: Deno.ChildProcess = cmd.spawn();
     const writer = child.stdin.getWriter();
