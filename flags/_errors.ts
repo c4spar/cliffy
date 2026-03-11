@@ -107,7 +107,7 @@ export class UnexpectedOptionValueError extends ValidationError {
     super(
       `Option "${getFlag(option)}" doesn't take a value, but got "${value}".`,
     );
-    Object.setPrototypeOf(this, InvalidOptionValueError.prototype);
+    Object.setPrototypeOf(this, UnexpectedOptionValueError.prototype);
   }
 }
 
@@ -184,6 +184,6 @@ export class InvalidTypeError extends ValidationError {
           : ""
       ),
     );
-    Object.setPrototypeOf(this, MissingOptionValueError.prototype);
+    Object.setPrototypeOf(this, InvalidTypeError.prototype);
   }
 }
