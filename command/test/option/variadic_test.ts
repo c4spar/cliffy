@@ -113,9 +113,23 @@ test("command optionVariadic exactLastOptionalVariadic", async () => {
 
   assertEquals(
     options,
-    // @TODO: fix variadic types.
-    // deno-lint-ignore no-explicit-any
-    { variadicOption: [1, "abc", true, false, true, false] as any },
+    { variadicOption: [1, "abc", true, false, true, false] },
+  );
+  assertEquals(args, []);
+});
+
+test("should allow passing an option after an variadic option", async () => {
+  const { options, args } = await new Command()
+    .option("-v, --variadic-option <...value:string>", "description ...")
+    .option("-s, --string <value:string>", "description ...")
+    .parse(["-v", "1", "abc", "-s", "string value"]);
+
+  assertEquals(
+    options,
+    {
+      variadicOption: ["1", "abc"],
+      string: "string value",
+    },
   );
   assertEquals(args, []);
 });

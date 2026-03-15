@@ -168,3 +168,31 @@ test("flags optionVariadic exactLastOptionalVariadic", () => {
   assertEquals(unknown, []);
   assertEquals(literal, []);
 });
+
+test("should allow passing an option after an variadic option", () => {
+  const { flags, unknown, literal } = parseFlags([
+    "-e",
+    "1",
+    "abc",
+    "-s",
+    "string value",
+  ], {
+    flags: [{
+      name: "variadic-option",
+      type: "string",
+      aliases: ["e"],
+      variadic: true,
+    }, {
+      name: "string",
+      aliases: ["s"],
+      type: "string",
+    }],
+  });
+
+  assertEquals(flags, {
+    variadicOption: ["1", "abc"],
+    string: "string value",
+  });
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
