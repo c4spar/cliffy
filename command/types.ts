@@ -196,8 +196,28 @@ export interface CommandArgumentOptions<
   TValue = unknown,
   TReturn = TValue,
 > {
+  /**
+   * Separator for list type arguments. If the argument is defined as list type
+   * with `[]` suffix, the separator is used to split the input value into an
+   * array of values. The default separator is comma `,`.
+   */
+  separator?: string;
+  /**
+   * Default value or a callback method that returns the default value. The
+   * default value is used when the argument is optional and not provided in the command line input.
+   */
   default?: DefaultValue<TDefault>;
+  /**
+   * Default display text or a callback method that returns the default display
+   * text. The default display text is used in the help output instead of the
+   * stringified default value.
+   */
   defaultText?: DefaultText<TDefault>;
+  /**
+   * Argument value callback method to transform the argument value after
+   * parsing and type conversion. The callback is invoked with the parsed
+   * argument value and should return the transformed value.
+   */
   value?: ArgumentValueHandler<TValue, TReturn>;
 }
 
