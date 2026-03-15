@@ -197,3 +197,24 @@ export class TooManyArgumentsError extends ValidationError {
     Object.setPrototypeOf(this, TooManyArgumentsError.prototype);
   }
 }
+
+export class MissingArgumentError extends ValidationError {
+  constructor(name: string) {
+    super(`Missing argument: ${name}`);
+    Object.setPrototypeOf(this, MissingArgumentError.prototype);
+  }
+}
+
+export class MissingArgumentsError extends ValidationError {
+  constructor(names: Array<string>) {
+    super(`Missing argument(s): ${names.join(", ")}`);
+    Object.setPrototypeOf(this, MissingArgumentsError.prototype);
+  }
+}
+
+export class TooManyArgumentsError extends ValidationError {
+  constructor(args: Array<string>) {
+    super(`Too many arguments: ${args.join(" ")}`);
+    Object.setPrototypeOf(this, TooManyArgumentsError.prototype);
+  }
+}
