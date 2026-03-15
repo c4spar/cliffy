@@ -4,6 +4,7 @@ export interface ParseFlagsOptions<
 > {
   /** An array of flag options. */
   flags?: Array<TFlagOptions>;
+  args?: Array<ArgumentOptions>;
   /** Parser callback function for custom types. */
   parse?: TypeHandler<unknown>;
   /** Option callback function. Will be called for all parsed options. */
@@ -34,7 +35,8 @@ export interface ParseFlagsOptions<
 }
 
 /** Flag options. */
-export interface FlagOptions extends Omit<ArgumentOptions, "optional"> {
+export interface FlagOptions
+  extends Omit<ArgumentOptions, "optional" | "value"> {
   /** The name of the flag. */
   name: string;
   /** An array of argument options. */
@@ -61,7 +63,7 @@ export interface FlagOptions extends Omit<ArgumentOptions, "optional"> {
    */
   conflicts?: string[];
   /**
-   * A callback function to map the flag value(s). The first argument if the
+   * A callback function to map the flag value(s). The first argument of the
    * callback function is the current value, and the second argument is an array
    * of previous values when combined with the `collect` option.
    */
@@ -80,6 +82,8 @@ export interface FlagOptions extends Omit<ArgumentOptions, "optional"> {
 
 /** Options for a flag argument. */
 export interface ArgumentOptions {
+  /** An optional name for the argument. */
+  name?: string;
   /** Argument type. */
   type?: ArgumentType | string;
   /** Make argument optional. */
@@ -91,12 +95,36 @@ export interface ArgumentOptions {
    * `separator` option.
    */
   list?: boolean;
-  /** List separator. */
+  /**
+   * Separator for list type arguments. If the argument is defined as list type
+   * with `[]` suffix, the separator is used to split the input value into an
+   * array of values. The default separator is comma `,`.
+   */
   separator?: string;
+  /**
+   * Default value or a callback method that returns the default value. The
+   * default value is used when the argument is optional and not provided in
+   * the command line input.
+   */
+  default?: DefaultValue;
+  /**
+   * Argument value callback method to transform the argument value after
+   * parsing and type conversion. The callback is invoked with the parsed
+   * argument value and should return the transformed value.
+   */
+  // deno-lint-ignore no-explicit-any
+  value?: ArgumentValueHandler<any, any>;
 }
 
 /** Available build-in argument types. */
 export type ArgumentType = "string" | "boolean" | "number" | "integer";
+
+export type ArgumentValueHandler<
+  TValue = unknown,
+  TReturn = TValue,
+> = (
+  value: TValue,
+) => TReturn;
 
 /** Default flag value or a callback method that returns the default value. */
 export type DefaultValue<TValue = unknown> =
@@ -124,6 +152,8 @@ export interface ParseFlagsContext<
 > {
   /** An object of parsed flags. */
   flags: TFlags;
+  /** An array of parsed arguments. */
+  args?: Array<unknown>;
   /** An array of unknown arguments. */
   unknown: Array<string>;
   /** An array of arguments defined after the double dash ` -- `. */
@@ -140,7 +170,7 @@ export interface ParseFlagsContext<
 
 /** Argument parsing informations. */
 export interface ArgumentValue {
-  /** A lable/name which describes the kind of argument, e.g: `Option`. */
+  /** A label/name which describes the kind of argument, e.g: `Option`. */
   label: string;
   /** The type of the argument. */
   type: ArgumentType | string;

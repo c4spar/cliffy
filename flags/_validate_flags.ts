@@ -100,6 +100,7 @@ function setDefaultValues<TOptions extends FlagOptions = FlagOptions>(
       typeof opts.ignoreDefaults[name] === "undefined") &&
       typeof ctx.flags[name] === "undefined" && (
         typeof option.default !== "undefined" ||
+        option.args?.some((arg) => arg.default !== undefined) ||
         typeof defaultValue !== "undefined"
       );
 
@@ -108,6 +109,14 @@ function setDefaultValues<TOptions extends FlagOptions = FlagOptions>(
       ctx.defaults[option.name] = true;
       if (typeof option.value === "function") {
         ctx.flags[name] = option.value(ctx.flags[name]);
+      } else if (option.args?.length) {
+        for (const [index, arg] of option.args.entries()) {
+          if (typeof arg.value === "function") {
+            (ctx.flags[name] as Array<unknown>)[index] = arg.value(
+              (ctx.flags[name] as Array<unknown>)[index],
+            );
+          }
+        }
       }
     }
   }

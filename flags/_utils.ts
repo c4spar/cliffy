@@ -1,4 +1,4 @@
-import type { FlagOptions } from "./types.ts";
+import type { ArgumentOptions, FlagOptions } from "./types.ts";
 import { closestString } from "@std/text/closest-string";
 
 /** Convert param case string to camel case. */
@@ -114,8 +114,26 @@ function matchWildCardOption(
   return option;
 }
 
-export function getDefaultValue(option: FlagOptions): unknown {
+function getDefaultValues(
+  option: FlagOptions,
+): Array<unknown> | undefined {
+  const values = option.args?.map((arg) => getDefaultValue(arg)) ?? [];
+
+  while (values.length > 1 && values.at(-1) === undefined) {
+    values.pop();
+  }
+
+  return values.length ? values : undefined;
+}
+
+export function getDefaultValue(
+  option: FlagOptions | ArgumentOptions,
+): unknown {
   return typeof option.default === "function"
     ? option.default()
-    : option.default;
+    : option.default !== undefined
+    ? option.default
+    : "args" in option && option.args?.some((arg) => arg.default !== undefined)
+    ? getDefaultValues(option)
+    : undefined;
 }
