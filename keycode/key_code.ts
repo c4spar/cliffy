@@ -6,7 +6,7 @@ import {
 } from "./_key_codes.ts";
 
 // https://en.wikipedia.org/wiki/ANSI_escape_code
-// https://github.com/nodejs/node/blob/v13.13.0/lib/internal/readline/utils.js
+// https://github.com/nodejs/node/blob/v25.8.1/lib/internal/readline/utils.js
 
 const kUTF16SurrogateThreshold = 0x10000; // 2 ** 16
 const kEscape = "\x1b";
@@ -154,8 +154,10 @@ export function parse(data: Uint8Array | string): KeyCode[] {
          *
          *  - `;5` part is optional, e.g. it could be `\x1b[24~`
          *  - first part can contain one or two digits
+         *  - there is also special case when there can be 3 digits
+         *    but without modifier. They are the case of paste bracket mode
          *
-         * So the generic regexp is like /^\d\d?(;\d)?[~^$]$/
+         * So the generic regexp is like /^(?:\d\d?(;\d)?[~^$]|\d{3}~)$/
          *
          * 2. `\x1b[1;5H` should be parsed as { code: '[H', modifier: 5 }
          *
@@ -174,6 +176,10 @@ export function parse(data: Uint8Array | string): KeyCode[] {
 
           if (ch >= "0" && ch <= "9") {
             s += ch = next();
+
+            if (ch >= "0" && ch <= "9") {
+              s += ch = next();
+            }
           }
         }
 
@@ -193,9 +199,13 @@ export function parse(data: Uint8Array | string): KeyCode[] {
         const cmd: string = s.slice(cmdStart);
         let match: RegExpMatchArray | null;
 
-        if ((match = cmd.match(/^(\d\d?)(;(\d))?([~^$])$/))) {
-          code += match[1] + match[4];
-          modifier = (Number(match[3]) || 1) - 1;
+        if ((match = cmd.match(/^(?:(\d\d?)(?:;(\d))?([~^$])|(\d{3}~))$/))) {
+          if (match[4]) {
+            code += match[4];
+          } else {
+            code += match[1] + match[3];
+            modifier = (Number(match[2]) || 1) - 1;
+          }
         } else if ((match = cmd.match(/^((\d;)?(\d))?([A-Za-z])$/))) {
           code += match[4];
           modifier = (Number(match[3]) || 1) - 1;

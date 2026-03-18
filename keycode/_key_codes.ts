@@ -18,6 +18,10 @@ export const KeyMap: Record<string, string> = {
   "[13~": "f3",
   "[14~": "f4",
 
+  /* paste bracket mode */
+  "[200~": "paste-start",
+  "[201~": "paste-end",
+
   /* from Cygwin and used in libuv */
   "[[A": "f1",
   "[[B": "f2",
