@@ -1107,7 +1107,7 @@ export class Command<
       extends (TArg extends `${string}...${string}`
         ? ReadonlyArray<unknown> | undefined
         : unknown) = undefined,
-    const TMappedArguments = undefined,
+    TMappedArguments = undefined,
     TValue = MapTypes<
       TypedArgumentValue<
         TArg,
