@@ -17,6 +17,10 @@ export interface TableSettings {
   minColWidth: number | Array<number>;
   /** Set max column width. */
   maxColWidth: number | Array<number>;
+  /** Set max table width. */
+  maxTableWidth: number;
+  /** Set column rigidity */
+  colRigidity: number | Array<number>;
   /** Set cell padding. */
   padding: number | Array<number>;
   /** Set table characters. */
@@ -57,6 +61,8 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     maxColWidth: Infinity,
     minColWidth: 0,
     padding: 1,
+    maxTableWidth: Infinity,
+    colRigidity: 1,
     chars: { ...Table._chars },
     columns: [],
   };
@@ -218,6 +224,32 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
   public minColWidth(width: number | Array<number>, override = true): this {
     if (override || typeof this.options.minColWidth === "undefined") {
       this.options.minColWidth = width;
+    }
+    return this;
+  }
+
+  /**
+   * Set max table width
+   *
+   * @param width     Max table width.
+   * @param override  Override existing value.
+   */
+  public maxTableWidth(width: number, override = true): this {
+    if (override || typeof this.options.maxTableWidth === "undefined") {
+      this.options.maxTableWidth = width;
+    }
+    return this;
+  }
+
+  /**
+   * Set column rigidity
+   *
+   * @param rigidity  Column rigidity.
+   * @param override  Override existing value.
+   */
+  public colRigidity(rigidity: number | Array<number>, override = true): this {
+    if (override || typeof this.options.colRigidity === "undefined") {
+      this.options.colRigidity = rigidity;
     }
     return this;
   }

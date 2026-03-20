@@ -5,6 +5,9 @@ import { Row, type RowType } from "./row.ts";
 import type { BorderOptions, Table, TableSettings } from "./table.ts";
 import { getUnclosedAnsiRuns, longest, strLength } from "./_utils.ts";
 
+const sum = (numList: Array<number>): number =>
+  numList.reduce((a, b) => a + b, 0);
+
 /** Layout render settings. */
 interface RenderSettings {
   padding: Array<number>;
@@ -86,6 +89,45 @@ export class TableLayout {
         (Array.isArray(this.options.padding)
           ? this.options.padding[colIndex]
           : this.options.padding);
+    }
+
+    /* Try to get the total table width within a maximum */
+    const totalWidth = sum(width);
+    const maxAllowable = this.options.maxTableWidth -
+      sum(padding.filter((x) => x));
+    if (totalWidth > maxAllowable && this.options.colRigidity != 1) {
+      const rigidity = width.map(
+        (_w, i) => (
+          Array.isArray(this.options.colRigidity)
+            ? this.options.colRigidity[i]
+            : this.options.colRigidity
+        ),
+      );
+      const rigidTotal = sum(width.map((w, i) => rigidity[i] >= 1 ? w : 0));
+
+      const slack = maxAllowable - rigidTotal;
+      if (slack > 0) {
+        const flexTotal = sum(width.map((w, i) => rigidity[i] < 1 ? w : 0));
+        const flexFactor = slack / flexTotal;
+        for (let colIndex = 0; colIndex < width.length; colIndex++) {
+          if (rigidity[colIndex] < 1) {
+            const column = this.options.columns.at(colIndex);
+            const minColWidth: number = column?.getMinWidth() ??
+              (Array.isArray(this.options.minColWidth)
+                ? this.options.minColWidth[colIndex]
+                : this.options.minColWidth);
+            const maxColWidth: number = column?.getMaxWidth() ??
+              (Array.isArray(this.options.maxColWidth)
+                ? this.options.maxColWidth[colIndex]
+                : this.options.maxColWidth);
+
+            width[colIndex] = Math.min(
+              maxColWidth,
+              Math.max(minColWidth, Math.floor(width[colIndex] * flexFactor)),
+            );
+          }
+        }
+      }
     }
 
     return {
