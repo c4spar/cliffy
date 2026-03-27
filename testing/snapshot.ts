@@ -17,6 +17,7 @@ export interface SnapshotTestStep {
   args?: Array<string>;
   /** If enabled, test error will be ignored. */
   canFail?: true;
+  only?: boolean;
 }
 
 /** Snapshot test options. */
@@ -107,11 +108,11 @@ const encoder = new TextEncoder();
  *
  * @param options Test options
  */
-export async function snapshotTest(
+export function snapshotTest(
   options: SnapshotTestOptions,
-): Promise<void> {
+): Promise<void> | void {
   if (options.meta.main) {
-    await runTest(options);
+    return runTest(options);
   } else {
     registerTest(options);
   }
@@ -127,16 +128,19 @@ function registerTest(options: SnapshotTestOptions) {
       fn() {},
     });
   } else {
+    const steps = Object.entries(options.steps ?? {});
+    const only = options.only ?? steps.some(([_, step]) => step.only);
+
     Deno.test({
       name: options.name,
       ignore: options.ignore ?? false,
-      only: options.only ?? false,
+      only,
       async fn(ctx) {
-        const steps = Object.entries(options.steps ?? {});
         if (steps.length) {
           for (const [name, step] of steps) {
             await ctx.step({
               name,
+              ignore: only ? step.only !== true : false,
               fn: (ctx) => fn(ctx, step),
             });
           }

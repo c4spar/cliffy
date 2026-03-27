@@ -1,0 +1,14 @@
+export const snapshot = {};
+
+snapshot[`should run snapshot only tests 1`] = `
+"export const snapshot = {};
+
+snapshot[\`should run only one step if only is set > step 1 1\`] = \`
+stdout:
+'[ \\"with\\", \\"only\\" ]
+'
+stderr:
+\\"\\"
+\`;
+"
+`;
