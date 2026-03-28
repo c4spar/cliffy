@@ -136,6 +136,17 @@ export interface ParseFlagsContext<
   stopOnUnknown: boolean;
   /** A map of option names and default values. */
   defaults: Record<string, boolean>;
+  /**
+   * An array of strings representing the parsed flags and their values in the
+   * order they were encountered in the command line arguments.
+   *
+   * Example:
+   * For the command:
+   *     `command --debug-level warning sub-command --port 80`
+   * The `parsedFlags` array will be:
+   *     `['--debug-level', 'warning', '--port', '80']`
+   */
+  parsedFlags: Array<string>;
 }
 
 /** Argument parsing informations. */

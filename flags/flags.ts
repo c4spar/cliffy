@@ -195,7 +195,7 @@ export function parseFlags<
   TFlagOptions extends FlagOptions,
   TFlagsResult extends ParseFlagsContext,
 >(
-  argsOrCtx: string[] | TFlagsResult = getArgs(),
+  argsOrCtx: string[] | Partial<TFlagsResult> = getArgs(),
   opts: ParseFlagsOptions<TFlagOptions> = {},
 ): TFlagsResult & ParseFlagsContext<TFlags, TFlagOptions> {
   let args: Array<string>;
@@ -205,8 +205,8 @@ export function parseFlags<
     ctx = {} as ParseFlagsContext<Record<string, unknown>>;
     args = argsOrCtx;
   } else {
-    ctx = argsOrCtx;
-    args = argsOrCtx.unknown;
+    ctx = argsOrCtx as ParseFlagsContext<Record<string, unknown>>;
+    args = argsOrCtx.unknown ?? [];
     argsOrCtx.unknown = [];
   }
   args = args.slice();
@@ -217,6 +217,7 @@ export function parseFlags<
   ctx.stopEarly = false;
   ctx.stopOnUnknown = false;
   ctx.defaults ??= {};
+  ctx.parsedFlags ??= [];
 
   opts.dotted ??= true;
 
@@ -333,6 +334,7 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         type: "string",
       };
     }
+    ctx.parsedFlags.push(args[argsIndex]);
 
     if (option.standalone) {
       ctx.standalone = option;
@@ -540,6 +542,9 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         arg: ArgumentOptions,
         value: string,
       ): unknown {
+        if (equalSignIndex === -1) {
+          ctx.parsedFlags.push(value);
+        }
         const result: unknown = opts.parse
           ? opts.parse({
             label: "Option",
