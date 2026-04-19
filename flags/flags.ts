@@ -500,14 +500,19 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         if (!option.args?.length) {
           return false;
         }
-        const nextValue = currentValue ?? args[argsIndex + 1];
+        const nextValue = next();
         if (!nextValue) {
           return false;
         }
         if (option.args.length > 1 && optionArgsIndex >= option.args.length) {
           return false;
         }
-        if (!arg.optional) {
+        let nextOption: FlagOptions | undefined;
+        if (
+          !arg.optional &&
+          (!arg.variadic ||
+            !(nextOption = getOption(opts.flags ?? [], nextValue)))
+        ) {
           return true;
         }
         // require optional values to be called with an equal sign: foo=bar
@@ -517,7 +522,10 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         ) {
           return false;
         }
-        if (arg.optional || arg.variadic) {
+        if (
+          (arg.optional || arg.variadic) &&
+          !(nextOption ?? getOption(opts.flags ?? [], nextValue))
+        ) {
           return nextValue[0] !== "-" ||
             typeof currentValue !== "undefined" ||
             (arg.type === "number" && !isNaN(Number(nextValue)));

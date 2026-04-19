@@ -6,7 +6,6 @@ import { test } from "@cliffy/internal/testing/test";
 
 import { quoteString } from "./_quote_string.ts";
 import { red } from "@std/fmt/colors";
-import { assertSnapshot } from "@std/testing/snapshot";
 import { AssertionError } from "@std/assert/assertion-error";
 
 /** Snapshot test step options. */
@@ -155,6 +154,7 @@ function registerTest(options: SnapshotTestOptions) {
     ctx: Deno.TestContext,
     step?: SnapshotTestStep,
   ) {
+    const { assertSnapshot } = await import("@std/testing/snapshot");
     const { stdout, stderr } = await executeTest(options, step);
 
     const serializer = options.serializer ?? quoteString;

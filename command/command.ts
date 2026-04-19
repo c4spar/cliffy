@@ -44,7 +44,13 @@ import {
 import { exit } from "@cliffy/internal/runtime/exit";
 import { getArgs } from "@cliffy/internal/runtime/get-args";
 import { getEnv } from "@cliffy/internal/runtime/get-env";
-import type { Merge, Mutable, OneOf, ValueOf } from "./_type_utils.ts";
+import type {
+  Merge,
+  Mutable,
+  OneOf,
+  StripInferBound,
+  ValueOf,
+} from "./_type_utils.ts";
 import {
   getDescription,
   parseArgumentsDefinition,
@@ -557,7 +563,7 @@ export class Command<
       TGlobalTypes,
       Options,
       Arguments,
-      GlobalOptions,
+      StripInferBound<GlobalOptions>,
       Types,
       GlobalTypes,
       OneOf<TParentCommand, this>
@@ -606,7 +612,7 @@ export class Command<
       TGlobalTypes,
       Options,
       Arguments,
-      GlobalOptions,
+      StripInferBound<GlobalOptions>,
       Types,
       GlobalTypes,
       OneOf<TParentCommand, this>
@@ -1107,7 +1113,7 @@ export class Command<
       extends (TArg extends `${string}...${string}`
         ? ReadonlyArray<unknown> | undefined
         : unknown) = undefined,
-    const TMappedArguments = undefined,
+    TMappedArguments = undefined,
     TValue = MapTypes<
       TypedArgumentValue<
         TArg,
@@ -1300,16 +1306,7 @@ export class Command<
     Merge<TCommandGlobalTypes, TypedType<TName, THandler>>,
     TParentCommand
   > {
-    return this.type(name, handler, { ...options, global: true }) as Command<
-      TParentCommandGlobals,
-      TParentCommandTypes,
-      TCommandOptions,
-      TCommandArguments,
-      TCommandGlobals,
-      TCommandTypes,
-      Merge<TCommandGlobalTypes, TypedType<TName, THandler>>,
-      TParentCommand
-    >;
+    return this.type(name, handler, { ...options, global: true });
   }
 
   /**

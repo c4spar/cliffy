@@ -253,7 +253,9 @@ test("should map required variadic argument values to array", async () => {
   const { args } = await new Command()
     .throwErrors()
     .argument("<...foo:string>", "...", {
-      value: ([value, ...values]) => [
+      value: (
+        [value, ...values],
+      ): [{ value: string }, ...Array<{ value: string }>] => [
         { value },
         ...values.map((value) => ({ value })),
       ],
