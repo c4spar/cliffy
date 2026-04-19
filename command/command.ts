@@ -2053,6 +2053,7 @@ export class Command<
       stopOnUnknown: false,
       defaults: {},
       actions: [],
+      parsedFlags: [],
     };
     return this.parseCommand(ctx) as any;
   }

@@ -197,7 +197,7 @@ export function parseFlags<
   TFlagOptions extends FlagOptions,
   TFlagsResult extends ParseFlagsContext,
 >(
-  argsOrCtx: string[] | TFlagsResult = getArgs(),
+  argsOrCtx: Array<string> | TFlagsResult = getArgs(),
   opts: ParseFlagsOptions<TFlagOptions> = {},
 ): TFlagsResult & ParseFlagsContext<TFlags, TFlagOptions> {
   let args: Array<string>;
@@ -207,7 +207,7 @@ export function parseFlags<
     ctx = {} as ParseFlagsContext<Record<string, unknown>>;
     args = argsOrCtx;
   } else {
-    ctx = argsOrCtx;
+    ctx = argsOrCtx as ParseFlagsContext<Record<string, unknown>>;
     args = argsOrCtx.unknown;
     argsOrCtx.unknown = [];
   }
@@ -220,6 +220,7 @@ export function parseFlags<
   ctx.stopEarly = false;
   ctx.stopOnUnknown = false;
   ctx.defaults ??= {};
+  ctx.parsedFlags ??= [];
 
   opts.dotted ??= true;
 
@@ -425,6 +426,7 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         type: "string",
       };
     }
+    (ctx.parsedFlags as Array<string>).push(args[argsIndex]);
 
     if (option.standalone) {
       ctx.standalone = option;
@@ -595,6 +597,7 @@ function parseArgs<TFlagOptions extends FlagOptions>(
       }
 
       if (increase && typeof currentValue === "undefined") {
+        (ctx.parsedFlags as Array<string>).push(args[argsIndex + 1]);
         argsIndex++;
         if (!arg.variadic) {
           optionArgsIndex++;
@@ -732,32 +735,12 @@ interface ParseValueOptions {
   value: string;
 }
 
-/** Parse argument value.  */
+/** Parse argument value. */
 function parseValue<TFlagOptions extends FlagOptions>(
   opts: ParseFlagsOptions<TFlagOptions>,
   options: ParseValueOptions,
 ): unknown {
   return opts.parse ? opts.parse(options) : parseDefaultType(options);
-}
-
-function parseDefaultType({
-  label,
-  name,
-  type,
-  value,
-}: ParseValueOptions): unknown {
-  const parseType: TypeHandler | undefined = DefaultTypes[type as ArgumentType];
-
-  if (!parseType) {
-    throw new UnknownTypeError(type, Object.keys(DefaultTypes));
-  }
-
-  return parseType({
-    label,
-    type,
-    name,
-    value,
-  });
 }
 
 function parseListValue<TFlagOptions extends FlagOptions>(
@@ -780,6 +763,26 @@ function parseListValue<TFlagOptions extends FlagOptions>(
       }
       return value;
     });
+}
+
+function parseDefaultType({
+  label,
+  name,
+  type,
+  value,
+}: ParseValueOptions): unknown {
+  const parseType: TypeHandler | undefined = DefaultTypes[type as ArgumentType];
+
+  if (!parseType) {
+    throw new UnknownTypeError(type, Object.keys(DefaultTypes));
+  }
+
+  return parseType({
+    label,
+    type,
+    name,
+    value,
+  });
 }
 
 function validateArguments<TOptions extends FlagOptions = FlagOptions>(

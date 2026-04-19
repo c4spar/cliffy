@@ -139,6 +139,7 @@ test("[flags] should parse from context", () => {
     stopEarly: false,
     stopOnUnknown: false,
     defaults: {},
+    parsedFlags: [],
   }, {
     ...options,
     flags: [
@@ -165,6 +166,7 @@ test("[flags] should ignore missing required options which are already parsed", 
     stopEarly: false,
     stopOnUnknown: false,
     defaults: {},
+    parsedFlags: [],
   }, {
     ...options,
     flags: [
