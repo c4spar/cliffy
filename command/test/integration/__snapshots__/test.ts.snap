@@ -2120,7 +2120,7 @@ stdout:
 
 \`
 stderr:
-'\\x1b[31m  \\x1b[1merror\\x1b[22m: Unknown option "--colorr". Did you mean option "--color"?
+'\\x1b[31m  \\x1b[1merror\\x1b[22m: Argument "color" must be of type "color", but got "--colorr". Expected values: "blue", "yellow", "red"
 \\x1b[39m
 '
 `;

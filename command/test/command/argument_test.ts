@@ -14,6 +14,60 @@ test("should accept a dash as argument", async () => {
   assertEquals(args, ["-"]);
 });
 
+test("should accept a double-dash prefixed value as positional argument", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .argument("<input:string>", "...")
+    .parse(["--not-an-option"]);
+
+  assertType<IsExact<typeof args, [string]>>(true);
+  assertEquals(args, ["--not-an-option"]);
+});
+
+test("should accept a single-dash prefixed value as positional argument", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .argument("<input:string>", "...")
+    .parse(["-x"]);
+
+  assertType<IsExact<typeof args, [string]>>(true);
+  assertEquals(args, ["-x"]);
+});
+
+test("should accept a negative number as positional argument", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .argument("<value:number>", "...")
+    .parse(["-123"]);
+
+  assertType<IsExact<typeof args, [number]>>(true);
+  assertEquals(args, [-123]);
+});
+
+test("should accept multiple leading-dash values as positional arguments", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .argument("<a:string>", "...")
+    .argument("<b:string>", "...")
+    .argument("<c:string>", "...")
+    .parse(["--foo", "-b", "--bar"]);
+
+  assertType<IsExact<typeof args, [string, string, string]>>(true);
+  assertEquals(args, ["--foo", "-b", "--bar"]);
+});
+
+test("should accept leading-dash value mixed with normal arguments", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .argument("<a:string>", "...")
+    .argument("<b:string>", "...")
+    .argument("<c:string>", "...")
+    .parse(["normal", "--with-dash", "also-normal"]);
+
+  assertType<IsExact<typeof args, [string, string, string]>>(true);
+  assertEquals(args, ["normal", "--with-dash", "also-normal"]);
+});
+
 test("should parse correctly argument types", async () => {
   const { args } = await new Command()
     .throwErrors()

@@ -5,13 +5,13 @@ import { bold } from "@std/fmt/colors";
 import type { EnvVar } from "./types.ts";
 
 export class CommandError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     Object.setPrototypeOf(this, CommandError.prototype);
   }
 }
 
-export interface ValidationErrorOptions {
+export interface ValidationErrorOptions extends ErrorOptions {
   exitCode?: number;
 }
 
@@ -19,8 +19,11 @@ export class ValidationError extends CommandError {
   public readonly exitCode: number;
   public cmd?: Command;
 
-  constructor(message: string, { exitCode }: ValidationErrorOptions = {}) {
-    super(message);
+  constructor(
+    message: string,
+    { exitCode, cause }: ValidationErrorOptions = {},
+  ) {
+    super(message, { cause });
     Object.setPrototypeOf(this, ValidationError.prototype);
     this.exitCode = exitCode ?? 2;
   }
@@ -202,20 +205,6 @@ export class NoArgumentsAllowedError extends ValidationError {
   constructor(name: string) {
     super(`No arguments allowed for command "${name}".`);
     Object.setPrototypeOf(this, NoArgumentsAllowedError.prototype);
-  }
-}
-
-export class MissingArgumentsError extends ValidationError {
-  constructor(names: Array<string>) {
-    super(`Missing argument(s): ${names.join(", ")}`);
-    Object.setPrototypeOf(this, MissingArgumentsError.prototype);
-  }
-}
-
-export class MissingArgumentError extends ValidationError {
-  constructor(name: string) {
-    super(`Missing argument: ${name}`);
-    Object.setPrototypeOf(this, MissingArgumentError.prototype);
   }
 }
 
