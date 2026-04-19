@@ -197,7 +197,7 @@ export function parseFlags<
   TFlagOptions extends FlagOptions,
   TFlagsResult extends ParseFlagsContext,
 >(
-  argsOrCtx: string[] | Partial<TFlagsResult> = getArgs(),
+  argsOrCtx: Array<string> | TFlagsResult = getArgs(),
   opts: ParseFlagsOptions<TFlagOptions> = {},
 ): TFlagsResult & ParseFlagsContext<TFlags, TFlagOptions> {
   let args: Array<string>;
@@ -208,7 +208,7 @@ export function parseFlags<
     args = argsOrCtx;
   } else {
     ctx = argsOrCtx as ParseFlagsContext<Record<string, unknown>>;
-    args = argsOrCtx.unknown ?? [];
+    args = argsOrCtx.unknown;
     argsOrCtx.unknown = [];
   }
   args = args.slice();
@@ -426,7 +426,7 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         type: "string",
       };
     }
-    ctx.parsedFlags.push(args[argsIndex]);
+    (ctx.parsedFlags as Array<string>).push(args[argsIndex]);
 
     if (option.standalone) {
       ctx.standalone = option;
@@ -597,6 +597,7 @@ function parseArgs<TFlagOptions extends FlagOptions>(
       }
 
       if (increase && typeof currentValue === "undefined") {
+        (ctx.parsedFlags as Array<string>).push(args[argsIndex + 1]);
         argsIndex++;
         if (!arg.variadic) {
           optionArgsIndex++;
@@ -669,41 +670,6 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         delete ctx.defaults[propName];
       }
     }
-
-    /** Parse argument value.  */
-    // deno-lint-ignore no-inner-declarations
-    function parseValue<TFlagOptions extends FlagOptions>(
-      opts: ParseFlagsOptions<TFlagOptions>,
-      options: ParseValueOptions,
-    ): unknown {
-      if (equalSignIndex === -1) {
-        ctx.parsedFlags.push(options.value);
-      }
-      return opts.parse ? opts.parse(options) : parseDefaultType(options);
-    }
-
-    // deno-lint-ignore no-inner-declarations
-    function parseListValue<TFlagOptions extends FlagOptions>(
-      opts: ParseFlagsOptions<TFlagOptions>,
-      options: ParseValueOptions & { separator?: string },
-    ): unknown[] {
-      return options.value
-        .split(options.separator || ",")
-        .map((nextValue: string) => {
-          const value = parseValue(opts, {
-            ...options,
-            value: nextValue,
-          });
-          if (typeof value === "undefined") {
-            throw new InvalidOptionValueError(
-              options.name,
-              options.type || "?",
-              nextValue,
-            );
-          }
-          return value;
-        });
-    }
   }
 
   return optionsMap;
@@ -767,6 +733,36 @@ interface ParseValueOptions {
   name: string;
   type: ArgumentType | string;
   value: string;
+}
+
+/** Parse argument value. */
+function parseValue<TFlagOptions extends FlagOptions>(
+  opts: ParseFlagsOptions<TFlagOptions>,
+  options: ParseValueOptions,
+): unknown {
+  return opts.parse ? opts.parse(options) : parseDefaultType(options);
+}
+
+function parseListValue<TFlagOptions extends FlagOptions>(
+  opts: ParseFlagsOptions<TFlagOptions>,
+  options: ParseValueOptions & { separator?: string },
+): unknown[] {
+  return options.value
+    .split(options.separator || ",")
+    .map((nextValue: string) => {
+      const value = parseValue(opts, {
+        ...options,
+        value: nextValue,
+      });
+      if (typeof value === "undefined") {
+        throw new InvalidOptionValueError(
+          options.name,
+          options.type || "?",
+          nextValue,
+        );
+      }
+      return value;
+    });
 }
 
 function parseDefaultType({

@@ -44,7 +44,6 @@ function command() {
       "--global-prefixed <value>",
       "...",
     )
-    .action(() => {})
     .command(
       "bar",
       new Command()

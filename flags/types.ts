@@ -167,16 +167,16 @@ export interface ParseFlagsContext<
   /** A map of option names and default values. */
   defaults: Record<string, boolean>;
   /**
-   * An array of strings representing the parsed flags and their values in the
-   * order they were encountered in the command line arguments.
+   * Raw flag tokens in the order they were encountered, preserving the exact
+   * form used on the command line.
    *
-   * Example:
-   * For the command:
-   *     `command --debug-level warning sub-command --port 80`
-   * The `parsedFlags` array will be:
-   *     `['--debug-level', 'warning', '--port', '80']`
+   * Space form — flag and value as separate tokens:
+   *     `command --port 80`  →  `['--port', '80']`
+   *
+   * Equals form — flag and value as one token:
+   *     `command --port=80`  →  `['--port=80']`
    */
-  parsedFlags: Array<string>;
+  parsedFlags: ReadonlyArray<string>;
 }
 
 /** Argument parsing informations. */
