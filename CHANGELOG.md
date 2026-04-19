@@ -1,3 +1,22 @@
+# [v1.0.1](https://github.com/c4spar/deno-cliffy/compare/v1.0.0...v1.0.1) (Apr 19, 2026)
+
+### 🩹 Bug Fixes
+
+- **command:** correct argument type inference for mapped arguments (#868)
+- **command:** move default command handling to parseCommand (#860)
+- **command:** fix return type for action handler (#855)
+- **command:** fix types for `generateShellCompletions` (#854)
+- **flags:** allow options after variadic options (#865)
+- **flags:** correct prototype assignments for error classes (#858)
+- **keycode:** handle paste bracket mode and improve escape sequence parsing
+  (#866)
+
+### 🏡 Chore
+
+- **ci:** install deps in canary job
+- **deps:** update dependencies (#867)
+- **setup:** skip projects without exports (#856)
+
 # [v1.0.0](https://github.com/c4spar/deno-cliffy/compare/v1.0.0-rc.8...v1.0.0) (Feb 10, 2026)
 
 ### 💔 Breaking Changes
