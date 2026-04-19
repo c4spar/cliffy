@@ -64,3 +64,34 @@ await snapshotTest({
     console.log("# stdin end");
   },
 });
+
+await snapshotTest({
+  name: "should set env var for test",
+  meta: import.meta,
+  env: {
+    TEST_ENV: "TEST-VALUE",
+  },
+  fn() {
+    console.log("TEST_ENV: %s", Deno.env.get("TEST_ENV"));
+  },
+});
+
+await snapshotTest({
+  name: "should set env var for test step",
+  meta: import.meta,
+  steps: {
+    "step 1": {
+      env: {
+        TEST_ENV: "TEST-VALUE",
+      },
+    },
+    "step 2": {},
+  },
+  fn() {
+    try {
+      console.log("TEST_ENV: %s", Deno.env.get("TEST_ENV"));
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+    }
+  },
+});
