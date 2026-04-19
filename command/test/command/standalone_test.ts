@@ -38,6 +38,17 @@ test("[command] should execute main action with standalone option", async () => 
   assertEquals(options, { standalone: true });
 });
 
+test("[command] should not validate required global env vars when a global standalone option is used", async () => {
+  const { options } = await new Command()
+    .throwErrors()
+    .globalEnv("REQUIRED_VAR=<value:string>", "required env var")
+    .globalOption("--standalone", "description ...", { standalone: true })
+    .command("sub", "subcommand")
+    .parse(["--standalone"]);
+
+  assertEquals(options, { standalone: true });
+});
+
 test("[command] should throw an error if standalone option is combined with other options", async () => {
   const actionSpy = spy();
 

@@ -29,8 +29,6 @@ import {
   DuplicateExampleError,
   DuplicateOptionNameError,
   DuplicateTypeError,
-  MissingArgumentError,
-  MissingArgumentsError,
   MissingCommandNameError,
   MissingRequiredEnvVarError,
   NoArgumentsAllowedError,
@@ -95,6 +93,7 @@ import { NumberType } from "./types/number.ts";
 import { SecretType } from "./types/secret.ts";
 import { StringType } from "./types/string.ts";
 import { checkVersion } from "./upgrade/_check_version.ts";
+import type { ArgumentOptions } from "@cliffy/flags";
 
 export interface ArgDefinition extends CommandArgumentOptions<any, any, any> {
   arg: string;
@@ -2099,7 +2098,7 @@ export class Command<
           const optionName = ctx.unknown[0].replace(/^-+/, "").split("=")[0];
           const option = this.getOption(optionName, true);
 
-          if (option?.global) {
+          if (option?.global && !option.standalone) {
             preParseGlobals = true;
             await this.parseGlobalOptionsAndEnvVars(ctx);
           }
@@ -2118,7 +2117,10 @@ export class Command<
       // Parse rest options & env vars.
       await this.parseOptionsAndEnvVars(ctx, preParseGlobals);
       const options = { ...ctx.env, ...ctx.flags };
-      const args = await this.parseArguments(ctx, options);
+
+      // Process arguments.
+      await this.processArguments(ctx);
+      const args = ctx.args ?? [];
       this.props.literalArgs = ctx.literal;
 
       // Execute option action.
@@ -2187,7 +2189,10 @@ export class Command<
     const isVersionOption = this.props.versionOption?.flags.includes(
       ctx.unknown[0],
     );
-    const isHelpOption = helpOption && ctx.flags?.[helpOption.name] === true;
+    const isHelpOption = helpOption &&
+      (preParseGlobals
+        ? ctx.flags?.[helpOption.name] === true
+        : ctx.unknown.some((unknown) => helpOption.flags.includes(unknown)));
 
     // Parse env vars.
     const envVars = preParseGlobals
@@ -2203,7 +2208,9 @@ export class Command<
     // Parse options.
     const options = this.getOptions(true);
 
-    this.parseOptions(ctx, options);
+    this.parseOptions(ctx, options, {
+      args: this.getArguments(),
+    });
   }
 
   /** Register default options like `--version` and `--help`. */
@@ -2333,6 +2340,7 @@ export class Command<
       stopEarly = this.settings.stopEarly,
       stopOnUnknown = false,
       dotted = true,
+      args = [],
     }: ParseOptionsOptions = {},
   ): void {
     parseFlags(ctx, {
@@ -2341,6 +2349,7 @@ export class Command<
       dotted,
       allowEmpty: this.settings.allowEmpty,
       flags: options,
+      args,
       ignoreDefaults: ctx.env,
       parse: (type: ArgumentValue) => this.parseType(type),
       option: (option: Option) => {
@@ -2437,134 +2446,37 @@ export class Command<
   }
 
   /**
-   * Parse command-line arguments.
-   * @param ctx     Parse context.
-   * @param options Parsed command line options.
+   * Processes command-line arguments.
+   *
+   * @param ctx Parse context.
    */
-  protected async parseArguments(
+  private async processArguments(
     ctx: ParseContext,
-    options: Record<string, unknown>,
-  ): Promise<TCommandArguments> {
-    const params: Array<unknown> = [];
-    const args = ctx.unknown.slice();
-
-    if (!this.hasArguments()) {
-      if (args.length) {
-        if (this.hasCommands(true)) {
-          if (this.hasCommand(args[0], true)) {
-            // e.g: command --global-foo --foo sub-command
-            throw new TooManyArgumentsError(args);
-          } else {
-            throw new UnknownCommandError(args[0], this.getCommands());
-          }
+  ): Promise<void> {
+    if (!this.hasArguments() && ctx.unknown.length) {
+      if (this.hasCommands(true)) {
+        if (this.hasCommand(ctx.unknown[0], true)) {
+          // e.g: command --global-foo --foo sub-command
+          throw new TooManyArgumentsError(ctx.unknown);
         } else {
-          throw new NoArgumentsAllowedError(this.getPath());
-        }
-      }
-    } else {
-      const hasDefaults = this.settings.arguments?.some((arg) => arg.default);
-
-      if (!args.length && !hasDefaults) {
-        const required = this.getArguments()
-          .filter((expectedArg) => !expectedArg.optional)
-          .map((expectedArg) => expectedArg.name);
-
-        if (required.length) {
-          const optionNames: string[] = Object.keys(options);
-          const hasStandaloneOption = !!optionNames.find((name) =>
-            this.getOption(name, true)?.standalone
-          );
-
-          if (!hasStandaloneOption) {
-            throw new MissingArgumentsError(required);
-          }
+          throw new UnknownCommandError(ctx.unknown[0], this.getCommands());
         }
       } else {
-        for (const [index, expectedArg] of this.getArguments().entries()) {
-          const mapArgValue = (parsed: unknown) => {
-            return this.settings.arguments?.[index].value
-              ? this.settings.arguments[index].value(parsed)
-              : parsed;
-          };
-
-          if (!args.length) {
-            if (this.settings.arguments?.[index].default !== undefined) {
-              const defaultValue =
-                typeof this.settings.arguments[index].default === "function"
-                  ? this.settings.arguments[index].default.call(this)
-                  : this.settings.arguments[index].default;
-
-              const mappedValue = mapArgValue(defaultValue);
-
-              if (expectedArg.variadic && Array.isArray(mappedValue)) {
-                params.push(...mappedValue);
-                continue;
-              }
-              params.push(mappedValue);
-              continue;
-            }
-
-            if (expectedArg.optional) {
-              if (hasDefaults) {
-                params.push(undefined);
-              }
-              continue;
-            }
-            throw new MissingArgumentError(expectedArg.name);
-          }
-
-          let arg: unknown;
-
-          const parseArgValue = (value: string) => {
-            return expectedArg.list
-              ? value.split(",").map((value) => parseArgType(value))
-              : parseArgType(value);
-          };
-
-          const parseArgType = (value: string) => {
-            return this.parseType({
-              label: "Argument",
-              type: expectedArg.type,
-              name: expectedArg.name,
-              value,
-            });
-          };
-
-          if (expectedArg.variadic) {
-            arg = args.splice(0, args.length).map((value) =>
-              parseArgValue(value)
-            );
-          } else {
-            arg = parseArgValue(args.shift() as string);
-          }
-
-          arg = mapArgValue(arg);
-
-          if (expectedArg.variadic && Array.isArray(arg)) {
-            params.push(...arg);
-          } else if (typeof arg !== "undefined") {
-            params.push(arg);
-          }
-        }
-
-        if (args.length) {
-          throw new TooManyArgumentsError(args);
-        }
+        throw new NoArgumentsAllowedError(this.getPath());
       }
     }
-    const values = await Promise.all(params);
 
-    while (values.length && values.at(-1) === undefined) {
-      values.pop();
+    if (ctx.args?.length) {
+      ctx.args = await Promise.all(ctx.args ?? []);
+    } else if (ctx.stopEarly || ctx.stopOnUnknown) {
+      ctx.args = ctx.unknown;
     }
-
-    return values as TCommandArguments;
   }
 
   private handleError(error: unknown): never {
     this.throw(
       error instanceof FlagsValidationError
-        ? new ValidationError(error.message)
+        ? new ValidationError(error.message, { cause: error })
         : error instanceof Error
         ? error
         : new Error(`[non-error-thrown] ${error}`),
@@ -3439,4 +3351,5 @@ interface ParseOptionsOptions {
   stopEarly?: boolean;
   stopOnUnknown?: boolean;
   dotted?: boolean;
+  args?: Array<ArgumentOptions>;
 }
