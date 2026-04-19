@@ -120,7 +120,7 @@ test({
 });
 
 test({
-  name: "[command] - env var - ignores required env vars for help",
+  name: "[command] - env var - ignores required global env vars for help",
   ignore: ["node"],
   fn: async () => {
     await new Command()

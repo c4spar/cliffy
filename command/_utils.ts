@@ -136,6 +136,16 @@ export function parseArgumentsDefinition<T extends boolean>(
       type,
     };
 
+    if (argDef.value !== undefined) {
+      details.value = argDef.value;
+    }
+    if (argDef.default !== undefined) {
+      details.default = argDef.default;
+    }
+    if (argDef.separator !== undefined) {
+      details.separator = argDef.separator;
+    }
+
     if (validate && !details.optional && hasOptional) {
       throw new UnexpectedRequiredArgumentError(details.name);
     }

@@ -62,17 +62,6 @@ export class DuplicateOptionError extends ValidationError {
   }
 }
 
-export class InvalidOptionError extends ValidationError {
-  constructor(option: string, options: Array<FlagOptions>) {
-    super(
-      `Invalid option "${getFlag(option)}".${
-        didYouMeanOption(option, options)
-      }`,
-    );
-    Object.setPrototypeOf(this, InvalidOptionError.prototype);
-  }
-}
-
 export class UnknownOptionError extends ValidationError {
   constructor(option: string, options: Array<FlagOptions>) {
     super(
@@ -185,5 +174,26 @@ export class InvalidTypeError extends ValidationError {
       ),
     );
     Object.setPrototypeOf(this, InvalidTypeError.prototype);
+  }
+}
+
+export class MissingArgumentError extends ValidationError {
+  constructor(name: string) {
+    super(`Missing argument: ${name}`);
+    Object.setPrototypeOf(this, MissingArgumentError.prototype);
+  }
+}
+
+export class MissingArgumentsError extends ValidationError {
+  constructor(names: Array<string>) {
+    super(`Missing argument(s): ${names.join(", ")}`);
+    Object.setPrototypeOf(this, MissingArgumentsError.prototype);
+  }
+}
+
+export class TooManyArgumentsError extends ValidationError {
+  constructor(args: Array<string>) {
+    super(`Too many arguments: ${args.join(" ")}`);
+    Object.setPrototypeOf(this, TooManyArgumentsError.prototype);
   }
 }

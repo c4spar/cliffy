@@ -52,6 +52,7 @@ export {
   type ArgumentOptions,
   type ArgumentType,
   type ArgumentValue,
+  type ArgumentValueHandler,
   type DefaultValue,
   type DefaultValueHandler,
   type FlagOptions,
