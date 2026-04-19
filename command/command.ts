@@ -44,7 +44,13 @@ import {
 import { exit } from "@cliffy/internal/runtime/exit";
 import { getArgs } from "@cliffy/internal/runtime/get-args";
 import { getEnv } from "@cliffy/internal/runtime/get-env";
-import type { Merge, Mutable, OneOf, ValueOf } from "./_type_utils.ts";
+import type {
+  Merge,
+  Mutable,
+  OneOf,
+  StripInferBound,
+  ValueOf,
+} from "./_type_utils.ts";
 import {
   getDescription,
   parseArgumentsDefinition,
@@ -557,7 +563,7 @@ export class Command<
       TGlobalTypes,
       Options,
       Arguments,
-      GlobalOptions,
+      StripInferBound<GlobalOptions>,
       Types,
       GlobalTypes,
       OneOf<TParentCommand, this>
@@ -606,7 +612,7 @@ export class Command<
       TGlobalTypes,
       Options,
       Arguments,
-      GlobalOptions,
+      StripInferBound<GlobalOptions>,
       Types,
       GlobalTypes,
       OneOf<TParentCommand, this>
@@ -1107,7 +1113,7 @@ export class Command<
       extends (TArg extends `${string}...${string}`
         ? ReadonlyArray<unknown> | undefined
         : unknown) = undefined,
-    const TMappedArguments = undefined,
+    TMappedArguments = undefined,
     TValue = MapTypes<
       TypedArgumentValue<
         TArg,
@@ -1273,8 +1279,8 @@ export class Command<
   /**
    * Set default command.
    *
-   * The default command is executed when the program was called without any
-   * arguments.
+   * The default command is executed when the command was called without any
+   * additional arguments.
    *
    * @param name Name of the default command.
    */
@@ -1300,16 +1306,7 @@ export class Command<
     Merge<TCommandGlobalTypes, TypedType<TName, THandler>>,
     TParentCommand
   > {
-    return this.type(name, handler, { ...options, global: true }) as Command<
-      TParentCommandGlobals,
-      TParentCommandTypes,
-      TCommandOptions,
-      TCommandArguments,
-      TCommandGlobals,
-      TCommandTypes,
-      Merge<TCommandGlobalTypes, TypedType<TName, THandler>>,
-      TParentCommand
-    >;
+    return this.type(name, handler, { ...options, global: true });
   }
 
   /**
@@ -2067,6 +2064,23 @@ export class Command<
       this.registerDefaults();
       this.props.rawArgs = ctx.unknown.slice();
 
+      if (!ctx.unknown.length && this.settings.defaultCommand) {
+        const defaultCommand = this.getCommand(
+          this.settings.defaultCommand,
+          true,
+        );
+
+        if (!defaultCommand) {
+          throw new DefaultCommandNotFoundError(
+            this.settings.defaultCommand,
+            this.getCommands(),
+          );
+        }
+        defaultCommand.props.globalParent = this;
+
+        return defaultCommand.parseCommand(ctx);
+      }
+
       if (this.settings.useRawArgs) {
         await this.parseEnvVars(ctx, this.builder.envVars);
         return await this.execute(ctx.env, ctx.unknown);
@@ -2287,23 +2301,6 @@ export class Command<
     options: Record<string, unknown>,
     args: Array<unknown>,
   ): Promise<CommandResult> {
-    if (
-      this.settings.defaultCommand && !args.length &&
-      !Object.keys(options).length
-    ) {
-      const cmd = this.getCommand(this.settings.defaultCommand, true);
-
-      if (!cmd) {
-        throw new DefaultCommandNotFoundError(
-          this.settings.defaultCommand,
-          this.getCommands(),
-        );
-      }
-      cmd.props.globalParent = this;
-
-      return cmd.execute(options, args);
-    }
-
     await this.executeGlobalAction(options, args);
 
     if (this.settings.actionHandler) {

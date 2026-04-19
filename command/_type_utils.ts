@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 export type TrimLeft<
   TValue extends string,
   TTrimValue extends string | undefined,
@@ -25,12 +26,22 @@ export type OneOf<TValue, TDefault> = TValue extends void ? TDefault : TValue;
 //   : R extends void ? L
 //   : Omit<L, keyof R> & R;
 
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+
 export type Merge<TLeft, TRight> = TLeft extends void ? TRight
   : TRight extends void ? TLeft
+  : IsAny<TLeft> extends true ? any
+  : IsAny<TRight> extends true ? any
+  : [TLeft] extends [void] ? TRight
+  : [TRight] extends [void] ? TLeft
   : TLeft & TRight;
 
 export type MergeRecursive<TLeft, TRight> = TLeft extends void ? TRight
   : TRight extends void ? TLeft
+  : IsAny<TLeft> extends true ? any
+  : IsAny<TRight> extends true ? any
+  : [TLeft] extends [void] ? TRight
+  : [TRight] extends [void] ? TLeft
   : TLeft & TRight;
 
 export type ValueOf<TValue> = TValue extends Record<string, infer V>
@@ -38,3 +49,7 @@ export type ValueOf<TValue> = TValue extends Record<string, infer V>
   : TValue;
 
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+export type StripInferBound<T> = Record<string, unknown> | void extends T
+  ? Exclude<T, Record<string, unknown>>
+  : T;
