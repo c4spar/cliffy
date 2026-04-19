@@ -102,6 +102,41 @@ test("should set default values for flags with multiple args and omit trailing u
   assertEquals(literal, []);
 });
 
+test("should apply value handler for single-arg flag", () => {
+  const { flags, unknown, literal } = parseFlags(["--count", "5"], {
+    flags: [{
+      name: "count",
+      args: [{
+        type: "number",
+        value: (value) => value * 2,
+      }],
+    }],
+  });
+
+  assertEquals(flags, { count: 10 });
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
+
+test("should call default function for multi-arg flag", () => {
+  const { flags, unknown, literal } = parseFlags([], {
+    flags: [{
+      name: "range",
+      args: [{
+        type: "number",
+        default: () => 1,
+      }, {
+        type: "number",
+        default: () => 100,
+      }],
+    }],
+  });
+
+  assertEquals(flags, { range: [1, 100] });
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
+
 test("should call value handlers for flags with multiple args", () => {
   const { flags, unknown, literal } = parseFlags([
     "--multi-arg-option",

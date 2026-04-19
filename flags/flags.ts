@@ -384,6 +384,41 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         }
       }
     } else {
+      if (opts.args?.length && !maybeIsFlag) {
+        const argDef = opts.args[argIndex];
+
+        if (argDef) {
+          const posArgs = ctx.args ??= [];
+
+          if (argDef.list) {
+            posArgs.push(
+              parseListValue(opts, {
+                label: "Argument",
+                name: argDef.name || `arg[${argIndex}]`,
+                type: argDef.type || "string",
+                value: currentRaw,
+                separator: argDef.separator,
+              }),
+            );
+          } else {
+            posArgs.push(
+              parseValue(opts, {
+                label: "Argument",
+                name: argDef.name || `arg[${argIndex}]`,
+                type: argDef.type || "string",
+                value: currentRaw,
+              }),
+            );
+          }
+
+          if (!argDef.variadic) {
+            argIndex++;
+          } else if (opts.args[argIndex + 1]) {
+            throw new UnexpectedArgumentAfterVariadicArgumentError(currentRaw);
+          }
+          continue;
+        }
+      }
       option = {
         name: current.replace(/^-+/, ""),
         optionalValue: true,
@@ -454,15 +489,22 @@ function parseArgs<TFlagOptions extends FlagOptions>(
     // TODO: decuple option and option.args so we can have a value handle for
     //  each arg separately and one additionally for all args.
     if (
-      option.args && (option.args.length > 1 || !option.value) &&
-      option.args?.some((arg) => arg.value)
+      option.args?.some((arg) => arg.value) &&
+      (option.args.length > 1 || !option.value)
     ) {
-      for (const [index, arg] of option.args.entries()) {
+      if (option.args.length === 1) {
+        const arg = option.args[0];
         if (typeof arg.value === "function") {
-          (ctx.flags[propName] as Array<unknown>)[index] = arg.value(
-            (ctx.flags[propName] as Array<unknown>)[index],
-          );
-          // setFlagValue(ctx.flags[propName]);
+          ctx.flags[propName] = arg.value(ctx.flags[propName]);
+        }
+      } else {
+        for (const [index, arg] of option.args.entries()) {
+          if (typeof arg.value === "function") {
+            (ctx.flags[propName] as Array<unknown>)[index] = arg.value(
+              (ctx.flags[propName] as Array<unknown>)[index],
+            );
+            // setFlagValue(ctx.flags[propName]);
+          }
         }
       }
     }
@@ -746,85 +788,78 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
   options: Map<string, FlagOptions> = new Map(),
 ) {
   if (!opts.args?.length) {
-    // ...
-  } else {
-    const hasDefaults = opts.args.some((arg) => arg.default);
+    return;
+  }
+  const hasDefaults = opts.args.some((arg) => arg.default !== undefined);
 
-    if (!ctx.args?.length && !hasDefaults) {
-      const required: Array<string> = opts.args
-        .filter((expectedArg) => !expectedArg.optional)
-        .map((expectedArg) =>
-          expectedArg.name ?? `arg[${opts.args?.indexOf(expectedArg)}]`
-        );
+  if (!ctx.args?.length && !hasDefaults) {
+    const required: Array<string> = opts.args
+      .filter((expectedArg) => !expectedArg.optional)
+      .map((expectedArg) =>
+        expectedArg.name ?? `arg[${opts.args?.indexOf(expectedArg)}]`
+      );
 
-      if (required.length) {
-        // MapIterator type is not available in deno v1.
-        // const optionNames: MapIterator<string> = options.keys();
-        // deno-lint-ignore no-explicit-any
-        const optionNames = options.keys() as any;
-        const hasStandaloneOption = !!optionNames.some((name: string) =>
-          // this.getOption(name, true)?.standalone
-          opts.flags && getOption(opts.flags, name)?.standalone
-        );
+    if (required.length) {
+      const hasStandaloneOption = [...options.keys()].some((name) =>
+        opts.flags && getOption(opts.flags, name)?.standalone
+      );
 
-        if (!hasStandaloneOption) {
-          throw new MissingArgumentsError(required);
-        }
+      if (!hasStandaloneOption) {
+        throw new MissingArgumentsError(required);
       }
-    } else {
-      ctx.args ??= [];
+    }
+  } else {
+    ctx.args ??= [];
 
-      for (const [index, expectedArg] of opts.args?.entries() ?? []) {
-        const mapArgValue = (parsed: unknown) => {
-          return expectedArg.value ? expectedArg.value(parsed) : parsed;
-        };
+    for (const [index, expectedArg] of opts.args?.entries() ?? []) {
+      const mapArgValue = (parsed: unknown) => {
+        return expectedArg.value ? expectedArg.value(parsed) : parsed;
+      };
 
-        if (typeof ctx.args[index] === "undefined") {
-          if (expectedArg.default !== undefined) {
-            const defaultValue = typeof expectedArg.default === "function"
-              // ? expectedArg.default.call(opts.this)
-              ? expectedArg.default
-              : expectedArg.default;
+      if (typeof ctx.args[index] === "undefined") {
+        if (expectedArg.default !== undefined) {
+          const defaultValue = typeof expectedArg.default === "function"
+            ? expectedArg.default()
+            : expectedArg.default;
 
-            const mappedValue = mapArgValue(defaultValue);
+          const mappedValue = mapArgValue(defaultValue);
 
-            if (expectedArg.variadic && Array.isArray(mappedValue)) {
-              ctx.args.splice(index, 0, ...mappedValue);
-              continue;
-            } else {
-              ctx.args[index] = mappedValue;
-              continue;
-            }
-          }
-
-          if (expectedArg.optional) {
-            continue;
-          }
-          throw new MissingArgumentError(expectedArg.name ?? `arg[${index}]`);
-        }
-
-        let mappedValue: unknown;
-        if (expectedArg.variadic) {
-          mappedValue = mapArgValue(ctx.args.splice(index));
-        } else {
-          mappedValue = mapArgValue(ctx.args[index]);
-        }
-
-        if (
-          typeof mappedValue !== "undefined" ||
-          typeof ctx.args[index] !== "undefined"
-        ) {
           if (expectedArg.variadic && Array.isArray(mappedValue)) {
             ctx.args.splice(index, 0, ...mappedValue);
-          } else if (typeof mappedValue !== "undefined") {
+            continue;
+          } else {
             ctx.args[index] = mappedValue;
+            continue;
           }
         }
+
+        if (expectedArg.optional) {
+          continue;
+        }
+        throw new MissingArgumentError(expectedArg.name ?? `arg[${index}]`);
       }
 
-      if (ctx.unknown.length) {
-        throw new TooManyArgumentsError(ctx.unknown);
+      let mappedValue: unknown;
+      if (expectedArg.variadic) {
+        mappedValue = mapArgValue(ctx.args.splice(index));
+      } else {
+        mappedValue = mapArgValue(ctx.args[index]);
       }
+
+      if (
+        typeof mappedValue !== "undefined" ||
+        typeof ctx.args[index] !== "undefined"
+      ) {
+        if (expectedArg.variadic && Array.isArray(mappedValue)) {
+          ctx.args.splice(index, 0, ...mappedValue);
+        } else if (typeof mappedValue !== "undefined") {
+          ctx.args[index] = mappedValue;
+        }
+      }
+    }
+
+    if (ctx.unknown.length) {
+      throw new TooManyArgumentsError(ctx.unknown);
     }
   }
 }
