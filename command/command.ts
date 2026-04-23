@@ -942,16 +942,14 @@ export class Command<
       | HelpOptions & CustomHelpOptions,
     customHelpOptions?: CustomHelpOptions,
   ): this {
-    if (typeof help === "object") {
+    if (typeof help === "string") {
+      this.cmd.settings.help = () => help;
+    } else if (typeof help === "function") {
+      this.cmd.settings.help = help;
+    } else {
       customHelpOptions = help;
       this.cmd.settings.help = (cmd: Command, options: HelpOptions): string =>
         HelpGenerator.generate(cmd, { ...help, ...options });
-    } else {
-      if (typeof help === "string") {
-        this.cmd.settings.help = () => help;
-      } else if (typeof help === "function") {
-        this.cmd.settings.help = help;
-      }
     }
 
     if (customHelpOptions?.auto) {
