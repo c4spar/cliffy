@@ -139,10 +139,14 @@ test("[command] sub command - command with empty name", async () => {
 });
 
 test("[command] sub command - override child command", async () => {
-  await new Command()
+  const { options, args } = await new Command()
     .command("foo")
     .command("foo", "...", { override: true })
-    .parse(["foo"]);
+    .option("--beep [value:string]", "boop")
+    .parse(["foo", "--beep", "boop"]);
+
+  assertEquals(options, { beep: "boop" });
+  assertEquals(args, []);
 });
 
 test("[command] sub command - duplicate command name", async () => {

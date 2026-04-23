@@ -166,6 +166,17 @@ export interface ParseFlagsContext<
   stopOnUnknown: boolean;
   /** A map of option names and default values. */
   defaults: Record<string, boolean>;
+  /**
+   * Raw flag tokens in the order they were encountered, preserving the exact
+   * form used on the command line.
+   *
+   * Space form — flag and value as separate tokens:
+   *     `command --port 80`  →  `['--port', '80']`
+   *
+   * Equals form — flag and value as one token:
+   *     `command --port=80`  →  `['--port=80']`
+   */
+  parsedFlags: ReadonlyArray<string>;
 }
 
 /** Argument parsing informations. */

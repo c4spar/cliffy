@@ -125,6 +125,7 @@ interface CommandSettings {
   commands: Map<string, Command<any>>;
   versionOptions?: DefaultOption | false;
   helpOptions?: DefaultOption | false;
+  autoHelp?: boolean;
 }
 
 interface CommandProps {
@@ -148,6 +149,22 @@ interface BuilderProps {
 
 export interface SubCommandOptions {
   override?: boolean;
+}
+
+export interface CustomHelpOptions {
+  /**
+   * If enabled, the help text will be shown automatically when a command, which
+   * has subcommands and no action handler defined, is executed without any
+   * arguments or options.
+   *
+   * This allows creating commands that only serve as a container for
+   * subcommands and don't have their own action handler, without the need to
+   * explicitly show help in the action handler of such commands.
+   *
+   * This option is enabled by default. To turn off the automatic help display,
+   * set this option to `false`.
+   */
+  auto?: boolean;
 }
 
 /**
@@ -843,10 +860,75 @@ export class Command<
       : this.settings.meta[name];
   }
 
+  public help(helpOptions: HelpOptions & CustomHelpOptions): this;
+
+  public help(
+    customHelp: string | HelpHandler,
+    customHelpOptions?: CustomHelpOptions,
+  ): this;
+
   /**
-   * Set command help.
+   * Set help options or define a custom help handler or help string.
    *
-   * @param help Help string, method, or config for generator that returns the help string.
+   * @param help Options for the build-in help generator or a custom help string
+   * or function that generates the help string. If the help is a function, it
+   * receives the command instance and the help options as parameters and should
+   * return the help string. If the help is a string, it is returned as is when
+   * the help is called.
+   * @param customHelpOptions Custom help options. If the first parameter is an
+   * object, it is treated as custom help options and the default help generator
+   * will be used to generate the help text based on these options.
+   *
+   * @example Help options
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help({ auto: true })
+   *   .parse();
+   * ```
+   *
+   * @example Custom help string
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help("This is a custom help string.")
+   *   .parse();
+   * ```
+   *
+   * @example Custom help handler
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help((cmd) => {
+   *     return `This is a custom help string for command ${cmd.getName()}.`;
+   *   })
+   *   .parse();
+   * ```
+   *
+   * @example Help help handler with options
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help(
+   *     (cmd, options) => {
+   *       return `This is a custom help string for command ${cmd.getName()} with options: ${JSON.stringify(options)}.`;
+   *     },
+   *     { auto: true },
+   *   )
+   *   .parse();
+   * ```
    */
   public help(
     help:
@@ -857,16 +939,20 @@ export class Command<
         TCommandGlobals,
         TParentCommandGlobals
       >
-      | HelpOptions,
+      | HelpOptions & CustomHelpOptions,
+    customHelpOptions?: CustomHelpOptions,
   ): this {
     if (typeof help === "string") {
       this.cmd.settings.help = () => help;
     } else if (typeof help === "function") {
       this.cmd.settings.help = help;
     } else {
+      customHelpOptions = help;
       this.cmd.settings.help = (cmd: Command, options: HelpOptions): string =>
         HelpGenerator.generate(cmd, { ...help, ...options });
     }
+    this.cmd.settings.autoHelp = customHelpOptions?.auto;
+
     return this;
   }
 
@@ -2053,6 +2139,7 @@ export class Command<
       stopOnUnknown: false,
       defaults: {},
       actions: [],
+      parsedFlags: [],
     };
     return this.parseCommand(ctx) as any;
   }
@@ -2063,7 +2150,10 @@ export class Command<
       this.registerDefaults();
       this.props.rawArgs = ctx.unknown.slice();
 
-      if (!ctx.unknown.length && this.settings.defaultCommand) {
+      if (
+        this.settings.defaultCommand && !ctx.parsedFlags.length &&
+        !ctx.unknown.length
+      ) {
         const defaultCommand = this.getCommand(
           this.settings.defaultCommand,
           true,
@@ -2082,7 +2172,7 @@ export class Command<
 
       if (this.settings.useRawArgs) {
         await this.parseEnvVars(ctx, this.builder.envVars);
-        return await this.execute(ctx.env, ctx.unknown);
+        return await this.execute(ctx.env, ctx.unknown, ctx);
       }
 
       let preParseGlobals = false;
@@ -2139,7 +2229,7 @@ export class Command<
         }
       }
 
-      return await this.execute(options, args);
+      return await this.execute(options, args, ctx);
     } catch (error: unknown) {
       this.handleError(error);
     }
@@ -2301,18 +2391,30 @@ export class Command<
 
   /**
    * Execute command.
-   * @param options A map of options.
-   * @param args Command arguments.
+   * @param options A map of all options and environment variables. This also
+   * includes global options and environment variables. The options are parsed
+   * and processed by the command before passed to the action handler.
+   * @param args Positional arguments array.
+   * @param ctx Parse context.
    */
   private async execute(
     options: Record<string, unknown>,
     args: Array<unknown>,
+    ctx: ParseContext,
   ): Promise<CommandResult> {
-    await this.executeGlobalAction(options, args);
-
-    if (this.settings.actionHandler) {
-      await this.settings.actionHandler.call(this, options, ...args);
+    // Show help if auto help is enabled, the command has sub commands, was
+    // called without any arguments or options and has no action handler.
+    if (
+      this.settings.commands.size && !ctx.unknown.length &&
+      !ctx.parsedFlags.length && !this.settings.actionHandler &&
+      this.isAutoHelpEnabled()
+    ) {
+      this.showHelp();
+      this.exit();
     }
+
+    await this.executeGlobalAction(options, args);
+    await this.settings.actionHandler?.call(this, options, ...args);
 
     return {
       options,
@@ -3324,6 +3426,10 @@ export class Command<
 
   private getHelpOption(): Option | undefined {
     return this.props.helpOption ?? this.parent?.getHelpOption();
+  }
+
+  private isAutoHelpEnabled(): boolean {
+    return this.settings.autoHelp ?? this.parent?.isAutoHelpEnabled() ?? true;
   }
 }
 

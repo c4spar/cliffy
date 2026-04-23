@@ -47,6 +47,30 @@ bar
 stderr:
 \\"\\"
 \`;
+
+snapshot[\`should set env var for test 1\`] = \`
+stdout:
+\\"TEST_ENV: TEST-VALUE
+\\"
+stderr:
+\\"\\"
+\`;
+
+snapshot[\`should set env var for test step > step 1 1\`] = \`
+stdout:
+\\"TEST_ENV: TEST-VALUE
+\\"
+stderr:
+\\"\\"
+\`;
+
+snapshot[\`should set env var for test step > step 2 1\`] = \`
+stdout:
+\\"\\"
+stderr:
+'Requires env access to \\"TEST_ENV\\", run again with the --allow-env flag
+'
+\`;
 "
 `;
 
