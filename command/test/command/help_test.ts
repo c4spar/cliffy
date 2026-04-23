@@ -336,3 +336,26 @@ await snapshotTest({
       .parse();
   },
 });
+
+await snapshotTest({
+  name:
+    "should not show help when auto help is disabled for commands with subcommands and no action handler if no arguments are provided",
+  meta: import.meta,
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+  },
+  async fn(): Promise<void> {
+    const fooCommand = new Command()
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .help({ auto: false })
+      .noExit()
+      .command("foo", fooCommand)
+      .parse();
+  },
+});

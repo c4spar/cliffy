@@ -205,3 +205,17 @@ stdout:
 stderr:
 ""
 `;
+
+snapshot[`should not show help when auto help is disabled for commands with subcommands and no action handler if no arguments are provided > mainCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help is disabled for commands with subcommands and no action handler if no arguments are provided > fooCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;

@@ -951,10 +951,7 @@ export class Command<
       this.cmd.settings.help = (cmd: Command, options: HelpOptions): string =>
         HelpGenerator.generate(cmd, { ...help, ...options });
     }
-
-    if (customHelpOptions?.auto) {
-      this.cmd.settings.autoHelp = true;
-    }
+    this.cmd.settings.autoHelp = customHelpOptions?.auto;
 
     return this;
   }
@@ -2410,7 +2407,7 @@ export class Command<
     if (
       this.settings.commands.size && !ctx.unknown.length &&
       !ctx.parsedFlags.length && !this.settings.actionHandler &&
-      !this.settings.allowEmpty && this.isAutoHelpEnabled()
+      this.isAutoHelpEnabled()
     ) {
       this.showHelp();
       this.exit();
