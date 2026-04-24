@@ -12,6 +12,8 @@ export interface ColumnOptions {
   maxWidth?: number;
   /** Set cell padding. */
   padding?: number;
+  /** Set column flexibility to shrink. 1 is enabled, 0 disabled. */
+  flexShrink?: number;
 }
 
 /**
@@ -102,5 +104,10 @@ export class Column {
   /** Get column alignment. */
   getAlign(): Direction | undefined {
     return this.opts.align;
+  }
+
+  /** Get flex shrink. */
+  getFlexShrink(): number | undefined {
+    return this.opts.flexShrink;
   }
 }
