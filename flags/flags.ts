@@ -601,7 +601,6 @@ function parseArgs<TFlagOptions extends FlagOptions>(
           result = "";
         }
         increase = true;
-
       } else if (arg.list && hasNext(arg)) {
         const parsed: unknown[] = parseListValue(opts, {
           label: "Option",
@@ -615,7 +614,6 @@ function parseArgs<TFlagOptions extends FlagOptions>(
           result = parsed;
         }
         increase = true;
-
       } else {
         if (hasNext(arg)) {
           result = parseValue(opts, {
