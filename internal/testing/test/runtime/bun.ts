@@ -24,20 +24,22 @@ function createBunTestInnerFunction(
 ): boolean {
   const skip = Array.isArray(ignore) ? ignore.includes("bun") : ignore;
   if (only) {
-    bunTest.only(name, createBunTestFn(fn));
+    bunTest.only(name, createBunTestFn(name, fn));
   } else if (skip) {
-    bunTest.skip(name, createBunTestFn(fn));
+    bunTest.skip(name, createBunTestFn(name, fn));
     return true;
   } else {
-    bunTest(name, createBunTestFn(fn));
+    bunTest(name, createBunTestFn(name, fn));
   }
 
   return false;
 }
 
-function createBunTestFn(fn: TestFn): BunTestFn {
+function createBunTestFn(name: string, fn: TestFn): BunTestFn {
   return () => {
     fn({
+      name,
+      origin: "bun",
       step: createTestFunction((opts: TestOptions): Promise<boolean> =>
         Promise.resolve(createBunTestInnerFunction(opts))
       ),

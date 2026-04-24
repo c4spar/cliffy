@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertThrows } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 import type { ParseFlagsOptions } from "../../types.ts";
 
@@ -8,7 +7,7 @@ const options: ParseFlagsOptions = {
   flags: [{
     name: "function",
     aliases: ["f"],
-    type: OptionType.STRING,
+    type: "string",
     optionalValue: true,
     collect: true,
     value(

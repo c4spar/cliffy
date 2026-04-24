@@ -40,6 +40,15 @@ export class JsrProvider extends Provider {
       : options.name;
   }
 
+  async hasRequiredPermissions(): Promise<boolean> {
+    const apiUrl = new URL(this.repositoryUrl);
+    const permissionStatus = await Deno.permissions.query({
+      name: "net",
+      host: apiUrl.host,
+    });
+    return permissionStatus.state === "granted";
+  }
+
   async getVersions(
     name: string,
   ): Promise<Versions> {

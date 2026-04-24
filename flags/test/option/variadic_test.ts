@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertThrows } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 import type { ParseFlagsOptions } from "../../types.ts";
 
@@ -9,37 +8,37 @@ const options: ParseFlagsOptions = {
   flags: [{
     name: "optional",
     aliases: ["o"],
-    type: OptionType.NUMBER,
+    type: "number",
     variadic: true,
     optionalValue: true,
   }, {
     name: "boolean",
     aliases: ["b"],
-    type: OptionType.BOOLEAN,
+    type: "boolean",
     variadic: true,
   }, {
     name: "string",
     aliases: ["s"],
-    type: OptionType.STRING,
+    type: "string",
     variadic: true,
   }, {
     name: "number",
     aliases: ["n"],
-    type: OptionType.NUMBER,
+    type: "number",
     variadic: true,
   }, {
     name: "variadic-option",
     aliases: ["e"],
     args: [{
-      type: OptionType.NUMBER,
+      type: "number",
     }, {
-      type: OptionType.STRING,
+      type: "string",
       optional: false,
     }, {
-      type: OptionType.STRING,
+      type: "string",
       optional: true,
     }, {
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optional: true,
       variadic: true,
     }],
@@ -166,6 +165,34 @@ test("flags optionVariadic exactLastOptionalVariadic", () => {
     flags,
     { variadicOption: [1, "abc", "def", true, false, true, false] },
   );
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
+
+test("should allow passing an option after an variadic option", () => {
+  const { flags, unknown, literal } = parseFlags([
+    "-e",
+    "1",
+    "abc",
+    "-s",
+    "string value",
+  ], {
+    flags: [{
+      name: "variadic-option",
+      type: "string",
+      aliases: ["e"],
+      variadic: true,
+    }, {
+      name: "string",
+      aliases: ["s"],
+      type: "string",
+    }],
+  });
+
+  assertEquals(flags, {
+    variadicOption: ["1", "abc"],
+    string: "string value",
+  });
   assertEquals(unknown, []);
   assertEquals(literal, []);
 });

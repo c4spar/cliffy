@@ -37,7 +37,8 @@ export interface GenerateShellCompletionsOptions {
  * ```
  */
 export function generateShellCompletions(
-  cmd: Command,
+  // deno-lint-ignore no-explicit-any
+  cmd: Command<any>,
   shell: "bash" | "fish" | "zsh",
   { name = cmd.getName() }: GenerateShellCompletionsOptions = {},
 ): string {

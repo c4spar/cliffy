@@ -78,7 +78,8 @@ export interface SpinnerOptions {
  * A spinner that can be used to indicate that something is loading.
  *
  * @example Usage
- * ```ts no-eval
+ *
+ * ```ts
  * import { Spinner } from "./spinner.ts";
  *
  * const spinner = new Spinner({ message: "Loading...", color: "yellow" });
@@ -98,7 +99,8 @@ export class Spinner {
    * This can be changed while the spinner is active.
    *
    * @example Usage
-   * ```ts no-eval
+   *
+   * ```ts
    * import { Spinner } from "./spinner.ts";
    *
    * const spinner = new Spinner({ message: "Working..." });
@@ -126,7 +128,8 @@ export class Spinner {
    * Creates a new spinner.
    *
    * @example Usage
-   * ```ts no-assert
+   *
+   * ```ts
    * import { Spinner } from "./spinner.ts";
    *
    * const spinner = new Spinner({ message: "Loading..." });
@@ -154,7 +157,8 @@ export class Spinner {
    * @param value Color to set.
    *
    * @example Usage
-   * ```ts no-eval
+   *
+   * ```ts
    * import { Spinner } from "./spinner.ts";
    *
    * const spinner = new Spinner({ message: "Loading...", color: "yellow" });
@@ -174,13 +178,15 @@ export class Spinner {
    * Get the current color of the spinner.
    *
    * @example Usage
-   * ```ts no-assert
+   *
+   * ```ts
    * import { Spinner } from "./spinner.ts";
    *
    * const spinner = new Spinner({ message: "Loading", color: "blue" });
    *
    * spinner.color; // Blue ANSI escape sequence
    * ```
+   *
    * @returns The color of the spinner or `undefined` if it's using the terminal default.
    */
   get color(): Color | undefined {
@@ -191,7 +197,8 @@ export class Spinner {
    * Starts the spinner.
    *
    * @example Usage
-   * ```ts no-eval
+   *
+   * ```ts
    * import { Spinner } from "./spinner.ts";
    *
    * const spinner = new Spinner({ message: "Loading..." });
@@ -231,7 +238,8 @@ export class Spinner {
    * Stops the spinner.
    *
    * @example Usage
-   * ```ts no-eval
+   *
+   * ```ts
    * import { Spinner } from "./spinner.ts";
    *
    * const spinner = new Spinner({ message: "Loading..." });

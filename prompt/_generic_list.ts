@@ -133,13 +133,13 @@ export interface GenericListOptionGroupSettings<
 
 /** GenericList key options. */
 export interface GenericListKeys extends GenericInputKeys {
-  /** Select next option keymap. Default is `["down", "d", "n", "2"]`. */
+  /** Select next option keymap. Default is `["down", "j", "d", "n", "2"]`. */
   next?: string[];
-  /** Select previous option keymap. Default is `["up", "u", "p", "8"]`. */
+  /** Select previous option keymap. Default is `["up", "k", "u", "p", "8"]`. */
   previous?: string[];
-  /** Select next page keymap. Default is `["pagedown", "right"]`. */
+  /** Select next page keymap. Default is `["pagedown", "right", "l"]`. */
   nextPage?: string[];
-  /** Select previous page keymap. Default is `["pageup", "left"]`. */
+  /** Select previous page keymap. Default is `["pageup", "left", "h"]`. */
   previousPage?: string[];
   /** Select next option keymap. Default is `["right", "enter", "return"]`. */
   open?: string[];
@@ -222,10 +222,10 @@ export abstract class GenericList<
       maxRows: options.maxRows ?? 10,
       options: this.mapOptions(options, options.options),
       keys: {
-        next: options.search ? ["down"] : ["down", "d", "n", "2"],
-        previous: options.search ? ["up"] : ["up", "u", "p", "8"],
-        nextPage: ["pagedown", "right"],
-        previousPage: ["pageup", "left"],
+        next: options.search ? ["down"] : ["down", "j", "d", "n", "2"],
+        previous: options.search ? ["up"] : ["up", "k", "u", "p", "8"],
+        nextPage: ["pagedown", "right", "l"],
+        previousPage: ["pageup", "left", "h"],
         open: ["right", "enter", "return"],
         back: ["left", "escape", "enter", "return"],
         ...(settings.keys ?? {}),
@@ -582,6 +582,14 @@ export abstract class GenericList<
    * @param event Key event.
    */
   protected override async handleEvent(event: KeyCode): Promise<void> {
+    if (this.options.every((option) => option.disabled)) {
+      this.setErrorMessage(
+        "No selectable options available. All options are disabled.",
+      );
+      await super.handleEvent(event);
+      return;
+    }
+
     if (
       this.isKey(this.settings.keys, "open", event) &&
       isOptionGroup(this.selectedOption) &&
@@ -869,12 +877,3 @@ function flatMatchedOptions<
 
   return result;
 }
-
-/**
- * GenericList options type.
- *
- * @deprecated Use `Array<string | GenericListOption>` instead.
- */
-export type GenericListValueOptions = Array<string | GenericListOption<string>>;
-/** @deprecated Use `Array<GenericListOptionSettings>` instead. */
-export type GenericListValueSettings = Array<GenericListOptionSettings<string>>;

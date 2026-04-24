@@ -1,9 +1,9 @@
 import {
-  OptionType,
   UnexpectedArgumentAfterVariadicArgumentError,
   UnexpectedRequiredArgumentError,
 } from "@cliffy/flags";
 import { closestString } from "@std/text/closest-string";
+import type { ArgDefinition } from "./command.ts";
 import type { Command } from "./command.ts";
 import type { Argument } from "./types.ts";
 
@@ -86,17 +86,17 @@ export function splitArguments(
  * @param argsDefinition Arguments definition: `<color1:string> <color2:string>`
  */
 export function parseArgumentsDefinition<T extends boolean>(
-  argsDefinition: string,
+  argsDefinition: string | Array<string | ArgDefinition>,
   validate: boolean,
   all: true,
 ): Array<Argument | string>;
 export function parseArgumentsDefinition<T extends boolean>(
-  argsDefinition: string,
+  argsDefinition: string | Array<string | ArgDefinition>,
   validate?: boolean,
   all?: false,
 ): Array<Argument>;
 export function parseArgumentsDefinition<T extends boolean>(
-  argsDefinition: string,
+  argsDefinition: string | Array<string | ArgDefinition>,
   validate = true,
   all?: T,
 ): T extends true ? Array<Argument | string> : Array<Argument> {
@@ -104,13 +104,18 @@ export function parseArgumentsDefinition<T extends boolean>(
 
   let hasOptional = false;
   let hasVariadic = false;
-  const parts: string[] = argsDefinition.split(/ +/);
+  const parts: Array<string | ArgDefinition> = Array.isArray(argsDefinition)
+    ? argsDefinition
+    : argsDefinition.split(/ +/);
 
-  for (const arg of parts) {
-    if (validate && hasVariadic) {
-      throw new UnexpectedArgumentAfterVariadicArgumentError(arg);
+  for (let argDef of parts) {
+    if (typeof argDef === "string") {
+      argDef = { arg: argDef };
     }
-    const parts: string[] = arg.split(ARGUMENT_DETAILS_REGEX);
+    if (validate && hasVariadic) {
+      throw new UnexpectedArgumentAfterVariadicArgumentError(argDef.arg);
+    }
+    const parts: string[] = argDef.arg.split(ARGUMENT_DETAILS_REGEX);
 
     if (!parts[1]) {
       if (all) {
@@ -118,22 +123,34 @@ export function parseArgumentsDefinition<T extends boolean>(
       }
       continue;
     }
-    const type: string | undefined = parts[2] || OptionType.STRING;
+    const type: string | undefined = parts[2] || "string";
 
     const details: Argument = {
-      optional: arg[0] === "[",
+      description: argDef.description,
+      optional: argDef.arg[0] === "[",
+      raw: argDef.arg,
       name: parts[1],
       action: parts[3] || type,
       variadic: false,
-      list: type ? arg.indexOf(type + "[]") !== -1 : false,
+      list: type ? argDef.arg.indexOf(type + "[]") !== -1 : false,
       type,
     };
+
+    if (argDef.value !== undefined) {
+      details.value = argDef.value;
+    }
+    if (argDef.default !== undefined) {
+      details.default = argDef.default;
+    }
+    if (argDef.separator !== undefined) {
+      details.separator = argDef.separator;
+    }
 
     if (validate && !details.optional && hasOptional) {
       throw new UnexpectedRequiredArgumentError(details.name);
     }
 
-    if (arg[0] === "[") {
+    if (argDef.arg[0] === "[") {
       hasOptional = true;
     }
 

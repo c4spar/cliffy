@@ -1,3 +1,62 @@
+/**
+ * A Keypress module with promise, async iterator and event target API for
+ * [Deno](https://deno.com), [Node](https://nodejs.org) and [Bun](https://bun.sh/).
+ *
+ * > [!NOTE]\
+ * > The full documentation can be found at
+ * > [cliffy.io](https://cliffy.io/docs/keypress).
+ *
+ * ## Usage
+ *
+ * ### Promise
+ *
+ * Await a single `KeyPressEvent` event:
+ *
+ * ```ts
+ * import { keypress, KeyPressEvent } from "@cliffy/keypress";
+ *
+ * const event: KeyPressEvent = await keypress();
+ *
+ * console.log("key: %s", event.key);
+ * ```
+ *
+ * ### Async Iterator
+ *
+ * Listen to `KeyPressEvent` events via async iterator:
+ *
+ * ```ts
+ * import { Keypress, keypress } from "@cliffy/keypress";
+ *
+ * for await (const event of keypress()) {
+ *   console.log("key: %s", event.key);
+ *
+ *   if (event.ctrlKey && event.key === "c") {
+ *     console.log("exit");
+ *     break;
+ *   }
+ * }
+ * ```
+ *
+ * ### Event Target
+ *
+ * Listen to `KeyPressEvent` events via event listener:
+ *
+ * ```ts
+ * import { keypress, KeyPressEvent } from "@cliffy/keypress";
+ *
+ * keypress().addEventListener("keydown", (event: KeyPressEvent) => {
+ *   console.log("key: %s", event.key);
+ *
+ *   if (event.ctrlKey && event.key === "c") {
+ *     console.log("exit");
+ *     keypress().dispose();
+ *   }
+ * });
+ * ```
+ *
+ * @module
+ */
+
 import { type KeyCode, parse } from "@cliffy/keycode";
 import { setRaw } from "@cliffy/internal/runtime/set-raw";
 import { read } from "@cliffy/internal/runtime/read";
@@ -289,7 +348,7 @@ let keyPress: Keypress;
  *
  * ### Promise
  *
- * ```typescript
+ * ```
  * import { keypress, KeyPressEvent } from "./mod.ts";
  *
  * const event: KeyPressEvent = await keypress();
@@ -316,7 +375,7 @@ let keyPress: Keypress;
  *
  * ### Event Target
  *
- * ```typescript
+ * ```
  * import { keypress, KeyPressEvent } from "./mod.ts";
  *
  * keypress().addEventListener("keydown", (event: KeyPressEvent) => {

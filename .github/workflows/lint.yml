@@ -5,23 +5,27 @@ on:
   pull_request:
 jobs:
   lint:
-    name: Lint source deno-${{ matrix.deno_version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        deno_version: [v1.x, v2.x]
+        runtime:
+          - name: deno
+            deno-version: v1.x
+          - name: deno
+            deno-version-file: .deno-version
     env:
       RUST_BACKTRACE: full
       DENO_FUTURE: 1
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: ${{ matrix.deno_version }}
+          deno-version: ${{ matrix.runtime.deno-version }}
+          deno-version-file: ${{ matrix.runtime.deno-version-file }}
 
       - name: Setup shellcheck
         run: >
@@ -42,9 +46,9 @@ jobs:
         run: ./shellcheck --shell bash <(deno run -r ./examples/command/shell-completions.ts completions zsh)
 
       - name: Type-check
-        if: matrix.deno_version == 'rc'
-        run: deno task check
+        if: matrix.runtime.deno-version == 'v1.x'
+        run: deno task check:deno-v1
 
       - name: Type-check
-        if: matrix.deno_version == 'v1.x'
-        run: deno task check:deno-v1
+        if: matrix.runtime.deno-version-file
+        run: deno task check

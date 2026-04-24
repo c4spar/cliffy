@@ -7,10 +7,13 @@ import {
 } from "@cliffy/flags";
 import { bold, brightBlue, red } from "@std/fmt/colors";
 import type {
+  IsRequired,
   MapTypes,
   MapValue,
   MergeOptions,
+  TypedArgument,
   TypedArguments,
+  TypedArgumentValue,
   TypedCommandArguments,
   TypedEnv,
   TypedOption,
@@ -26,8 +29,6 @@ import {
   DuplicateExampleError,
   DuplicateOptionNameError,
   DuplicateTypeError,
-  MissingArgumentError,
-  MissingArgumentsError,
   MissingCommandNameError,
   MissingRequiredEnvVarError,
   NoArgumentsAllowedError,
@@ -41,7 +42,13 @@ import {
 import { exit } from "@cliffy/internal/runtime/exit";
 import { getArgs } from "@cliffy/internal/runtime/get-args";
 import { getEnv } from "@cliffy/internal/runtime/get-env";
-import type { Merge, OneOf, ValueOf } from "./_type_utils.ts";
+import type {
+  Merge,
+  Mutable,
+  OneOf,
+  StripInferBound,
+  ValueOf,
+} from "./_type_utils.ts";
 import {
   getDescription,
   parseArgumentsDefinition,
@@ -54,6 +61,8 @@ import type {
   ActionHandler,
   Argument,
   ArgumentValue,
+  ArgumentValueHandler,
+  CommandArgumentOptions,
   CommandResult,
   CompleteHandler,
   CompleteOptions,
@@ -84,16 +93,100 @@ import { NumberType } from "./types/number.ts";
 import { SecretType } from "./types/secret.ts";
 import { StringType } from "./types/string.ts";
 import { checkVersion } from "./upgrade/_check_version.ts";
+import type { ArgumentOptions } from "@cliffy/flags";
+
+export interface ArgDefinition extends CommandArgumentOptions<any, any, any> {
+  arg: string;
+  description?: string;
+}
+
+interface CommandSettings {
+  name: string;
+  version?: VersionHandler;
+  help?: HelpHandler;
+  errorHandler?: ErrorHandler;
+  actionHandler?: ActionHandler;
+  globalActionHandler?: ActionHandler;
+  description: Description;
+  usage?: string;
+  examples: Array<Example>;
+  aliases: Array<string>;
+  arguments?: Array<ArgDefinition>;
+  throwOnError?: boolean;
+  allowEmpty?: boolean;
+  stopEarly?: boolean;
+  defaultCommand?: string;
+  useRawArgs?: boolean;
+  isHidden?: boolean;
+  isGlobal?: boolean;
+  shouldExit?: boolean;
+  noGlobals?: boolean;
+  meta: Record<string, string>;
+  commands: Map<string, Command<any>>;
+  versionOptions?: DefaultOption | false;
+  helpOptions?: DefaultOption | false;
+  autoHelp?: boolean;
+}
+
+interface CommandProps {
+  rawArgs: Array<string>;
+  literalArgs: Array<string>;
+  hasDefaults?: boolean;
+  globalParent?: Command<any>;
+  args: Array<Argument>;
+  versionOption?: Option;
+  helpOption?: Option;
+  isRoot?: boolean;
+}
+
+interface BuilderProps {
+  groupName: string | null;
+  types: Map<string, TypeDef>;
+  options: Array<Option>;
+  envVars: Array<EnvVar>;
+  completions: Map<string, Completion>;
+}
+
+export interface SubCommandOptions {
+  override?: boolean;
+}
+
+export interface CustomHelpOptions {
+  /**
+   * If enabled, the help text will be shown automatically when a command, which
+   * has subcommands and no action handler defined, is executed without any
+   * arguments or options.
+   *
+   * This allows creating commands that only serve as a container for
+   * subcommands and don't have their own action handler, without the need to
+   * explicitly show help in the action handler of such commands.
+   *
+   * This option is enabled by default. To turn off the automatic help display,
+   * set this option to `false`.
+   */
+  auto?: boolean;
+}
 
 /**
  * Chainable command factory class.
+ *
+ * The command class can be used to create main and sub commands. All methods
+ * from the command class are chainable. Options, arguments, types, etc. that
+ * belong to the main command, should be registered before the first sub-command
+ * is registered. All options, arguments, etc. that are registered after calling
+ * the `.command()` method will be registered to that child-command.
+ *
+ * When calling the `.reset()` method, options, arguments, etc. will be
+ * registered again to the main command.
+ *
+ * @example Todo cli
  *
  * ```ts
  * import { Command } from "./mod.ts";
  *
  * export const cli = new Command()
  *   .name("todo")
- *   .description("Example command description")
+ *   .description("Todo cli.")
  *   .globalOption("--verbose", "Enable verbose output.")
  *   .globalEnv("VERBOSE=<value>", "Enable verbose output.")
  *   .command("add <todo>", "Add todo.")
@@ -108,6 +201,42 @@ import { checkVersion } from "./upgrade/_check_version.ts";
  *       console.log("Delete todo with id '%s'.", id);
  *     }
  *   });
+ *
+ * if (import.meta.main) {
+ *   await cli.parse();
+ * }
+ * ```
+ *
+ * @example Use command instance as child command
+ *
+ * ```ts
+ * import { Command } from "./mod.ts";
+ *
+ * export const addCommand = new Command<{ verbose?: boolean }>()
+ *   .description("Add todo.")
+ *   .arguments("<todo>")
+ *   .action(({ verbose }, todo: string) => {
+ *     if (verbose) {
+ *       console.log("Add todo '%s'.", todo);
+ *     }
+ *   });
+ *
+ * export const deleteCommand = new Command<{ verbose?: boolean }>()
+ *   .description("Delete todo.")
+ *   .arguments("<id>")
+ *   .action(({ verbose }, id: string) => {
+ *     if (verbose) {
+ *       console.log("Delete todo with id '%s'.", id);
+ *     }
+ *   });
+ *
+ * export const cli = new Command()
+ *   .name("todo")
+ *   .description("Todo cli.")
+ *   .globalOption("--verbose", "Enable verbose output.")
+ *   .globalEnv("VERBOSE=<value:boolean>", "Enable verbose output.")
+ *   .command("add", addCommand)
+ *   .command("delete", deleteCommand);
  *
  * if (import.meta.main) {
  *   await cli.parse();
@@ -138,44 +267,28 @@ export class Command<
   TParentCommand extends Command<any> | undefined =
     TParentCommandGlobals extends number ? any : undefined,
 > {
-  private types: Map<string, TypeDef> = new Map();
-  private rawArgs: Array<string> = [];
-  private literalArgs: Array<string> = [];
-  private _name = "COMMAND";
-  private _parent?: TParentCommand;
-  private _globalParent?: Command<any>;
-  private ver?: VersionHandler;
-  private desc: Description = "";
-  private _usage?: string;
-  private actionHandler?: ActionHandler;
-  private globalActionHandler?: ActionHandler;
-  private options: Array<Option> = [];
-  private commands = new Map<string, Command<any>>();
-  private examples: Array<Example> = [];
-  private envVars: Array<EnvVar> = [];
-  private aliases: Array<string> = [];
-  private completions = new Map<string, Completion>();
-  private cmd: Command<any> = this;
-  private argsDefinition?: string;
-  private throwOnError = false;
-  private _allowEmpty = false;
-  private _stopEarly = false;
-  private defaultCommand?: string;
-  private _useRawArgs = false;
-  private args: Array<Argument> = [];
-  private isHidden = false;
-  private isGlobal = false;
-  private hasDefaults = false;
-  private _versionOptions?: DefaultOption | false;
-  private _helpOptions?: DefaultOption | false;
-  private _versionOption?: Option;
-  private _helpOption?: Option;
-  private _help?: HelpHandler;
-  private _shouldExit?: boolean;
-  private _meta: Record<string, string> = {};
-  private _groupName: string | null = null;
-  private _noGlobals = false;
-  private errorHandler?: ErrorHandler;
+  cmd: Command<any> = this;
+  parent?: TParentCommand;
+  props: CommandProps = {
+    rawArgs: [],
+    literalArgs: [],
+    args: [],
+  };
+  settings: CommandSettings = {
+    name: "COMMAND",
+    description: "",
+    examples: [],
+    aliases: [],
+    meta: {},
+    commands: new Map<string, Command<any>>(),
+  };
+  builder: BuilderProps = {
+    groupName: null,
+    types: new Map(),
+    options: [],
+    envVars: [],
+    completions: new Map<string, Completion>(),
+  };
 
   /** Disable version option. */
   public versionOption(enable: false): this;
@@ -288,7 +401,7 @@ export class Command<
           global: true;
         },
   ): this {
-    this._versionOptions = flags === false ? flags : {
+    this.settings.versionOptions = flags === false ? flags : {
       flags,
       desc,
       opts: typeof opts === "function" ? { action: opts } : opts,
@@ -407,7 +520,7 @@ export class Command<
           global: true;
         },
   ): this {
-    this._helpOptions = flags === false ? flags : {
+    this.settings.helpOptions = flags === false ? flags : {
       flags,
       desc,
       opts: typeof opts === "function" ? { action: opts } : opts,
@@ -420,7 +533,7 @@ export class Command<
    *
    * @param name      Command definition. E.g: `my-command <input-file:string> <output-file:string>`
    * @param cmd       The new child command to register.
-   * @param override  Override existing child command.
+   * @param options   Sub-command options.
    */
   public command<
     TCommand extends Command<
@@ -451,7 +564,7 @@ export class Command<
   >(
     name: string,
     cmd: TCommand,
-    override?: boolean,
+    options?: SubCommandOptions,
   ): ReturnType<TCommand["reset"]> extends Command<
     Record<string, unknown> | void,
     Record<string, unknown> | void,
@@ -466,7 +579,7 @@ export class Command<
       TGlobalTypes,
       Options,
       Arguments,
-      GlobalOptions,
+      StripInferBound<GlobalOptions>,
       Types,
       GlobalTypes,
       OneOf<TParentCommand, this>
@@ -478,7 +591,7 @@ export class Command<
    *
    * @param name      Command definition. E.g: `my-command <input-file:string> <output-file:string>`
    * @param cmd       The new child command to register.
-   * @param override  Override existing child command.
+   * @param options   Sub-command options.
    */
   public command<
     TCommand extends Command<
@@ -500,7 +613,7 @@ export class Command<
   >(
     name: string,
     cmd: TCommand,
-    override?: boolean,
+    options?: SubCommandOptions,
   ): TCommand extends Command<
     Record<string, unknown> | void,
     Record<string, unknown> | void,
@@ -515,7 +628,7 @@ export class Command<
       TGlobalTypes,
       Options,
       Arguments,
-      GlobalOptions,
+      StripInferBound<GlobalOptions>,
       Types,
       GlobalTypes,
       OneOf<TParentCommand, this>
@@ -527,7 +640,7 @@ export class Command<
    *
    * @param nameAndArguments  Command definition. E.g: `my-command <input-file:string> <output-file:string>`
    * @param desc              The description of the new child command.
-   * @param override          Override existing child command.
+   * @param options           Sub-command options.
    */
   public command<
     TNameAndArguments extends string,
@@ -539,7 +652,7 @@ export class Command<
   >(
     nameAndArguments: TNameAndArguments,
     desc?: string,
-    override?: boolean,
+    options?: SubCommandOptions,
   ): TParentCommandGlobals extends number ? Command<any> : Command<
     TParentCommand extends Command<any> ? TParentCommandGlobals
       : Merge<TParentCommandGlobals, TCommandGlobals>,
@@ -557,12 +670,12 @@ export class Command<
    * Add new sub-command.
    * @param nameAndArguments  Command definition. E.g: `my-command <input-file:string> <output-file:string>`
    * @param cmdOrDescription  The description of the new child command.
-   * @param override          Override existing child command.
+   * @param options           Sub-command options.
    */
   command(
     nameAndArguments: string,
     cmdOrDescription?: Command<any> | string,
-    override?: boolean,
+    { override }: SubCommandOptions = {},
   ): Command<any> {
     this.reset();
 
@@ -595,8 +708,8 @@ export class Command<
       cmd = new Command();
     }
 
-    cmd._name = name;
-    cmd._parent = this;
+    cmd.settings.name = name;
+    cmd.parent = this;
 
     if (description) {
       cmd.description(description);
@@ -608,7 +721,7 @@ export class Command<
 
     aliases.forEach((alias: string) => cmd.alias(alias));
 
-    this.commands.set(name, cmd);
+    this.settings.commands.set(name, cmd);
 
     this.select(name);
 
@@ -621,18 +734,21 @@ export class Command<
    * @param alias Tha name of the alias.
    */
   public alias(alias: string): this {
-    if (this.cmd._name === alias || this.cmd.aliases.includes(alias)) {
+    if (
+      this.cmd.settings.name === alias ||
+      this.cmd.settings.aliases.includes(alias)
+    ) {
       throw new DuplicateCommandAliasError(alias);
     }
 
-    this.cmd.aliases.push(alias);
+    this.cmd.settings.aliases.push(alias);
 
     return this;
   }
 
   /** Reset internal command reference to main command. */
   public reset(): OneOf<TParentCommand, this> {
-    this._groupName = null;
+    this.builder.groupName = null;
     this.cmd = this;
     return this as OneOf<TParentCommand, this>;
   }
@@ -672,14 +788,29 @@ export class Command<
    **** SUB HANDLER ************************************************************
    *****************************************************************************/
 
-  /** Set command name. Used in auto generated help and shell completions */
+  /**
+   * Set command name.
+   *
+   * This method is usually used to set the command name for the main command.
+   * The name should match the name of your program. It is displayed in the auto
+   * generated help and used for shell completions by default.
+   *
+   * When used on child command, the name will be overridden by the command name
+   * passed to the parent command when the command is registered with the
+   * {@linkcode Command.command}.
+   *
+   * @param name The name for the command.
+   */
   public name(name: string): this {
-    this.cmd._name = name;
+    this.cmd.settings.name = name;
     return this;
   }
 
   /**
    * Set command version.
+   *
+   * Set the version of your cli. The version is displayed in the auto generated
+   * help and the output from the [version](./help.md#version-option) option.
    *
    * @param version Semantic version string string or method that returns the version string.
    */
@@ -698,9 +829,9 @@ export class Command<
       >,
   ): this {
     if (typeof version === "string") {
-      this.cmd.ver = () => version;
+      this.cmd.settings.version = () => version;
     } else if (typeof version === "function") {
-      this.cmd.ver = version;
+      this.cmd.settings.version = version;
     }
     return this;
   }
@@ -713,7 +844,7 @@ export class Command<
    * @param value The value of the metadata.
    */
   public meta(name: string, value: string): this {
-    this.cmd._meta[name] = value;
+    this.cmd.settings.meta[name] = value;
     return this;
   }
 
@@ -724,13 +855,80 @@ export class Command<
   public getMeta(name: string): string;
 
   public getMeta(name?: string): Record<string, string> | string {
-    return typeof name === "undefined" ? this._meta : this._meta[name];
+    return typeof name === "undefined"
+      ? this.settings.meta
+      : this.settings.meta[name];
   }
 
+  public help(helpOptions: HelpOptions & CustomHelpOptions): this;
+
+  public help(
+    customHelp: string | HelpHandler,
+    customHelpOptions?: CustomHelpOptions,
+  ): this;
+
   /**
-   * Set command help.
+   * Set help options or define a custom help handler or help string.
    *
-   * @param help Help string, method, or config for generator that returns the help string.
+   * @param help Options for the build-in help generator or a custom help string
+   * or function that generates the help string. If the help is a function, it
+   * receives the command instance and the help options as parameters and should
+   * return the help string. If the help is a string, it is returned as is when
+   * the help is called.
+   * @param customHelpOptions Custom help options. If the first parameter is an
+   * object, it is treated as custom help options and the default help generator
+   * will be used to generate the help text based on these options.
+   *
+   * @example Help options
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help({ auto: true })
+   *   .parse();
+   * ```
+   *
+   * @example Custom help string
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help("This is a custom help string.")
+   *   .parse();
+   * ```
+   *
+   * @example Custom help handler
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help((cmd) => {
+   *     return `This is a custom help string for command ${cmd.getName()}.`;
+   *   })
+   *   .parse();
+   * ```
+   *
+   * @example Help help handler with options
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .name("demo")
+   *   .help(
+   *     (cmd, options) => {
+   *       return `This is a custom help string for command ${cmd.getName()} with options: ${JSON.stringify(options)}.`;
+   *     },
+   *     { auto: true },
+   *   )
+   *   .parse();
+   * ```
    */
   public help(
     help:
@@ -741,21 +939,54 @@ export class Command<
         TCommandGlobals,
         TParentCommandGlobals
       >
-      | HelpOptions,
+      | HelpOptions & CustomHelpOptions,
+    customHelpOptions?: CustomHelpOptions,
   ): this {
     if (typeof help === "string") {
-      this.cmd._help = () => help;
+      this.cmd.settings.help = () => help;
     } else if (typeof help === "function") {
-      this.cmd._help = help;
+      this.cmd.settings.help = help;
     } else {
-      this.cmd._help = (cmd: Command, options: HelpOptions): string =>
+      customHelpOptions = help;
+      this.cmd.settings.help = (cmd: Command, options: HelpOptions): string =>
         HelpGenerator.generate(cmd, { ...help, ...options });
     }
+    this.cmd.settings.autoHelp = customHelpOptions?.auto;
+
     return this;
   }
 
   /**
-   * Set the long command description.
+   * Set the command description.
+   *
+   * The description will be displayed in the auto generated help. If the help
+   * option is called with the short flag `-h`, only the first line is
+   * displayed. If called with the long name `--help`, the full description is
+   * displayed.
+   *
+   * For better multiline formatting, unnecessary indentations and empty leading
+   * and trailing lines will be automatically removed.
+   *
+   * @example Multiline formatting
+   *
+   * For example, following description:
+   *
+   * ```ts
+   * import { Command } from "https://deno.land/x/cliffy/command/mod.ts";
+   *
+   * new Command()
+   *   .description(`
+   *     This is a multiline description.
+   *       The indentation of this line will be preserved.
+   *   `);
+   * ```
+   *
+   * is formatted as follows:
+   *
+   * ```console
+   * This is a multiline description.
+   *   The indentation of this line will be preserved.
+   * ```
    *
    * @param description The command description.
    */
@@ -771,36 +1002,134 @@ export class Command<
       TParentCommand
     >,
   ): this {
-    this.cmd.desc = description;
+    this.cmd.settings.description = description;
     return this;
   }
 
   /**
    * Set the command usage. Defaults to arguments.
    *
+   * With the `.usage()` method you can override the usage text that is
+   * displayed at the top of the auto generated help. By default the command
+   * arguments are used. The usage is always prefixed with the command name.
+   *
+   * @example Set custom usage
+   *
+   * ```ts
+   * import { Command } from "https://deno.land/x/cliffy/command/mod.ts";
+   *
+   * await new Command()
+   *   .name("script-runner")
+   *   .description("Simple script runner.")
+   *   .usage("[options] [script] [script options]")
+   *   // ...
+   *   .parse(Deno.args);
+   * ```
+   *
    * @param usage The command usage.
    */
   public usage(usage: string): this {
-    this.cmd._usage = usage;
+    this.cmd.settings.usage = usage;
     return this;
   }
 
   /** Hide command from help, completions, etc. */
   public hidden(): this {
-    this.cmd.isHidden = true;
+    this.cmd.settings.isHidden = true;
     return this;
   }
 
   /** Make command globally available. */
   public global(): this {
-    this.cmd.isGlobal = true;
+    this.cmd.settings.isGlobal = true;
     return this;
   }
 
   /**
    * Set command arguments.
    *
-   * Syntax: `<requiredArg:string> [optionalArg: number] [...restArgs:string]`
+   * You can use the {@linkcode Command.arguments} method to specify the
+   * arguments for the command.
+   *
+   * This method will override any previously defined arguments.
+   *
+   * Angled brackets (e.g. `<required>`) indicate required input and
+   * square brackets (e.g. `[optional]`) indicate optional input. A required
+   * input cannot be defined after an optional input.
+   *
+   * Arguments can be also defined with the {@linkcode Command.command} method.
+   *
+   * Optionally you can define [types](./types.md) and
+   * [completions](./shell_completions.md) for your arguments after the argument
+   * name separated by colon. If no type is specified the type defaults to
+   * `string`.
+   *
+   * @example Define arguments
+   *
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * const cmd = new Command()
+   *   .name("example")
+   *   .arguments("<input-file:string> [output-file:string] [...tags:string]", [
+   *     "The input file.",
+   *     "The output file.",
+   *     "Tags for the file."
+   *   ]);
+   *
+   * // Parsing arguments
+   * const { args } = await cmd.parse(["input.txt", "result.txt", "tag1", "tag2"]);
+   *
+   * console.log(args); // Output: ['input.txt', 'result.txt', 'tag1', 'tag2']
+   * ```
+   *
+   * @example Use custom types in arguments
+   *
+   * ```typescript
+   * import { Command, EnumType } from "@cliffy/command";
+   *
+   * await new Command()
+   *   .type("color", new EnumType(["red", "blue"]))
+   *   .arguments("<color:color>")
+   *   .action((_, color: "red" | "blue") => {
+   *     console.log("color:", color);
+   *   })
+   *   .parse(Deno.args);
+   * ```
+   *
+   * @example Variadic arguments
+   *
+   * The last argument of a command can be variadic. To make an argument
+   * variadic you can append or prepend `...` to the argument name (`<...NAME>`
+   * or `<NAME...>`).
+   *
+   * Required rest arguments `<...args>` requires at least one argument, optional
+   * rest args `[...args]` are completely optional.
+   *
+   * ```typescript
+   * import { Command } from "https://deno.land/x/cliffy/command/mod.ts";
+   *
+   * await new Command()
+   *   .description("Remove directories.")
+   *   .arguments("<dirs...>")
+   *   .action((_, ...dirs: Array<string>) => {
+   *     for (const dir of dirs) {
+   *       console.log("rmdir %s", dir);
+   *     }
+   *   })
+   *   .parse(Deno.args);
+   * ```
+   *
+   * ```console
+   * $ deno run example.ts dir1 dir2 dir3
+   * rmdir dir1
+   * rmdir dir2
+   * rmdir dir3
+   * ```
+   *
+   * @param args         The arguments definition string.
+   * @param descriptions The argument descriptions.
+   * @returns            The command instance.
    */
   public arguments<
     TArguments extends TypedArguments<
@@ -810,6 +1139,7 @@ export class Command<
     TArgs extends string = string,
   >(
     args: TArgs,
+    descriptions?: Array<string>,
   ): Command<
     TParentCommandGlobals,
     TParentCommandTypes,
@@ -820,7 +1150,98 @@ export class Command<
     TCommandGlobalTypes,
     TParentCommand
   > {
-    this.cmd.argsDefinition = args;
+    this.cmd.settings.arguments = args.split(" ").map((arg, index) => ({
+      arg,
+      description: descriptions?.[index],
+    }));
+    return this as Command<any>;
+  }
+
+  /**
+   * Add a new command argument.
+   *
+   * - When called multiple times, arguments are appended in the order of calls.
+   * - When called after `arguments()`, the new argument is appended after the previously
+   *   defined arguments.
+   * - When called before `arguments()`, the new argument is overwritten by the later
+   *   defined arguments.
+   *
+   * @example
+   * ```ts
+   * import { Command } from "@cliffy/command";
+   *
+   * const cmd = new Command()
+   *   .name("example")
+   *   .argument("<input-file:string>", "The input file.")
+   *   .argument("[output-file:string]", "The output file.", { default: "out.txt" })
+   *   .argument("[...tags:string]", "Tags for the file.");
+   *
+   * // Parsing arguments
+   * const { args } = await cmd.parse(["input.txt", "result.txt", "tag1", "tag2"]);
+   *
+   * console.log(args); // Output: ['input.txt', 'result.txt', 'tag1', 'tag2']
+   * ```
+   *
+   * @param arg         The argument definition. E.g: `<input-file:string>`
+   * @param description The argument description.
+   * @param opts        Argument options.
+   * @returns           The command instance.
+   */
+  public argument<
+    TArguments extends TypedArgument<
+      TArg,
+      Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
+      TDefaultValue
+    >,
+    const TArg extends string = string,
+    const TDefaultValue
+      extends (TArg extends `${string}...${string}`
+        ? ReadonlyArray<unknown> | undefined
+        : unknown) = undefined,
+    TMappedArguments = undefined,
+    TValue = MapTypes<
+      TypedArgumentValue<
+        TArg,
+        Merge<
+          TParentCommandTypes,
+          Merge<TCommandGlobalTypes, TCommandTypes>
+        >,
+        Mutable<TDefaultValue>
+      >
+    >,
+  >(
+    arg: TArg,
+    description: string,
+    opts?:
+      | CommandArgumentOptions<TDefaultValue, TValue, TMappedArguments>
+      | ArgumentValueHandler<TValue, TMappedArguments>,
+  ): Command<
+    TParentCommandGlobals,
+    TParentCommandTypes,
+    TCommandOptions,
+    [
+      ...TCommandArguments,
+      ...TMappedArguments extends undefined ? TArguments
+        : TArg extends `${string}...${string}`
+          ? TMappedArguments extends ReadonlyArray<unknown> ? TMappedArguments
+          : IsRequired<
+            TArg extends `<${string}>` ? true : false,
+            TDefaultValue
+          > extends true ? [Awaited<TMappedArguments>]
+          : [Awaited<TMappedArguments>?]
+        : IsRequired<
+          TArg extends `<${string}>` ? true : false,
+          TDefaultValue
+        > extends true ? [Awaited<TMappedArguments>]
+        : [Awaited<TMappedArguments>?],
+    ],
+    TCommandGlobals,
+    TCommandTypes,
+    TCommandGlobalTypes,
+    TParentCommand
+  > {
+    this.cmd.settings.arguments ??= [];
+    this.cmd.settings.arguments.push({ arg, description, ...opts });
     return this as Command<any>;
   }
 
@@ -841,7 +1262,7 @@ export class Command<
       TParentCommand
     >,
   ): this {
-    this.cmd.actionHandler = fn;
+    this.cmd.settings.actionHandler = fn;
     return this;
   }
 
@@ -862,7 +1283,7 @@ export class Command<
       TParentCommand
     >,
   ): this {
-    this.cmd.globalActionHandler = fn;
+    this.cmd.settings.globalActionHandler = fn;
     return this;
   }
 
@@ -884,7 +1305,7 @@ export class Command<
       TCommandGlobalTypes,
       TParentCommand
     > {
-    this.cmd._allowEmpty = allowEmpty !== false;
+    this.cmd.settings.allowEmpty = allowEmpty !== false;
     return this as false extends TAllowEmpty ? this
       : Command<
         Partial<TParentCommandGlobals>,
@@ -913,7 +1334,7 @@ export class Command<
    * @param stopEarly Enable/disable stop early.
    */
   public stopEarly(stopEarly = true): this {
-    this.cmd._stopEarly = stopEarly;
+    this.cmd.settings.stopEarly = stopEarly;
     return this;
   }
 
@@ -936,18 +1357,20 @@ export class Command<
     void,
     TParentCommand
   > {
-    this.cmd._useRawArgs = useRawArgs;
+    this.cmd.settings.useRawArgs = useRawArgs;
     return this as Command<any>;
   }
 
   /**
-   * Set default command. The default command is executed when the program
-   * was called without any argument and if no action handler is registered.
+   * Set default command.
+   *
+   * The default command is executed when the command was called without any
+   * additional arguments.
    *
    * @param name Name of the default command.
    */
   public default(name: string): this {
-    this.cmd.defaultCommand = name;
+    this.cmd.settings.defaultCommand = name;
     return this;
   }
 
@@ -995,11 +1418,11 @@ export class Command<
     TCommandGlobalTypes,
     TParentCommand
   > {
-    if (this.cmd.types.get(name) && !options?.override) {
+    if (this.cmd.builder.types.get(name) && !options?.override) {
       throw new DuplicateTypeError(name);
     }
 
-    this.cmd.types.set(name, {
+    this.cmd.builder.types.set(name, {
       ...options,
       name,
       handler: handler as TypeOrTypeHandler<unknown>,
@@ -1104,11 +1527,11 @@ export class Command<
       >,
     options?: CompleteOptions,
   ): this {
-    if (this.cmd.completions.has(name) && !options?.override) {
+    if (this.cmd.builder.completions.has(name) && !options?.override) {
       throw new DuplicateCompletionError(name);
     }
 
-    this.cmd.completions.set(name, {
+    this.cmd.builder.completions.set(name, {
       name,
       complete,
       ...options,
@@ -1150,7 +1573,7 @@ export class Command<
    * @see ValidationError
    */
   public throwErrors(): this {
-    this.cmd.throwOnError = true;
+    this.cmd.settings.throwOnError = true;
     return this;
   }
 
@@ -1160,13 +1583,14 @@ export class Command<
    * @param handler Error handler callback function.
    */
   public error(handler: ErrorHandler): this {
-    this.cmd.errorHandler = handler;
+    this.cmd.settings.errorHandler = handler;
     return this;
   }
 
   /** Get error handler callback function. */
   private getErrorHandler(): ErrorHandler | undefined {
-    return this.errorHandler ?? this._parent?.errorHandler;
+    return this.settings.errorHandler ??
+      (this.parent && this.parent.settings.errorHandler);
   }
 
   /**
@@ -1174,7 +1598,7 @@ export class Command<
    * printing help or version with the --help and --version option.
    */
   public noExit(): this {
-    this.cmd._shouldExit = false;
+    this.cmd.settings.shouldExit = false;
     this.throwErrors();
     return this;
   }
@@ -1184,18 +1608,18 @@ export class Command<
    * parent commands.
    */
   public noGlobals(): this {
-    this.cmd._noGlobals = true;
+    this.cmd.settings.noGlobals = true;
     return this;
   }
 
   /** Check whether the command should throw errors or exit. */
   protected shouldThrowErrors(): boolean {
-    return this.throwOnError || !!this._parent?.shouldThrowErrors();
+    return this.settings.throwOnError || !!this.parent?.shouldThrowErrors();
   }
 
   /** Check whether the command should exit after printing help or version. */
   protected shouldExit(): boolean {
-    return this._shouldExit ?? this._parent?.shouldExit() ?? true;
+    return this.settings.shouldExit ?? this.parent?.shouldExit() ?? true;
   }
 
   /**
@@ -1207,7 +1631,7 @@ export class Command<
    * @param name The name of the option group.
    */
   public group(name: string | null): this {
-    this.cmd._groupName = name;
+    this.cmd.builder.groupName = name;
     return this;
   }
 
@@ -1440,7 +1864,7 @@ export class Command<
       flags: result.flags,
       equalsSign: result.equalsSign,
       typeDefinition: result.typeDefinition,
-      groupName: this._groupName ?? undefined,
+      groupName: this.builder.groupName ?? undefined,
     };
 
     if (option.separator) {
@@ -1474,9 +1898,9 @@ export class Command<
     }
 
     if (option.prepend) {
-      this.cmd.options.unshift(option);
+      this.cmd.builder.options.unshift(option);
     } else {
-      this.cmd.options.push(option);
+      this.cmd.builder.options.push(option);
     }
 
     return this;
@@ -1493,7 +1917,7 @@ export class Command<
       throw new DuplicateExampleError(name);
     }
 
-    this.cmd.examples.push({ name, description });
+    this.cmd.settings.examples.push({ name, description });
 
     return this;
   }
@@ -1642,7 +2066,9 @@ export class Command<
       result.typeDefinition = "<value:boolean>";
     }
 
-    if (result.flags.some((envName) => this.cmd.getBaseEnvVar(envName, true))) {
+    if (
+      result.flags.some((envName) => this.cmd.getBaseEnvVar(envName, true))
+    ) {
       throw new DuplicateEnvVarError(name);
     }
 
@@ -1658,7 +2084,7 @@ export class Command<
       throw new UnexpectedVariadicEnvVarValueError(name);
     }
 
-    this.cmd.envVars.push({
+    this.cmd.builder.envVars.push({
       name: result.flags[0],
       names: result.flags,
       description,
@@ -1703,6 +2129,7 @@ export class Command<
         TParentCommand
       >
   > {
+    this.props.isRoot = true;
     const ctx: ParseContext = {
       unknown: args.slice(),
       flags: {},
@@ -1712,6 +2139,7 @@ export class Command<
       stopOnUnknown: false,
       defaults: {},
       actions: [],
+      parsedFlags: [],
     };
     return this.parseCommand(ctx) as any;
   }
@@ -1720,11 +2148,31 @@ export class Command<
     try {
       this.reset();
       this.registerDefaults();
-      this.rawArgs = ctx.unknown.slice();
+      this.props.rawArgs = ctx.unknown.slice();
 
-      if (this._useRawArgs) {
-        await this.parseEnvVars(ctx, this.envVars);
-        return await this.execute(ctx.env, ctx.unknown);
+      if (
+        this.settings.defaultCommand && !ctx.parsedFlags.length &&
+        !ctx.unknown.length
+      ) {
+        const defaultCommand = this.getCommand(
+          this.settings.defaultCommand,
+          true,
+        );
+
+        if (!defaultCommand) {
+          throw new DefaultCommandNotFoundError(
+            this.settings.defaultCommand,
+            this.getCommands(),
+          );
+        }
+        defaultCommand.props.globalParent = this;
+
+        return defaultCommand.parseCommand(ctx);
+      }
+
+      if (this.settings.useRawArgs) {
+        await this.parseEnvVars(ctx, this.builder.envVars);
+        return await this.execute(ctx.env, ctx.unknown, ctx);
       }
 
       let preParseGlobals = false;
@@ -1740,7 +2188,7 @@ export class Command<
           const optionName = ctx.unknown[0].replace(/^-+/, "").split("=")[0];
           const option = this.getOption(optionName, true);
 
-          if (option?.global) {
+          if (option?.global && !option.standalone) {
             preParseGlobals = true;
             await this.parseGlobalOptionsAndEnvVars(ctx);
           }
@@ -1751,7 +2199,7 @@ export class Command<
         subCommand ??= this.getSubCommand(ctx);
 
         if (subCommand) {
-          subCommand._globalParent = this;
+          subCommand.props.globalParent = this;
           return subCommand.parseCommand(ctx);
         }
       }
@@ -1759,8 +2207,11 @@ export class Command<
       // Parse rest options & env vars.
       await this.parseOptionsAndEnvVars(ctx, preParseGlobals);
       const options = { ...ctx.env, ...ctx.flags };
-      const args = this.parseArguments(ctx, options);
-      this.literalArgs = ctx.literal;
+
+      // Process arguments.
+      await this.processArguments(ctx);
+      const args = ctx.args ?? [];
+      this.props.literalArgs = ctx.literal;
 
       // Execute option action.
       if (ctx.actions.length) {
@@ -1773,12 +2224,12 @@ export class Command<
             options,
             args,
             cmd: this,
-            literal: this.literalArgs,
+            literal: this.props.literalArgs,
           };
         }
       }
 
-      return await this.execute(options, args);
+      return await this.execute(options, args, ctx);
     } catch (error: unknown) {
       this.handleError(error);
     }
@@ -1801,7 +2252,7 @@ export class Command<
 
     // Parse global env vars.
     const envVars = [
-      ...this.envVars.filter((envVar) => envVar.global),
+      ...this.builder.envVars.filter((envVar) => envVar.global),
       ...this.getGlobalEnvVars(true),
     ];
 
@@ -1809,7 +2260,7 @@ export class Command<
 
     // Parse global options.
     const options = [
-      ...this.options.filter((option) => option.global),
+      ...this.builder.options.filter((option) => option.global),
       ...this.getGlobalOptions(true),
     ];
 
@@ -1825,12 +2276,17 @@ export class Command<
     preParseGlobals: boolean,
   ): Promise<void> {
     const helpOption = this.getHelpOption();
-    const isVersionOption = this._versionOption?.flags.includes(ctx.unknown[0]);
-    const isHelpOption = helpOption && ctx.flags?.[helpOption.name] === true;
+    const isVersionOption = this.props.versionOption?.flags.includes(
+      ctx.unknown[0],
+    );
+    const isHelpOption = helpOption &&
+      (preParseGlobals
+        ? ctx.flags?.[helpOption.name] === true
+        : ctx.unknown.some((unknown) => helpOption.flags.includes(unknown)));
 
     // Parse env vars.
     const envVars = preParseGlobals
-      ? this.envVars.filter((envVar) => !envVar.global)
+      ? this.builder.envVars.filter((envVar) => !envVar.global)
       : this.getEnvVars(true);
 
     await this.parseEnvVars(
@@ -1842,46 +2298,57 @@ export class Command<
     // Parse options.
     const options = this.getOptions(true);
 
-    this.parseOptions(ctx, options);
+    this.parseOptions(ctx, options, {
+      args: this.getArguments(),
+    });
   }
 
   /** Register default options like `--version` and `--help`. */
   private registerDefaults(): this {
-    if (this.hasDefaults || this.getParent()) {
+    if (this.props.hasDefaults) {
       return this;
     }
-    this.hasDefaults = true;
+    if (this.parent) {
+      if (this.props.isRoot) {
+        this.getMainCommand().registerDefaults();
+      }
+      return this;
+    }
+    this.props.hasDefaults = true;
 
     this.reset();
 
-    !this.types.has("string") &&
+    !this.builder.types.has("string") &&
       this.type("string", new StringType(), { global: true });
-    !this.types.has("number") &&
+    !this.builder.types.has("number") &&
       this.type("number", new NumberType(), { global: true });
-    !this.types.has("integer") &&
+    !this.builder.types.has("integer") &&
       this.type("integer", new IntegerType(), { global: true });
-    !this.types.has("boolean") &&
+    !this.builder.types.has("boolean") &&
       this.type("boolean", new BooleanType(), { global: true });
-    !this.types.has("file") &&
+    !this.builder.types.has("file") &&
       this.type("file", new FileType(), { global: true });
-    !this.types.has("secret") &&
+    !this.builder.types.has("secret") &&
       this.type("secret", new SecretType(), { global: true });
 
-    if (!this._help) {
+    if (!this.settings.help) {
       this.help({});
     }
 
-    if (this._versionOptions !== false && (this._versionOptions || this.ver)) {
+    if (
+      this.settings.versionOptions !== false &&
+      (this.settings.versionOptions || this.settings.version)
+    ) {
       this.option(
-        this._versionOptions?.flags || "-V, --version",
-        this._versionOptions?.desc ||
+        this.settings.versionOptions?.flags || "-V, --version",
+        this.settings.versionOptions?.desc ||
           "Show the version number for this program.",
         {
           standalone: true,
           prepend: true,
           action: async function () {
             const long = this.getRawArgs().includes(
-              `--${this._versionOption?.name}`,
+              `--${this.props.versionOption?.name}`,
             );
             if (long) {
               await checkVersion(this);
@@ -1891,16 +2358,16 @@ export class Command<
             }
             this.exit();
           },
-          ...(this._versionOptions?.opts ?? {}),
+          ...(this.settings.versionOptions?.opts ?? {}),
         },
       );
-      this._versionOption = this.options[0];
+      this.props.versionOption = this.builder.options[0];
     }
 
-    if (this._helpOptions !== false) {
+    if (this.settings.helpOptions !== false) {
       this.option(
-        this._helpOptions?.flags || "-h, --help",
-        this._helpOptions?.desc || "Show this help.",
+        this.settings.helpOptions?.flags || "-h, --help",
+        this.settings.helpOptions?.desc || "Show this help.",
         {
           standalone: true,
           global: true,
@@ -1913,10 +2380,10 @@ export class Command<
             this.showHelp({ long });
             this.exit();
           },
-          ...(this._helpOptions?.opts ?? {}),
+          ...(this.settings.helpOptions?.opts ?? {}),
         },
       );
-      this._helpOption = this.options[0];
+      this.props.helpOption = this.builder.options[0];
     }
 
     return this;
@@ -1924,38 +2391,36 @@ export class Command<
 
   /**
    * Execute command.
-   * @param options A map of options.
-   * @param args Command arguments.
+   * @param options A map of all options and environment variables. This also
+   * includes global options and environment variables. The options are parsed
+   * and processed by the command before passed to the action handler.
+   * @param args Positional arguments array.
+   * @param ctx Parse context.
    */
   private async execute(
     options: Record<string, unknown>,
     args: Array<unknown>,
+    ctx: ParseContext,
   ): Promise<CommandResult> {
-    if (this.defaultCommand) {
-      const cmd = this.getCommand(this.defaultCommand, true);
-
-      if (!cmd) {
-        throw new DefaultCommandNotFoundError(
-          this.defaultCommand,
-          this.getCommands(),
-        );
-      }
-      cmd._globalParent = this;
-
-      return cmd.execute(options, args);
+    // Show help if auto help is enabled, the command has sub commands, was
+    // called without any arguments or options and has no action handler.
+    if (
+      this.settings.commands.size && !ctx.unknown.length &&
+      !ctx.parsedFlags.length && !this.settings.actionHandler &&
+      this.isAutoHelpEnabled()
+    ) {
+      this.showHelp();
+      this.exit();
     }
 
     await this.executeGlobalAction(options, args);
-
-    if (this.actionHandler) {
-      await this.actionHandler(options, ...args);
-    }
+    await this.settings.actionHandler?.call(this, options, ...args);
 
     return {
       options,
       args,
       cmd: this,
-      literal: this.literalArgs,
+      literal: this.props.literalArgs,
     };
   }
 
@@ -1963,10 +2428,10 @@ export class Command<
     options: Record<string, unknown>,
     args: Array<unknown>,
   ) {
-    if (!this._noGlobals) {
-      await this._parent?.executeGlobalAction(options, args);
+    if (!this.settings.noGlobals) {
+      await this.parent?.executeGlobalAction(options, args);
     }
-    await this.globalActionHandler?.(options, ...args);
+    await this.settings.globalActionHandler?.call(this, options, ...args);
   }
 
   /** Parse raw command line arguments. */
@@ -1974,17 +2439,19 @@ export class Command<
     ctx: ParseContext,
     options: Option[],
     {
-      stopEarly = this._stopEarly,
+      stopEarly = this.settings.stopEarly,
       stopOnUnknown = false,
       dotted = true,
+      args = [],
     }: ParseOptionsOptions = {},
   ): void {
     parseFlags(ctx, {
       stopEarly,
       stopOnUnknown,
       dotted,
-      allowEmpty: this._allowEmpty,
+      allowEmpty: this.settings.allowEmpty,
       flags: options,
+      args,
       ignoreDefaults: ctx.env,
       parse: (type: ArgumentValue) => this.parseType(type),
       option: (option: Option) => {
@@ -2081,104 +2548,37 @@ export class Command<
   }
 
   /**
-   * Parse command-line arguments.
-   * @param ctx     Parse context.
-   * @param options Parsed command line options.
+   * Processes command-line arguments.
+   *
+   * @param ctx Parse context.
    */
-  protected parseArguments(
+  private async processArguments(
     ctx: ParseContext,
-    options: Record<string, unknown>,
-  ): TCommandArguments {
-    const params: Array<unknown> = [];
-    const args = ctx.unknown.slice();
-
-    if (!this.hasArguments()) {
-      if (args.length) {
-        if (this.hasCommands(true)) {
-          if (this.hasCommand(args[0], true)) {
-            // e.g: command --global-foo --foo sub-command
-            throw new TooManyArgumentsError(args);
-          } else {
-            throw new UnknownCommandError(args[0], this.getCommands());
-          }
+  ): Promise<void> {
+    if (!this.hasArguments() && ctx.unknown.length) {
+      if (this.hasCommands(true)) {
+        if (this.hasCommand(ctx.unknown[0], true)) {
+          // e.g: command --global-foo --foo sub-command
+          throw new TooManyArgumentsError(ctx.unknown);
         } else {
-          throw new NoArgumentsAllowedError(this.getPath());
-        }
-      }
-    } else {
-      if (!args.length) {
-        const required = this.getArguments()
-          .filter((expectedArg) => !expectedArg.optional)
-          .map((expectedArg) => expectedArg.name);
-
-        if (required.length) {
-          const optionNames: string[] = Object.keys(options);
-          const hasStandaloneOption = !!optionNames.find((name) =>
-            this.getOption(name, true)?.standalone
-          );
-
-          if (!hasStandaloneOption) {
-            throw new MissingArgumentsError(required);
-          }
+          throw new UnknownCommandError(ctx.unknown[0], this.getCommands());
         }
       } else {
-        for (const expectedArg of this.getArguments()) {
-          if (!args.length) {
-            if (expectedArg.optional) {
-              break;
-            }
-            throw new MissingArgumentError(expectedArg.name);
-          }
-
-          let arg: unknown;
-
-          const parseArgValue = (value: string) => {
-            return expectedArg.list
-              ? value.split(",").map((value) => parseArgType(value))
-              : parseArgType(value);
-          };
-
-          const parseArgType = (value: string) => {
-            return this.parseType({
-              label: "Argument",
-              type: expectedArg.type,
-              name: expectedArg.name,
-              value,
-            });
-          };
-
-          if (expectedArg.variadic) {
-            arg = args
-              .splice(0, args.length)
-              .filter((arg) => !(expectedArg.optional && arg === ""))
-              .map((value) => parseArgValue(value));
-          } else {
-            const value = args.shift() as string;
-            if (!(expectedArg.optional && value === "")) {
-              arg = parseArgValue(value);
-            }
-          }
-
-          if (expectedArg.variadic && Array.isArray(arg)) {
-            params.push(...arg);
-          } else {
-            params.push(arg);
-          }
-        }
-
-        if (args.length) {
-          throw new TooManyArgumentsError(args);
-        }
+        throw new NoArgumentsAllowedError(this.getPath());
       }
     }
 
-    return params as TCommandArguments;
+    if (ctx.args?.length) {
+      ctx.args = await Promise.all(ctx.args ?? []);
+    } else if (ctx.stopEarly || ctx.stopOnUnknown) {
+      ctx.args = ctx.unknown;
+    }
   }
 
   private handleError(error: unknown): never {
     this.throw(
       error instanceof FlagsValidationError
-        ? new ValidationError(error.message)
+        ? new ValidationError(error.message, { cause: error })
         : error instanceof Error
         ? error
         : new Error(`[non-error-thrown] ${error}`),
@@ -2214,12 +2614,12 @@ export class Command<
 
   /** Get command name. */
   public getName(): string {
-    return this._name;
+    return this.settings.name;
   }
 
   /** Get parent command. */
   public getParent(): TParentCommand {
-    return this._parent as TParentCommand;
+    return this.parent as TParentCommand;
   }
 
   /**
@@ -2228,17 +2628,17 @@ export class Command<
    * this method returns always undefined.
    */
   public getGlobalParent(): Command<any> | undefined {
-    return this._globalParent;
+    return this.props.globalParent;
   }
 
   /** Get main command. */
   public getMainCommand(): Command<any> {
-    return this._parent?.getMainCommand() ?? this;
+    return this.parent?.getMainCommand() ?? this;
   }
 
   /** Get command name aliases. */
   public getAliases(): string[] {
-    return this.aliases;
+    return this.settings.aliases;
   }
 
   /**
@@ -2247,14 +2647,14 @@ export class Command<
    * @param name Override the main command name.
    */
   public getPath(name?: string): string {
-    return this._parent
-      ? this._parent.getPath(name) + " " + this._name
-      : name || this._name;
+    return this.parent && !this.props.isRoot
+      ? this.parent.getPath(name) + " " + this.settings.name
+      : name || this.settings.name;
   }
 
   /** Get arguments definition. E.g: <input-file:string> <output-file:string> */
   public getArgsDefinition(): string | undefined {
-    return this.argsDefinition;
+    return this.settings.arguments?.map(({ arg }) => arg).join(" ");
   }
 
   /**
@@ -2268,16 +2668,16 @@ export class Command<
 
   /** Get arguments. */
   public getArguments(): Argument[] {
-    if (!this.args.length && this.argsDefinition) {
-      this.args = parseArgumentsDefinition(this.argsDefinition);
+    if (!this.props.args.length && this.settings.arguments) {
+      this.props.args = parseArgumentsDefinition(this.settings.arguments);
     }
 
-    return this.args;
+    return this.props.args;
   }
 
   /** Check if command has arguments. */
   public hasArguments(): boolean {
-    return !!this.argsDefinition;
+    return !!this.settings.arguments?.length;
   }
 
   /** Get command version. */
@@ -2287,20 +2687,20 @@ export class Command<
 
   /** Get help handler method. */
   private getVersionHandler(): VersionHandler | undefined {
-    return this.ver ?? this._parent?.getVersionHandler();
+    return this.settings.version ?? this.parent?.getVersionHandler();
   }
 
   /** Get command description. */
   public getDescription(): string {
     // call description method only once
-    return typeof this.desc === "function"
-      ? this.desc = this.desc()
-      : this.desc;
+    return typeof this.settings.description === "function"
+      ? this.settings.description = this.settings.description.call(this)
+      : this.settings.description;
   }
 
   /** Get auto generated command usage. */
   public getUsage(): string {
-    return this._usage ??
+    return this.settings.usage ??
       [this.getArgsDefinition(), this.getRequiredOptionsDefinition()]
         .join(" ")
         .trim();
@@ -2324,12 +2724,12 @@ export class Command<
 
   /** Get original command-line arguments. */
   public getRawArgs(): string[] {
-    return this.rawArgs;
+    return this.props.rawArgs;
   }
 
   /** Get all arguments defined after the double dash. */
   public getLiteralArgs(): string[] {
-    return this.literalArgs;
+    return this.props.literalArgs;
   }
 
   /** Output generated help without exiting. */
@@ -2365,7 +2765,7 @@ export class Command<
 
   /** Get help handler method. */
   private getHelpHandler(): HelpHandler {
-    return this._help ?? this._parent?.getHelpHandler() as HelpHandler;
+    return this.settings.help ?? this.parent?.getHelpHandler() as HelpHandler;
   }
 
   private exit(code = 0) {
@@ -2402,13 +2802,13 @@ export class Command<
    * @param hidden Include hidden options.
    */
   public getBaseOptions(hidden?: boolean): Option[] {
-    if (!this.options.length) {
+    if (!this.builder.options.length) {
       return [];
     }
 
     return hidden
-      ? this.options.slice(0)
-      : this.options.filter((opt) => !opt.hidden);
+      ? this.builder.options.slice(0)
+      : this.builder.options.filter((opt) => !opt.hidden);
   }
 
   /**
@@ -2420,15 +2820,15 @@ export class Command<
     const helpOption = this.getHelpOption();
     const getGlobals = (
       cmd: Command<any>,
-      noGlobals: boolean,
+      noGlobals: boolean | undefined,
       options: Option[] = [],
       names: string[] = [],
     ): Option[] => {
-      if (cmd.options.length) {
-        for (const option of cmd.options) {
+      if (cmd.builder.options.length) {
+        for (const option of cmd.builder.options) {
           if (
             option.global &&
-            !this.options.find((opt) => opt.name === option.name) &&
+            !this.builder.options.find((opt) => opt.name === option.name) &&
             names.indexOf(option.name) === -1 &&
             (hidden || !option.hidden)
           ) {
@@ -2442,17 +2842,17 @@ export class Command<
         }
       }
 
-      return cmd._parent
+      return cmd.parent
         ? getGlobals(
-          cmd._parent,
-          noGlobals || cmd._noGlobals,
+          cmd.parent,
+          noGlobals || cmd.settings.noGlobals,
           options,
           names,
         )
         : options;
     };
 
-    return this._parent ? getGlobals(this._parent, this._noGlobals) : [];
+    return this.parent ? getGlobals(this.parent, this.settings.noGlobals) : [];
   }
 
   /**
@@ -2483,7 +2883,7 @@ export class Command<
    * @param hidden Include hidden options.
    */
   public getBaseOption(name: string, hidden?: boolean): Option | undefined {
-    const option = this.options.find((option) =>
+    const option = this.builder.options.find((option) =>
       option.name === name || option.aliases?.includes(name)
     );
 
@@ -2500,7 +2900,7 @@ export class Command<
     const helpOption = this.getHelpOption();
     const getGlobalOption = (
       parent: Command,
-      noGlobals: boolean,
+      noGlobals: boolean | undefined,
     ): Option | undefined => {
       const option: Option | undefined = parent.getBaseOption(
         name,
@@ -2508,9 +2908,9 @@ export class Command<
       );
 
       if (!option?.global) {
-        return parent._parent && getGlobalOption(
-          parent._parent,
-          noGlobals || parent._noGlobals,
+        return parent.parent && getGlobalOption(
+          parent.parent,
+          noGlobals || parent.settings.noGlobals,
         );
       }
       if (noGlobals && option !== helpOption) {
@@ -2520,9 +2920,9 @@ export class Command<
       return option;
     };
 
-    return this._parent && getGlobalOption(
-      this._parent,
-      this._noGlobals,
+    return this.parent && getGlobalOption(
+      this.parent,
+      this.settings.noGlobals,
     );
   }
 
@@ -2532,13 +2932,15 @@ export class Command<
    * @param name Name of the option. Must be in param-case.
    */
   public removeOption(name: string): Option | undefined {
-    const index = this.options.findIndex((option) => option.name === name);
+    const index = this.builder.options.findIndex((option) =>
+      option.name === name
+    );
 
     if (index === -1) {
       return;
     }
 
-    return this.options.splice(index, 1)[0];
+    return this.builder.options.splice(index, 1)[0];
   }
 
   /**
@@ -2565,8 +2967,8 @@ export class Command<
    * @param hidden Include hidden commands.
    */
   public getBaseCommands(hidden?: boolean): Array<Command<any>> {
-    const commands = Array.from(this.commands.values());
-    return hidden ? commands : commands.filter((cmd) => !cmd.isHidden);
+    const commands = Array.from(this.settings.commands.values());
+    return hidden ? commands : commands.filter((cmd) => !cmd.settings.isHidden);
   }
 
   /**
@@ -2577,40 +2979,40 @@ export class Command<
   public getGlobalCommands(hidden?: boolean): Array<Command<any>> {
     const getCommands = (
       command: Command<any>,
-      noGlobals: boolean,
+      noGlobals: boolean | undefined,
       commands: Array<Command<any>> = [],
       names: string[] = [],
     ): Array<Command<any>> => {
-      if (command.commands.size) {
-        for (const [_, cmd] of command.commands) {
+      if (command.settings.commands.size) {
+        for (const [_, cmd] of command.settings.commands) {
           if (
-            cmd.isGlobal &&
+            cmd.settings.isGlobal &&
             this !== cmd &&
-            !this.commands.has(cmd._name) &&
-            names.indexOf(cmd._name) === -1 &&
-            (hidden || !cmd.isHidden)
+            !this.settings.commands.has(cmd.settings.name) &&
+            names.indexOf(cmd.settings.name) === -1 &&
+            (hidden || !cmd.settings.isHidden)
           ) {
             if (noGlobals && cmd?.getName() !== "help") {
               continue;
             }
 
-            names.push(cmd._name);
+            names.push(cmd.settings.name);
             commands.push(cmd);
           }
         }
       }
 
-      return command._parent
+      return command.parent
         ? getCommands(
-          command._parent,
-          noGlobals || command._noGlobals,
+          command.parent,
+          noGlobals || command.settings.noGlobals,
           commands,
           names,
         )
         : commands;
     };
 
-    return this._parent ? getCommands(this._parent, this._noGlobals) : [];
+    return this.parent ? getCommands(this.parent, this.settings.noGlobals) : [];
   }
 
   /**
@@ -2647,9 +3049,9 @@ export class Command<
     name: string,
     hidden?: boolean,
   ): TCommand | undefined {
-    for (const cmd of this.commands.values()) {
-      if (cmd._name === name || cmd.aliases.includes(name)) {
-        return (cmd && (hidden || !cmd.isHidden) ? cmd : undefined) as
+    for (const cmd of this.settings.commands.values()) {
+      if (cmd.settings.name === name || cmd.settings.aliases.includes(name)) {
+        return (cmd && (hidden || !cmd.settings.isHidden) ? cmd : undefined) as
           | TCommand
           | undefined;
       }
@@ -2668,13 +3070,16 @@ export class Command<
   ): TCommand | undefined {
     const getGlobalCommand = (
       parent: Command,
-      noGlobals: boolean,
+      noGlobals: boolean | undefined,
     ): Command | undefined => {
       const cmd: Command | undefined = parent.getBaseCommand(name, hidden);
 
-      if (!cmd?.isGlobal) {
-        return parent._parent &&
-          getGlobalCommand(parent._parent, noGlobals || parent._noGlobals);
+      if (!cmd || !cmd.settings.isGlobal) {
+        return parent.parent &&
+          getGlobalCommand(
+            parent.parent,
+            noGlobals || parent.settings.noGlobals,
+          );
       }
       if (noGlobals && cmd.getName() !== "help") {
         return;
@@ -2683,8 +3088,8 @@ export class Command<
       return cmd;
     };
 
-    return this._parent &&
-      getGlobalCommand(this._parent, this._noGlobals) as TCommand;
+    return this.parent &&
+      getGlobalCommand(this.parent, this.settings.noGlobals) as TCommand;
   }
 
   /**
@@ -2696,7 +3101,7 @@ export class Command<
     const command = this.getBaseCommand(name, true);
 
     if (command) {
-      this.commands.delete(command._name);
+      this.settings.commands.delete(command.settings.name);
     }
 
     return command;
@@ -2709,7 +3114,7 @@ export class Command<
 
   /** Get base types. */
   public getBaseTypes(): Array<TypeDef> {
-    return Array.from(this.types.values());
+    return Array.from(this.builder.types.values());
   }
 
   /** Get global types. */
@@ -2720,11 +3125,11 @@ export class Command<
       names: Array<string> = [],
     ): Array<TypeDef> => {
       if (cmd) {
-        if (cmd.types.size) {
-          cmd.types.forEach((type: TypeDef) => {
+        if (cmd.builder.types.size) {
+          cmd.builder.types.forEach((type: TypeDef) => {
             if (
               type.global &&
-              !this.types.has(type.name) &&
+              !this.builder.types.has(type.name) &&
               names.indexOf(type.name) === -1
             ) {
               names.push(type.name);
@@ -2733,13 +3138,13 @@ export class Command<
           });
         }
 
-        return getTypes(cmd._parent, types, names);
+        return getTypes(cmd.parent, types, names);
       }
 
       return types;
     };
 
-    return getTypes(this._parent);
+    return getTypes(this.parent);
   }
 
   /**
@@ -2757,7 +3162,7 @@ export class Command<
    * @param name Name of the type.
    */
   public getBaseType(name: string): TypeDef | undefined {
-    return this.types.get(name);
+    return this.builder.types.get(name);
   }
 
   /**
@@ -2766,14 +3171,14 @@ export class Command<
    * @param name Name of the type.
    */
   public getGlobalType(name: string): TypeDef | undefined {
-    if (!this._parent) {
+    if (!this.parent) {
       return;
     }
 
-    const cmd: TypeDef | undefined = this._parent.getBaseType(name);
+    const cmd: TypeDef | undefined = this.parent.getBaseType(name);
 
     if (!cmd?.global) {
-      return this._parent.getGlobalType(name);
+      return this.parent.getGlobalType(name);
     }
 
     return cmd;
@@ -2795,7 +3200,7 @@ export class Command<
 
   /** Get base completions. */
   public getBaseCompletions(): Completion[] {
-    return Array.from(this.completions.values());
+    return Array.from(this.builder.completions.values());
   }
 
   /** Get global completions. */
@@ -2806,11 +3211,11 @@ export class Command<
       names: string[] = [],
     ): Completion[] => {
       if (cmd) {
-        if (cmd.completions.size) {
-          cmd.completions.forEach((completion: Completion) => {
+        if (cmd.builder.completions.size) {
+          cmd.builder.completions.forEach((completion: Completion) => {
             if (
               completion.global &&
-              !this.completions.has(completion.name) &&
+              !this.builder.completions.has(completion.name) &&
               names.indexOf(completion.name) === -1
             ) {
               names.push(completion.name);
@@ -2819,13 +3224,13 @@ export class Command<
           });
         }
 
-        return getCompletions(cmd._parent, completions, names);
+        return getCompletions(cmd.parent, completions, names);
       }
 
       return completions;
     };
 
-    return getCompletions(this._parent);
+    return getCompletions(this.parent);
   }
 
   /**
@@ -2843,7 +3248,7 @@ export class Command<
    * @param name Name of the completion.
    */
   public getBaseCompletion(name: string): Completion | undefined {
-    return this.completions.get(name);
+    return this.builder.completions.get(name);
   }
 
   /**
@@ -2852,16 +3257,16 @@ export class Command<
    * @param name Name of the completion.
    */
   public getGlobalCompletion(name: string): Completion | undefined {
-    if (!this._parent) {
+    if (!this.parent) {
       return;
     }
 
-    const completion: Completion | undefined = this._parent.getBaseCompletion(
+    const completion: Completion | undefined = this.parent.getBaseCompletion(
       name,
     );
 
     if (!completion?.global) {
-      return this._parent.getGlobalCompletion(name);
+      return this.parent.getGlobalCompletion(name);
     }
 
     return completion;
@@ -2891,13 +3296,13 @@ export class Command<
    * @param hidden Include hidden environment variable.
    */
   public getBaseEnvVars(hidden?: boolean): EnvVar[] {
-    if (!this.envVars.length) {
+    if (!this.builder.envVars.length) {
       return [];
     }
 
     return hidden
-      ? this.envVars.slice(0)
-      : this.envVars.filter((env) => !env.hidden);
+      ? this.builder.envVars.slice(0)
+      : this.builder.envVars.filter((env) => !env.hidden);
   }
 
   /**
@@ -2906,7 +3311,7 @@ export class Command<
    * @param hidden Include hidden environment variable.
    */
   public getGlobalEnvVars(hidden?: boolean): EnvVar[] {
-    if (this._noGlobals) {
+    if (this.settings.noGlobals) {
       return [];
     }
 
@@ -2916,11 +3321,13 @@ export class Command<
       names: string[] = [],
     ): EnvVar[] => {
       if (cmd) {
-        if (cmd.envVars.length) {
-          cmd.envVars.forEach((envVar: EnvVar) => {
+        if (cmd.builder.envVars.length) {
+          cmd.builder.envVars.forEach((envVar: EnvVar) => {
             if (
               envVar.global &&
-              !this.envVars.find((env) => env.names[0] === envVar.names[0]) &&
+              !this.builder.envVars.find((env) =>
+                env.names[0] === envVar.names[0]
+              ) &&
               names.indexOf(envVar.names[0]) === -1 &&
               (hidden || !envVar.hidden)
             ) {
@@ -2930,13 +3337,13 @@ export class Command<
           });
         }
 
-        return getEnvVars(cmd._parent, envVars, names);
+        return getEnvVars(cmd.parent, envVars, names);
       }
 
       return envVars;
     };
 
-    return getEnvVars(this._parent);
+    return getEnvVars(this.parent);
   }
 
   /**
@@ -2967,7 +3374,7 @@ export class Command<
    * @param hidden Include hidden environment variable.
    */
   public getBaseEnvVar(name: string, hidden?: boolean): EnvVar | undefined {
-    const envVar: EnvVar | undefined = this.envVars.find((env) =>
+    const envVar: EnvVar | undefined = this.builder.envVars.find((env) =>
       env.names.indexOf(name) !== -1
     );
 
@@ -2981,17 +3388,17 @@ export class Command<
    * @param hidden Include hidden environment variable.
    */
   public getGlobalEnvVar(name: string, hidden?: boolean): EnvVar | undefined {
-    if (!this._parent || this._noGlobals) {
+    if (!this.parent || this.settings.noGlobals) {
       return;
     }
 
-    const envVar: EnvVar | undefined = this._parent.getBaseEnvVar(
+    const envVar: EnvVar | undefined = this.parent.getBaseEnvVar(
       name,
       hidden,
     );
 
     if (!envVar?.global) {
-      return this._parent.getGlobalEnvVar(name, hidden);
+      return this.parent.getGlobalEnvVar(name, hidden);
     }
 
     return envVar;
@@ -2999,12 +3406,12 @@ export class Command<
 
   /** Checks whether the command has examples or not. */
   public hasExamples(): boolean {
-    return this.examples.length > 0;
+    return this.settings.examples.length > 0;
   }
 
   /** Get all examples. */
   public getExamples(): Example[] {
-    return this.examples;
+    return this.settings.examples;
   }
 
   /** Checks whether the command has an example with given name or not. */
@@ -3014,11 +3421,15 @@ export class Command<
 
   /** Get example with given name. */
   public getExample(name: string): Example | undefined {
-    return this.examples.find((example) => example.name === name);
+    return this.settings.examples.find((example) => example.name === name);
   }
 
   private getHelpOption(): Option | undefined {
-    return this._helpOption ?? this._parent?.getHelpOption();
+    return this.props.helpOption ?? this.parent?.getHelpOption();
+  }
+
+  private isAutoHelpEnabled(): boolean {
+    return this.settings.autoHelp ?? this.parent?.isAutoHelpEnabled() ?? true;
   }
 }
 
@@ -3046,4 +3457,5 @@ interface ParseOptionsOptions {
   stopEarly?: boolean;
   stopOnUnknown?: boolean;
   dotted?: boolean;
+  args?: Array<ArgumentOptions>;
 }

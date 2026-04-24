@@ -356,9 +356,3 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     return this.options.columns[index] ??= new Column();
   }
 }
-
-/** @deprecated Use `BorderOptions` instead. */
-export type IBorderOptions = BorderOptions;
-
-/** @deprecated Use `TableType` instead. */
-export type ITable = TableType;

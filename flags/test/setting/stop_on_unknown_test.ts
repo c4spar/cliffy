@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 
 test("[flags] should stop on unknown option with stopOnUnknown enabled", () => {
@@ -21,17 +20,17 @@ test("[flags] should stop on unknown option with stopOnUnknown enabled", () => {
     flags: [{
       name: "flag",
       aliases: ["f"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }, {
       name: "script-arg1",
       aliases: ["s"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }, {
       name: "script-arg2",
       aliases: ["S"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }],
   });

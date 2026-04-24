@@ -38,12 +38,30 @@ export type Tty = TtyFactory & TtyChain;
 
 /**
  * Chainable ansi escape sequences.
- * If invoked as method, a new Tty instance will be returned.
  *
- * ```ts
- * import { tty } from "@cliffy/ansi/tty";
+ * The tty module exports a `tty` object which works almost the same way as the
+ * `ansi` module. The only difference is, the `tty` module writes the ansi escape
+ * sequences directly to stdout.
  *
- * tty.cursorTo(0, 0).eraseScreen();
+ * @example Default instance
+ *
+ * ```typescript
+ * import { tty } from "https://deno.land/x/cliffy/ansi/tty.ts";
+ *
+ * tty.cursorUp.cursorLeft.eraseDown();
+ * ```
+ *
+ * @example Create a new instance
+ *
+ * ```typescript
+ * import { tty } from "https://deno.land/x/cliffy/ansi/tty.ts";
+ *
+ * const myTty = tty({
+ *   writer: Deno.stdout,
+ *   reader: Deno.stdin,
+ * });
+ *
+ * myTty.cursorUp.cursorLeft.eraseDown();
  * ```
  */
 export const tty: Tty = factory();

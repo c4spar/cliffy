@@ -396,7 +396,7 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
   });
 
   test({
-    name: "[command] - generic types - unkown parent option",
+    name: "[command] - generic types - unknown parent option",
     fn() {
       new Command()
         .globalOption("--foo", "")
@@ -406,7 +406,7 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
   });
 
   test({
-    name: "[command] - generic types - unkown parent option with sub command",
+    name: "[command] - generic types - unknown parent option with sub command",
     fn() {
       new Command()
         .globalOption("--foo", "")
@@ -494,8 +494,8 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
           assertType<IsExact<typeof args, [string]>>(true);
           assertType<
             IsExact<typeof options, {
-              main?: true;
-              foo?: true;
+              main?: true | undefined;
+              foo?: true | undefined;
             }>
           >(true);
         });
@@ -568,7 +568,7 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
 
       new Command()
         .type("color", colorType)
-        .type("lang", new EnumType(Lang))
+        .type("lang", new EnumType<Lang>(Lang))
         .arguments(
           "<arg1> <arg2:string> <arg3:number> <arg4:boolean> [arg5] [arg6:string] [arg7:number] [arg8:boolean] [arg9:color] [...rest:lang[]]",
         )

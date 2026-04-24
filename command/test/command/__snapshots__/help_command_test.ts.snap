@@ -1,0 +1,43 @@
+export const snapshot = {};
+
+snapshot[`[command] should print help for root command > rootCommand 1`] = `
+stdout:
+"
+Usage: child
+
+Description:
+
+  Child command.
+
+Options:
+
+  -h, --help           - Show this help.  
+  --beep      [value]  - Beep.            
+
+Commands:
+
+  foo  [bar]  - Foo command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`[command] should print help for root command > fooCommand 1`] = `
+stdout:
+"
+Usage: child foo [bar]
+
+Description:
+
+  Foo command.
+
+Options:
+
+  -h, --help           - Show this help.  
+  --Boop      [value]  - Boop.            
+
+"
+stderr:
+""
+`;

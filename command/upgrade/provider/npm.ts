@@ -31,6 +31,15 @@ export class NpmProvider extends Provider {
     }
   }
 
+  async hasRequiredPermissions(): Promise<boolean> {
+    const apiUrl = new URL(this.apiUrl);
+    const permissionStatus = await Deno.permissions.query({
+      name: "net",
+      host: apiUrl.host,
+    });
+    return permissionStatus.state === "granted";
+  }
+
   async getVersions(
     name: string,
   ): Promise<Versions> {

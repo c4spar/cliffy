@@ -13,9 +13,11 @@ jobs:
           - name: deno
             deno-version: v1.x
           - name: deno
-            deno-version: v2.x
+            deno-version-file: .deno-version
           - name: node
-          # - name: bun
+            node-version-file: .node-version
+          - name: bun
+            bun-version-file: .bun-version
         os: [macOS-latest, windows-latest, ubuntu-latest]
     env:
       RUST_BACKTRACE: full
@@ -23,13 +25,13 @@ jobs:
       CLIFFY_SNAPSHOT_DELAY: 2000
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: ${{ matrix.runtime.deno-version }}
-          # deno-version-file: ".deno-version"
+          deno-version-file: ${{ matrix.runtime.deno-version-file }}
 
       - name: Create package.json
         if: ${{ matrix.runtime.name == 'node' || matrix.runtime.name == 'bun' }}
@@ -37,15 +39,15 @@ jobs:
 
       - name: Setup Node
         if: ${{ matrix.runtime.name == 'node' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version-file: ".node-version"
+          node-version-file: ${{ matrix.runtime.node-version-file }}
 
       - name: Setup Bun
         if: ${{ matrix.runtime.name == 'bun' }}
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version-file: ".bun-version"
+          bun-version-file: ${{ matrix.runtime.bun-version-file }}
 
       - name: Setup pnpm
         if: ${{ matrix.runtime.name == 'node' }}
@@ -53,13 +55,17 @@ jobs:
         with:
           run_install: true
 
+      - name: Install bun dependencies
+        if: ${{ matrix.runtime.name == 'bun' }}
+        run: bun install
+
       - name: Run tests
         if: matrix.runtime.name == 'deno' && matrix.runtime.deno-version == 'v1.x'
         shell: bash
         run: deno task coverage:deno-v1
 
       - name: Run tests
-        if: matrix.runtime.name == 'deno' && matrix.runtime.deno-version == 'rc'
+        if: matrix.runtime.name == 'deno' && matrix.runtime.deno-version-file
         shell: bash
         run: deno task coverage:deno-v2
 
@@ -69,7 +75,7 @@ jobs:
         run: deno task coverage:${{ matrix.runtime.name }}
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
           name: ${{ matrix.runtime.name }}-${{ matrix.os }}

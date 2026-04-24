@@ -1,15 +1,15 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertThrows } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
+import type { ParseFlagsOptions } from "../../types.ts";
 
-const options = {
+const options: ParseFlagsOptions = {
   stopEarly: false,
   allowEmpty: false,
   flags: [{
     name: "flag",
     aliases: ["f"],
-    type: OptionType.BOOLEAN,
+    type: "boolean",
     optionalValue: true,
     standalone: true,
   }, {

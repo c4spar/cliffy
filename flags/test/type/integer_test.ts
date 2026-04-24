@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertThrows } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 import type { ParseFlagsOptions } from "../../types.ts";
 
@@ -10,7 +9,7 @@ const optionalValueOptions: ParseFlagsOptions = {
   flags: [{
     name: "flag",
     aliases: ["f"],
-    type: OptionType.INTEGER,
+    type: "integer",
     optionalValue: true,
   }],
 };
@@ -21,7 +20,7 @@ const requiredValueOptions: ParseFlagsOptions = {
   flags: [{
     name: "flag",
     aliases: ["f"],
-    type: OptionType.INTEGER,
+    type: "integer",
   }],
 };
 

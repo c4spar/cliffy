@@ -5,6 +5,7 @@ import type { ImageOptions } from "./ansi_escapes.ts";
 export interface Chain<TContext extends Chain<TContext>> {
   /** Add text. */
   text: (text: string) => TContext;
+  /** Returns all sequences as array. */
   toArray: () => Array<string>;
   /** Ring audio bell: `\u0007` */
   bel: TContext;

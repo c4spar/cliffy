@@ -12,17 +12,9 @@ export interface TestFn {
 }
 
 export interface TestContext {
-  step: StepFunction;
-}
-
-export interface StepFunction {
-  (stepOptions: StepOptions): Promise<boolean>;
-  (name: string, fn: TestFn): Promise<boolean>;
-}
-
-export interface StepOptions {
   name: string;
-  fn: TestFn;
-  ignore?: boolean | Array<RuntimeName>;
-  only?: boolean;
+  origin: string;
+  step(options: TestOptions): Promise<boolean>;
+  step(name: string, fn: TestFn): Promise<boolean>;
+  step(fn: TestFn): Promise<boolean>;
 }

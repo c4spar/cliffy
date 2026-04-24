@@ -1,0 +1,221 @@
+export const snapshot = {};
+
+snapshot[`should print help for arguments defined with argument method > help 1`] = `
+stdout:
+"
+Usage:   arguments-test <foo> [bar] [baz...] --file1 <path>
+Version: 1.0.0                                             
+
+Arguments:
+
+  <foo>     - Foo description.  (required)
+  [bar]     - Bar description.            
+  [baz...]  - Baz description.            
+
+Options:
+
+  -h, --help             - Show this help.                                      
+  -V, --version          - Show the version number for this program.            
+  -f, --file1    <path>  - ...                                        (required)
+
+"
+stderr:
+""
+`;
+
+snapshot[`should print help for additionally added arguments with argument method > help 1`] = `
+stdout:
+"
+Usage:   arguments-test <beep> <boop> <foo> [bar] [baz...] --file1 <path>
+Version: 1.0.0                                                           
+
+Arguments:
+
+  <beep>    - First argument description.   (required)
+  <boop>    - Second argument description.  (required)
+  <foo>     - Foo description.              (required)
+  [bar]     - Bar description.                        
+  [baz...]  - Baz description.                        
+
+Options:
+
+  -h, --help             - Show this help.                                      
+  -V, --version          - Show the version number for this program.            
+  -f, --file1    <path>  - ...                                        (required)
+
+"
+stderr:
+""
+`;
+
+snapshot[`should print help when action handler calls showHelp with arrow function > help 1`] = `
+stdout:
+"
+Usage: git
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  pull   - Pull changes from remote repository. 
+  fetch  - Fetch changes from remote repository.
+
+"
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help option is enabled if action handler is defined even if no arguments are provided > mainCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help option is enabled if action handler is defined even if no arguments are provided > fooCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help option is enabled if action handler is defined even if no arguments are provided > barCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should show help when auto help option is enabled for commands with subcommands and no action handler if no arguments are provided > mainCommand 1`] = `
+stdout:
+"
+Usage: auto-help-test
+
+Description:
+
+  Test auto help option.
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  foo  - 
+
+"
+stderr:
+""
+`;
+
+snapshot[`should show help when auto help option is enabled for commands with subcommands and no action handler if no arguments are provided > fooCommand 1`] = `
+stdout:
+"
+Usage: auto-help-test foo
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  bar  - A subcommand.      
+  baz  - Another subcommand.
+
+"
+stderr:
+""
+`;
+
+snapshot[`should show help when auto help option is enabled for commands with subcommands and no action handler if no arguments are provided > barCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should show help when auto help option is enabled with global environment variable defined > mainCommand 1`] = `
+stdout:
+"
+Usage: auto-help-test
+
+Description:
+
+  Test auto help option.
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  foo  - 
+
+Environment variables:
+
+  NO_COLOR  <value>  - Disable colors in help output.  
+
+"
+stderr:
+""
+`;
+
+snapshot[`should show help when auto help option is enabled with global environment variable defined > fooCommand 1`] = `
+stdout:
+"
+Usage: auto-help-test foo
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  bar  - A subcommand.      
+  baz  - Another subcommand.
+
+Environment variables:
+
+  NO_COLOR  <value>  - Disable colors in help output.  
+
+"
+stderr:
+""
+`;
+
+snapshot[`should show help when auto help option is enabled with global environment variable defined > barCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help option is enabled but no subcommands are defined > noArgs 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help option is enabled but no subcommands are defined > withArgs 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help is disabled for commands with subcommands and no action handler if no arguments are provided > mainCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;
+
+snapshot[`should not show help when auto help is disabled for commands with subcommands and no action handler if no arguments are provided > fooCommand 1`] = `
+stdout:
+""
+stderr:
+""
+`;

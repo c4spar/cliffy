@@ -17,7 +17,7 @@ import { NpmProvider } from "./npm.ts";
 
 test({
   name: "NpmProvider",
-  ignore: ["node"],
+  ignore: ["node", "bun"],
   fn: async (ctx) => {
     mockGlobalFetch();
     mockGlobalCommand();

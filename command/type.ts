@@ -61,6 +61,9 @@ export abstract class Type<TValue> {
 
 // deno-lint-ignore no-namespace
 export namespace Type {
-  export type infer<TType, TDefault = TType> = TType extends
-    TypeOrTypeHandler<infer Value> ? Value : TDefault;
+  /** @deprecated Use `InferType` instead. */
+  export type infer<TType, TDefault = TType> = InferType<TType, TDefault>;
 }
+
+export type InferType<TType, TDefault = TType> = TType extends
+  TypeOrTypeHandler<infer Value> ? Value : TDefault;

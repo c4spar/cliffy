@@ -1,6 +1,6 @@
 {
   "name": "@cliffy/internal",
-  "version": "1.0.0-rc.8",
+  "version": "1.0.1",
   "exports": {
     "./runtime/delete-env": "./runtime/delete_env.ts",
     "./runtime/exit": "./runtime/exit.ts",

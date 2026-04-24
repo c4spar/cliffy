@@ -1,4 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
+import { snapshotTest } from "@cliffy/testing";
 import { assertEquals } from "@std/assert";
 import { CompletionsCommand } from "../../completions/completions_command.ts";
 import { HelpCommand } from "../../help/help_command.ts";
@@ -172,5 +173,28 @@ Environment variables:
   SOME_REQUIRED_ENV_VAR  <value:string>  - This one is required!  (required)
 `,
     );
+  },
+});
+
+await snapshotTest({
+  name: "[command] should print help for root command",
+  meta: import.meta,
+  steps: {
+    rootCommand: { args: ["-h"] },
+    fooCommand: { args: ["foo", "-h"] },
+  },
+  async fn(): Promise<void> {
+    const child = new Command()
+      .description("Child command.")
+      .option("--beep [value:number]", "Beep.")
+      .command("foo [bar]")
+      .description("Foo command.")
+      .option("--Boop [value:number]", "Boop.");
+
+    const cmd = new Command()
+      .throwErrors()
+      .command("child", child);
+
+    await cmd.getCommand("child")?.parse(Deno.args);
   },
 });

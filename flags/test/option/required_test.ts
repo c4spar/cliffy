@@ -1,20 +1,19 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertThrows } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 import type { ParseFlagsOptions } from "../../types.ts";
 
 const options: ParseFlagsOptions = {
   flags: [{
     name: "required",
-    type: OptionType.STRING,
+    type: "string",
     required: true,
   }, {
     name: "required-value",
-    type: OptionType.STRING,
+    type: "string",
   }, {
     name: "required-default",
-    type: OptionType.STRING,
+    type: "string",
     default: "default",
   }],
 };

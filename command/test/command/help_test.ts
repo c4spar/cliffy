@@ -1,6 +1,9 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals } from "@std/assert";
 import { Command } from "../../command.ts";
+import { snapshotTest } from "../../../testing/mod.ts";
+import { deleteEnv } from "../../../internal/runtime/delete_env.ts";
+import { setEnv } from "../../../internal/runtime/set_env.ts";
 
 test("[command] help - help string", () => {
   const cmd = new Command()
@@ -172,5 +175,187 @@ test({
       .parse(["bar", "--help"]);
 
     assertEquals(ctx.options, { help: true });
+  },
+});
+
+await snapshotTest({
+  name: "should print help for arguments defined with argument method",
+  meta: import.meta,
+  steps: {
+    help: { args: ["-h"] },
+  },
+  async fn(): Promise<void> {
+    await new Command()
+      .version("1.0.0")
+      .name("arguments-test")
+      .option("-f, --file1 <path:file>", "...", { required: true })
+      .argument("<foo:string>", "Foo description.")
+      .argument("[bar:number]", "Bar description.")
+      .argument("[...baz:boolean]", "Baz description.")
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should print help for additionally added arguments with argument method",
+  meta: import.meta,
+  steps: {
+    help: { args: ["-h"] },
+  },
+  async fn(): Promise<void> {
+    await new Command()
+      .version("1.0.0")
+      .name("arguments-test")
+      .option("-f, --file1 <path:file>", "...", { required: true })
+      .arguments("<beep:string> <boop:number>", [
+        "First argument description.",
+        "Second argument description.",
+      ])
+      .argument("<foo:string>", "Foo description.")
+      .argument("[bar:number]", "Bar description.")
+      .argument("[...baz:boolean]", "Baz description.")
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should print help when action handler calls showHelp with arrow function",
+  meta: import.meta,
+  steps: {
+    help: { args: [] },
+  },
+  async fn(): Promise<void> {
+    const cmd = new Command()
+      .name("git")
+      .action(() => cmd.showHelp())
+      .command("pull", "Pull changes from remote repository.")
+      .action(() => console.log("Pulling..."))
+      .command("fetch", "Fetch changes from remote repository.")
+      .action(() => console.log("Fetching..."));
+
+    await cmd.parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should not show help when auto help option is enabled if action handler is defined even if no arguments are provided",
+  meta: import.meta,
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+    barCommand: { args: ["foo", "bar"] },
+  },
+  async fn(): Promise<void> {
+    const fooCommand = new Command()
+      .action(() => {})
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .help({ auto: true })
+      .noExit()
+      .action(() => {})
+      .command("foo", fooCommand)
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should show help when auto help option is enabled for commands with subcommands and no action handler if no arguments are provided",
+  meta: import.meta,
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+    barCommand: { args: ["foo", "bar"] },
+  },
+  async fn(): Promise<void> {
+    const fooCommand = new Command()
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .help({ auto: true })
+      .noExit()
+      .command("foo", fooCommand)
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should show help when auto help option is enabled with global environment variable defined",
+  meta: import.meta,
+  denoArgs: ["--quiet", "--allow-env"],
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+    barCommand: { args: ["foo", "bar"] },
+  },
+  async fn(): Promise<void> {
+    setEnv("NO_COLOR", "1");
+
+    const fooCommand = new Command()
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .globalEnv("NO_COLOR", "Disable colors in help output.")
+      .help({ auto: true })
+      .noExit()
+      .command("foo", fooCommand)
+      .parse();
+
+    deleteEnv("NO_COLOR");
+  },
+});
+
+await snapshotTest({
+  name:
+    "should not show help when auto help option is enabled but no subcommands are defined",
+  meta: import.meta,
+  steps: {
+    noArgs: { args: [] },
+    withArgs: { args: ["-f"] },
+  },
+  async fn(): Promise<void> {
+    await new Command()
+      .option("-f, --foo", "Foo option.")
+      .option("-b, --bar", "Bar option.")
+      .help({ auto: true })
+      .noExit()
+      .parse();
+  },
+});
+
+await snapshotTest({
+  name:
+    "should not show help when auto help is disabled for commands with subcommands and no action handler if no arguments are provided",
+  meta: import.meta,
+  steps: {
+    mainCommand: { args: [] },
+    fooCommand: { args: ["foo"] },
+  },
+  async fn(): Promise<void> {
+    const fooCommand = new Command()
+      .command("bar", "A subcommand.")
+      .command("baz", "Another subcommand.");
+
+    await new Command()
+      .name("auto-help-test")
+      .description("Test auto help option.")
+      .help({ auto: false })
+      .noExit()
+      .command("foo", fooCommand)
+      .parse();
   },
 });

@@ -7,7 +7,6 @@ import type {
   TrimLeft,
   TrimRight,
 } from "./_type_utils.ts";
-import type { Type } from "./type.ts";
 import type { TypeOrTypeHandler } from "./types.ts";
 import type { BooleanType } from "./types/boolean.ts";
 import type { FileType } from "./types/file.ts";
@@ -176,13 +175,42 @@ export type TypedArguments<TArgs extends string, TTypes> = number extends TTypes
       ? [ArgumentType<TArg, TTypes>?, ...TypedArguments<TRestArgs, TTypes>]
     : [ArgumentType<TArg, TTypes>, ...TypedArguments<TRestArgs, TTypes>]
   : TArgs extends `${string}...${string}` ? [
-      ...ArgumentType<TArgs, TTypes> extends Array<infer TValue>
+      ...ArgumentType<TArgs, TTypes> extends ReadonlyArray<infer TValue>
         ? TArgs extends `[${string}]` ? Array<TValue>
         : [TValue, ...Array<TValue>]
         : never,
     ]
   : TArgs extends `[${string}]` ? [ArgumentType<TArgs, TTypes>?]
   : [ArgumentType<TArgs, TTypes>];
+
+export type TypedArgument<
+  TArg extends string,
+  TTypes,
+  TDefault = undefined,
+> = number extends TTypes ? any
+  : TArg extends `${string}...${string}`
+    ? ArgumentType<TArg, TTypes> extends ReadonlyArray<infer TValue>
+      ? TArg extends `[${string}]`
+        ? Array<TValue> | MakeArray<NonNullable<TDefault>>
+      : [TValue, ...Array<TValue>] | MakeArray<NonNullable<TDefault>>
+    : never
+  : TArg extends `[${string}]`
+    ? IsRequired<TDefault extends undefined ? false : true, TDefault> extends
+      true ? [NonNullable<TDefault> | ArgumentType<TArg, TTypes>]
+    : [(TDefault | ArgumentType<TArg, TTypes>)?]
+  : [NonNullable<TDefault> | ArgumentType<TArg, TTypes>];
+
+export type TypedArgumentValue<
+  TArg extends string,
+  TTypes,
+  TDefault = undefined,
+> = number extends TTypes ? any
+  : TArg extends `${string}...${string}`
+    ? ArgumentType<TArg, TTypes> extends ReadonlyArray<infer TValue>
+      ? TArg extends `[${string}]` ? NonNullable<TDefault> | Array<TValue>
+      : NonNullable<TDefault> | [TValue, ...Array<TValue>]
+    : never
+  : NonNullable<TDefault> | ArgumentType<TArg, TTypes>;
 
 export type TypedCommandArguments<TNameAndArguments extends string, TTypes> =
   number extends TTypes ? any
@@ -429,9 +457,10 @@ export type MapValue<TOptions, TMappedOptions, TCollect = undefined> =
         : TMappedOptions;
     };
 
-export type MapTypes<T> = T extends Record<string, unknown> | Array<unknown>
-  ? { [K in keyof T]: MapTypes<T[K]> }
-  : Type.infer<T>;
+export type MapTypes<T> = T extends TypeOrTypeHandler<infer V> ? V
+  : T extends Record<string, unknown> | ReadonlyArray<unknown>
+    ? { [K in keyof T]: MapTypes<T[K]> }
+  : T;
 
 type GetOptionName<TFlags> = TFlags extends `${string}--${infer Name}=${string}`
   ? TrimRight<Name, ",">
@@ -451,7 +480,10 @@ type ExtractArgumentsFromFlags<TFlags extends string> = TFlags extends
 type OptionName<Name extends string> = Name extends "*" ? string
   : CamelCase<TrimRight<Name, ",">>;
 
-type IsRequired<TRequired extends boolean | undefined, TDefault> =
+export type IsRequired<TRequired extends boolean | undefined, TDefault> =
   TRequired extends true ? true
     : TDefault extends undefined ? false
     : true;
+
+type MakeArray<TValue> = TValue extends ReadonlyArray<unknown> ? TValue
+  : [TValue];

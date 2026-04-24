@@ -59,5 +59,6 @@ test("flags - type - no value - should not throw unexpected error value with no 
     stopEarly: false,
     stopOnUnknown: false,
     defaults: {},
+    parsedFlags: ["-f=123"],
   });
 });

@@ -23,4 +23,26 @@ Before you submit your PR please consider the following guidelines:
 - 🪄 Format your code changes with `deno task fmt`.
 - ⚙️ Test your changes with `deno task test`.
 
+#### Run Node.js tests
+
+- Install **Node.Js** and **pnpm**.
+- Run `deno task setup:node`. This will setup all necessary files for node and
+  installs all dependencies with pnpm.
+- Run `deno task test:node` to run the tests with node.
+- Run `deno task clean` to cleanup the node setup.
+
+#### Run bun tests
+
+- Install **bun**.
+- Run `deno task setup:bun`. This will setup all necessary files for bun and
+  installs all dependencies with bun.
+- Run `deno task test:bun` to run the tests with bun.
+- Run `deno task clean` to cleanup the bun setup.
+
+#### Run examples
+
+- **deno:** `deno run examples/prompt/checkbox.ts`
+- **node:** `deno task node examples/prompt/checkbox.ts`
+- **bun:** `deno task bun examples/prompt/checkbox.ts`
+
 > If you need any help, feel free to ask!

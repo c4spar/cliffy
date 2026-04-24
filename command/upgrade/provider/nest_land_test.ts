@@ -17,7 +17,7 @@ import {
 
 test({
   name: "NestLandProvider",
-  ignore: ["node"],
+  ignore: ["node", "bun"],
   fn: async (ctx) => {
     mockGlobalFetch();
     mockGlobalCommand();

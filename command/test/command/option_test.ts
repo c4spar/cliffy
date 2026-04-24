@@ -62,18 +62,22 @@ test("command - option - option properties", () => {
 
   assertEquals(option.args, [{
     action: "boolean",
+    description: undefined,
     list: false,
     name: "baz",
     optional: false,
     type: "boolean",
     variadic: false,
+    raw: "<baz:boolean>",
   }, {
     action: "string",
+    description: undefined,
     list: false,
     name: "baz",
     optional: true,
     type: "string",
     variadic: false,
+    raw: "[baz:string]",
   }]);
 });
 

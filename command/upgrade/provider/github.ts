@@ -30,6 +30,15 @@ export class GithubProvider extends Provider {
     this.githubToken = token;
   }
 
+  async hasRequiredPermissions(): Promise<boolean> {
+    const apiUrl = new URL(this.apiUrl);
+    const permissionStatus = await Deno.permissions.query({
+      name: "net",
+      host: apiUrl.host,
+    });
+    return permissionStatus.state === "granted";
+  }
+
   async getVersions(
     _name: string,
   ): Promise<GithubVersions> {

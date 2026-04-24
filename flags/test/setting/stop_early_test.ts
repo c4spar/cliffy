@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertThrows } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 
 test("flags stopEarly disable", () => {
@@ -19,17 +18,17 @@ test("flags stopEarly disable", () => {
     flags: [{
       name: "flag",
       aliases: ["f"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }, {
       name: "script-arg1",
       aliases: ["s"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }, {
       name: "script-arg2",
       aliases: ["S"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }],
   });
@@ -56,17 +55,17 @@ test("flags stopEarly enabled", () => {
     flags: [{
       name: "flag",
       aliases: ["f"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }, {
       name: "script-arg1",
       aliases: ["s"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }, {
       name: "script-arg2",
       aliases: ["S"],
-      type: OptionType.BOOLEAN,
+      type: "boolean",
       optionalValue: true,
     }],
   });
@@ -100,17 +99,17 @@ test("flags stopEarly unknown option", () => {
         flags: [{
           name: "flag",
           aliases: ["f"],
-          type: OptionType.BOOLEAN,
+          type: "boolean",
           optionalValue: true,
         }, {
           name: "script-arg1",
           aliases: ["s"],
-          type: OptionType.BOOLEAN,
+          type: "boolean",
           optionalValue: true,
         }, {
           name: "script-arg2",
           aliases: ["S"],
-          type: OptionType.BOOLEAN,
+          type: "boolean",
           optionalValue: true,
         }],
       }),

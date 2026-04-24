@@ -8,6 +8,7 @@ export class DenoLandProvider extends Provider {
   name = "deno.land";
   private readonly repositoryUrl = "https://deno.land/x/";
   private readonly registryUrl = "https://deno.land/x/";
+  private readonly apiUrl = "https://cdn.deno.land/";
   private readonly moduleName?: string;
 
   constructor({ name, main, logger }: DenoLandProviderOptions = {}) {
@@ -15,11 +16,20 @@ export class DenoLandProvider extends Provider {
     this.moduleName = name;
   }
 
+  async hasRequiredPermissions(): Promise<boolean> {
+    const apiUrl = new URL(this.apiUrl);
+    const permissionStatus = await Deno.permissions.query({
+      name: "net",
+      host: apiUrl.host,
+    });
+    return permissionStatus.state === "granted";
+  }
+
   async getVersions(
     name: string,
   ): Promise<Versions> {
     const response = await fetch(
-      `https://cdn.deno.land/${this.moduleName ?? name}/meta/versions.json`,
+      `${this.apiUrl}${this.moduleName ?? name}/meta/versions.json`,
     );
     if (!response.ok) {
       throw new Error(

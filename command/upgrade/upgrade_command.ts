@@ -26,7 +26,7 @@ export interface UpgradeCommandOptions<
  * provided registry with any supported runtime.
  * Currently supported runtimes are: `deno`, `node` and `bun`.
  *
- * @example Upgrade command example.
+ * @example Upgrade command example
  *
  * ```
  * import { Command } from "@cliffy/command";
@@ -167,6 +167,10 @@ export class UpgradeCommand extends Command {
   public async getAllVersions(): Promise<Array<string>> {
     const { versions } = await this.getVersions();
     return versions;
+  }
+
+  public async hasRequiredPermissions(): Promise<boolean> {
+    return await this.getProvider().hasRequiredPermissions();
   }
 
   public async getLatestVersion(): Promise<string> {

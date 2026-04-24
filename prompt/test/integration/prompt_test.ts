@@ -130,16 +130,17 @@ await snapshotTest({
     assertType<
       IsExact<
         typeof checkboxOptions,
-        {
+        & {
           name: "checkbox";
-          type: typeof Checkbox;
           before?: PromptMiddleware<
             { checkbox?: Array<string>; input?: string }
           >;
           after?: PromptMiddleware<
             { checkbox?: Array<string>; input?: string }
           >;
-        } & CheckboxOptions<string>
+        }
+        & CheckboxOptions<string>
+        & { type: typeof Checkbox }
       >
     >(true);
 

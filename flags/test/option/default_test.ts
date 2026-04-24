@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 import type { ParseFlagsOptions } from "../../types.ts";
 
@@ -9,39 +8,39 @@ const options: ParseFlagsOptions = {
   flags: [{
     name: "boolean",
     aliases: ["b"],
-    type: OptionType.BOOLEAN,
+    type: "boolean",
     optionalValue: true,
     default: false,
   }, {
     name: "string",
     aliases: ["s"],
-    type: OptionType.STRING,
+    type: "string",
     default: "0",
   }, {
     name: "number",
     aliases: ["n"],
-    type: OptionType.NUMBER,
+    type: "number",
     default: 0,
   }, {
     name: "boolean2",
     aliases: ["B"],
-    type: OptionType.BOOLEAN,
+    type: "boolean",
     optionalValue: true,
     default: true,
   }, {
     name: "string2",
     aliases: ["S"],
-    type: OptionType.STRING,
+    type: "string",
     default: "1",
   }, {
     name: "number2",
     aliases: ["N"],
-    type: OptionType.NUMBER,
+    type: "number",
     default: 1,
   }, {
     name: "method",
     aliases: ["m"],
-    type: OptionType.NUMBER,
+    type: "number",
     default: () => 1,
   }],
 };
@@ -140,6 +139,7 @@ test("[flags] should parse from context", () => {
     stopEarly: false,
     stopOnUnknown: false,
     defaults: {},
+    parsedFlags: [],
   }, {
     ...options,
     flags: [
@@ -166,6 +166,7 @@ test("[flags] should ignore missing required options which are already parsed", 
     stopEarly: false,
     stopOnUnknown: false,
     defaults: {},
+    parsedFlags: [],
   }, {
     ...options,
     flags: [

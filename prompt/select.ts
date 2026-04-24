@@ -278,19 +278,3 @@ export function isSelectOptionGroup(
 ): option is SelectOptionGroup<any> {
   return isOptionGroup(option);
 }
-
-/**
- * Select options type.
- * @deprecated Use `Array<string | SelectOption | SelectOptionGroup>` instead.
- */
-export type SelectValueOptions = Array<
-  string | SelectOption<string> | SelectOptionGroup<string>
->;
-
-/**
- * Select option settings type.
- * @deprecated Use `Array<SelectOptionSettings | SelectOptionGroupSettings>` instead.
- */
-export type SelectValueSettings = Array<
-  SelectOptionSettings<string> | SelectOptionGroupSettings<string>
->;

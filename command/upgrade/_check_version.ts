@@ -10,6 +10,11 @@ export async function checkVersion(cmd: Command<any>): Promise<void> {
   if (!isUpgradeCommand(upgradeCommand)) {
     return;
   }
+
+  if (!await upgradeCommand.hasRequiredPermissions()) {
+    // If not all required permissions were pre-granted, skip the version check to prevent prompting user
+    return;
+  }
   const latestVersion = await upgradeCommand.getLatestVersion();
   const currentVersion = mainCommand.getVersion();
 
@@ -23,9 +28,11 @@ export async function checkVersion(cmd: Command<any>): Promise<void> {
 }
 
 function isUpgradeCommand(command: unknown): command is UpgradeCommandImpl {
-  return command instanceof Command && "getLatestVersion" in command;
+  return command instanceof Command && "getLatestVersion" in command &&
+    "hasRequiredPermissions" in command;
 }
 
 interface UpgradeCommandImpl {
+  hasRequiredPermissions(): Promise<boolean>;
   getLatestVersion(): Promise<string>;
 }

@@ -228,6 +228,3 @@ export class Cell {
     return this.options.align ?? "left";
   }
 }
-
-/** @deprecated Use `CellType` instead. */
-export type ICell = CellType;

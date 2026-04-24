@@ -1,6 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals } from "@std/assert";
-import { OptionType } from "../../deprecated.ts";
 import { parseFlags } from "../../flags.ts";
 import type { FlagOptions } from "../../types.ts";
 
@@ -16,13 +15,13 @@ test("flags option callback", () => {
   ], {
     flags: [{
       name: "foo",
-      type: OptionType.STRING,
+      type: "string",
     }, {
       name: "bar",
-      type: OptionType.STRING,
+      type: "string",
     }, {
       name: "baz",
-      type: OptionType.STRING,
+      type: "string",
     }],
     option: (option, value) => {
       options.push({ option, value });

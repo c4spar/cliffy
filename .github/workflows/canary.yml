@@ -14,16 +14,16 @@ jobs:
           - name: node
             deno-version: canary
             node-version: latest
-          # - name: bun
-          #   deno-version: canary
-          #   bun-version: canary
+          - name: bun
+            deno-version: latest
+            bun-version: canary
         os: [macOS-latest, windows-latest, ubuntu-latest]
     env:
       RUST_BACKTRACE: full
       DENO_FUTURE: 1
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -36,7 +36,7 @@ jobs:
 
       - name: Setup Node
         if: matrix.runtime.name == 'node'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.runtime.node-version }}
           check-latest: true
@@ -52,6 +52,10 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           run_install: true
+
+      - name: Install bun dependencies
+        if: ${{ matrix.runtime.name == 'bun' }}
+        run: bun install
 
       - name: Run tests
         run: deno task test:${{ matrix.runtime.name }}

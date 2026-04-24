@@ -124,7 +124,7 @@ export type ActionHandler<
   >,
   options: CommandOptions<TOptions, TGlobals, TParentGlobals>,
   ...args: MapTypes<TArguments>
-) => unknown;
+) => any;
 
 export type CommandOptions<
   TOptions extends Record<string, any> | void = any,
@@ -141,8 +141,12 @@ export interface Argument extends ArgumentOptions {
   name: string;
   /** Shell completion action. */
   action: string;
-  /** Arguments type. */
+  /** Argument type. */
   type: string;
+  /** Argument description. */
+  description?: string;
+  /** Raw argument definition. */
+  raw: string;
 }
 
 /** Result of `cmd.parse()` method. */
@@ -179,6 +183,42 @@ export interface CommandResult<
     TGlobalTypes,
     TParentCommand
   >;
+}
+
+/* ARGUMENTS TYPES */
+
+export type ArgumentValueHandler<TValue, TReturn> = (
+  value: TValue,
+) => TReturn;
+
+export interface CommandArgumentOptions<
+  TDefault = undefined,
+  TValue = unknown,
+  TReturn = TValue,
+> {
+  /**
+   * Separator for list type arguments. If the argument is defined as list type
+   * with `[]` suffix, the separator is used to split the input value into an
+   * array of values. The default separator is comma `,`.
+   */
+  separator?: string;
+  /**
+   * Default value or a callback method that returns the default value. The
+   * default value is used when the argument is optional and not provided in the command line input.
+   */
+  default?: DefaultValue<TDefault>;
+  /**
+   * Default display text or a callback method that returns the default display
+   * text. The default display text is used in the help output instead of the
+   * stringified default value.
+   */
+  defaultText?: DefaultText<TDefault>;
+  /**
+   * Argument value callback method to transform the argument value after
+   * parsing and type conversion. The callback is invoked with the parsed
+   * argument value and should return the transformed value.
+   */
+  value?: ArgumentValueHandler<TValue, TReturn>;
 }
 
 /* OPTION TYPES */

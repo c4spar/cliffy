@@ -20,7 +20,13 @@ import {
 } from "../_utils.ts";
 import type { Command } from "../command.ts";
 import { Type } from "../type.ts";
-import type { Argument, EnvVar, Example, Option } from "../types.ts";
+import type {
+  Argument,
+  EnvVar,
+  Example,
+  Option,
+  TypeHandler,
+} from "../types.ts";
 
 export interface HelpOptions {
   types?: boolean;
@@ -64,6 +70,7 @@ export class HelpGenerator {
     const result = this.generateHeader() +
       this.generateMeta() +
       this.generateDescription() +
+      this.generateArguments() +
       this.generateOptions() +
       this.generateCommands() +
       this.generateEnvironmentVariables() +
@@ -129,6 +136,33 @@ export class HelpGenerator {
       "\n";
   }
 
+  private generateArguments(): string {
+    const args = this.cmd.getArguments();
+    if (!args.length || !args.find((arg) => arg.description)) {
+      return "";
+    }
+
+    return this.label("Arguments") +
+      Table.from([
+        ...args
+          .filter((arg) => arg.description)
+          .map((argument: Argument) => [
+            highlightArguments(
+              argument.raw || "",
+              this.options.types,
+            ),
+            red(bold("-")),
+            getDescription(argument.description ?? "", !this.options.long),
+            this.generateArgumentHints(argument),
+          ]),
+      ])
+        .padding([2, 1, 2])
+        .indent(this.indent)
+        .maxColWidth([60, 1, 80, 60])
+        .toString() +
+      "\n";
+  }
+
   private generateOptions(): string {
     const options = this.cmd.getOptions(false);
     if (!options.length) {
@@ -183,7 +217,7 @@ export class HelpGenerator {
             ),
             red(bold("-")),
             getDescription(option.description, !this.options.long),
-            this.generateHints(option),
+            this.generateOptionHints(option),
           ]),
         ])
           .padding([2, 2, 1, 2])
@@ -199,7 +233,7 @@ export class HelpGenerator {
           option.flags.map((flag) => brightBlue(flag)).join(", "),
           red(bold("-")),
           getDescription(option.description, !this.options.long),
-          this.generateHints(option),
+          this.generateOptionHints(option),
         ]),
       ])
         .indent(this.indent)
@@ -303,11 +337,11 @@ export class HelpGenerator {
       "\n";
   }
 
-  private generateHints(option: Option): string {
+  private generateOptionHints(option: Option): string {
     if (!this.options.hints) {
       return "";
     }
-    const hints = [];
+    const hints: Array<string> = [];
 
     option.required && hints.push(yellow(`required`));
 
@@ -346,6 +380,26 @@ export class HelpGenerator {
         italic(option.conflicts.map(getFlag).join(", ")),
     );
 
+    return this.generateHints(type, hints);
+  }
+
+  private generateArgumentHints(option: Argument): string {
+    if (!this.options.hints) {
+      return "";
+    }
+    const hints: Array<string> = [];
+
+    !option.optional && hints.push(yellow(`required`));
+
+    const type = this.cmd.getType(option.type)?.handler;
+
+    return this.generateHints(type, hints);
+  }
+
+  private generateHints(
+    type: Type<unknown> | TypeHandler<unknown> | undefined,
+    hints: Array<string>,
+  ) {
     if (type instanceof Type) {
       const possibleValues = type.values?.(this.cmd, this.cmd.getParent());
       if (possibleValues?.length) {

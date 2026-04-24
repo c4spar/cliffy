@@ -1,3 +1,92 @@
+# [v1.0.1](https://github.com/c4spar/deno-cliffy/compare/v1.0.0...v1.0.1) (Apr 19, 2026)
+
+### 🩹 Bug Fixes
+
+- **command:** correct argument type inference for mapped arguments (#868)
+- **command:** move default command handling to parseCommand (#860)
+- **command:** fix return type for action handler (#855)
+- **command:** fix types for `generateShellCompletions` (#854)
+- **flags:** allow options after variadic options (#865)
+- **flags:** correct prototype assignments for error classes (#858)
+- **keycode:** handle paste bracket mode and improve escape sequence parsing
+  (#866)
+
+### 🏡 Chore
+
+- **ci:** install deps in canary job
+- **deps:** update dependencies (#867)
+- **setup:** skip projects without exports (#856)
+
+# [v1.0.0](https://github.com/c4spar/deno-cliffy/compare/v1.0.0-rc.8...v1.0.0) (Feb 10, 2026)
+
+### 💔 Breaking Changes
+
+- **command:** move third argument of the `.command()` method into an options
+  object (#841)
+- **command:** remove deprecated types (#839)
+- **command:** skip version checks when printing help if it will cause
+  permission prompts (#663)
+
+  Custom upgrade provider implementations have to implement
+  `hasRequiredPermissions()`
+
+- **flags:** remove deprecated types (#839)
+- **prompt:** remove deprecated types (#839)
+- **table:** remove deprecated types (#839)
+
+### 🖐️ Deprecations
+
+- **command:** deprecate `Type.infer` in favor of `InferType` (#840)
+
+### 🚀 Features
+
+- **command:** add `.argument()` method and support for argument descriptions (
+  #843)
+- **command:** add `default` and `value` option to argument method (#844)
+- **command:** add `generateShellCompletions` function (#808)
+- **command:** add new `secret` type and `defaultText` option to override the
+  display text for the default option value (#775)
+- **command:** sort listed versions in upgrade provider (#800)
+- **flags:** set default arguments for parseFlags (#824)
+- **prompt:** add vim keybind `hjkl` for up, down, right, left (#837)
+
+### 🩹 Bug Fixes
+
+- **ansi:** add missing method bindings for setColorEnabled and getColorEnabled
+  (#812)
+- **command:** only execute default command if no arguments have been defined
+  (#850)
+- **command:** calling `.parse()` on a child command throws an error (#833)
+- **command:** fix support for options depending on environment variables (#809)
+- **command:** fix types for collected dotted options and wildcard options
+  (#799)
+- **internal:** fix ignore check for skip warning and node test (#834)
+- **prompt:** keypress panic when no nav options (#829)
+- **testing:** fix node compatibility (#806)
+
+### 💅 Code Refactoring
+
+- **command:** reorganize command properties into settings, props and
+  builderProps (#842)
+
+### 📖 Documentation Updates
+
+- add module documentations (#853)
+- **readme:** update badge and add package table (#852)
+- **examples:** add `defaultText` option to example (#849)
+- **command:** improve argument and arguments method documentation (#848)
+- **examples:** add missing command examples (#826)
+- **examples:** rename example.ts.ts to example.ts
+- **examples:** remove `Deno.args` from examples (#825)
+
+### 🏡 Chore
+
+- **ci:** upgrade actions to latest version (#846)
+- **ci:** use .deno-version file and enable ci tests for bun (#845)
+- **deps:** upgrade deps to latest versions (#847)
+- **fmt:** format changelog
+- **node:** update Node.js version to v24.x (#851)
+
 # [v1.0.0-rc.8](https://github.com/c4spar/deno-cliffy/compare/v1.0.0-rc.7...v1.0.0-rc.8) (Jul 1, 2025)
 
 ### Features

@@ -8,6 +8,7 @@ export class NestLandProvider extends Provider {
   name = "nest.land";
   private readonly repositoryUrl = "https://nest.land/package/";
   private readonly registryUrl = "https://x.nest.land/";
+  private readonly apiUrl = "https://nest.land/api/";
   private readonly moduleName?: string;
 
   constructor({ name, main, logger }: NestLandProviderOptions = {}) {
@@ -15,10 +16,19 @@ export class NestLandProvider extends Provider {
     this.moduleName = name;
   }
 
+  async hasRequiredPermissions(): Promise<boolean> {
+    const apiUrl = new URL(this.apiUrl);
+    const permissionStatus = await Deno.permissions.query({
+      name: "net",
+      host: apiUrl.host,
+    });
+    return permissionStatus.state === "granted";
+  }
+
   async getVersions(
     name: string,
   ): Promise<Versions> {
-    const response = await fetch(`https://nest.land/api/package-client`, {
+    const response = await fetch(`${this.apiUrl}package-client`, {
       method: "post",
       body: JSON.stringify({ data: { name: this.moduleName ?? name } }),
       headers: { "Content-Type": "application/json" },
