@@ -94,6 +94,20 @@ test("should parse multi argument option", async () => {
   assertEquals(args, ["mod.ts"]);
 });
 
+test("should ignore optional arguments with an empty string as value", async () => {
+  const { args } = await new Command()
+    .arguments("[foo] [bar] [baz] [...beep]")
+    .parse(["", "bar-value", "", "", "", "beep-value-3", "", "beep-value-5"]);
+
+  assertEquals(args, [
+    undefined,
+    "bar-value",
+    undefined,
+    "beep-value-3",
+    "beep-value-5",
+  ]);
+});
+
 test("should throw an error for invalid number types", async () => {
   await assertRejects(
     async () => {

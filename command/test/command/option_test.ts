@@ -279,3 +279,63 @@ test("command - option - global option value handler", async () => {
     .parse(["foo", "--foo", "bar"]);
   assertEquals(options, { foo: { value: "bar" } });
 });
+
+test("command - option - should skip optional arguments with an empty value", async () => {
+  const { options, args } = await new Command()
+    .noExit()
+    .option("--foo [value:number]", "...")
+    .option("--bar <value:boolean>", "...")
+    .option("--baz <value:string>", "...")
+    .option("--beep <value:string>", "...", { collect: true })
+    .option("--boop <value:number>", "...")
+    .option("--multi [value:string] [value:string] [value:string]", "...")
+    .option("--variadic [...value:string]", "...")
+    .parse([
+      "--foo",
+      "",
+      "--bar",
+      "",
+      "--baz",
+      "",
+      "--boop",
+      "1",
+      "--beep",
+      "",
+      "--beep",
+      "beep-value-2",
+      "--beep",
+      "",
+      "--beep",
+      "beep-value-4",
+      "--multi",
+      "",
+      "multi-value-2",
+      "",
+      "--variadic",
+      "",
+      "variadic-value-2",
+      "",
+      "variadic-value-4",
+      "",
+    ]);
+
+  assertEquals({ options, args }, {
+    options: {
+      beep: [
+        "beep-value-2",
+        "beep-value-4",
+      ],
+      boop: 1,
+      multi: [
+        undefined,
+        "multi-value-2",
+        undefined,
+      ],
+      variadic: [
+        "variadic-value-2",
+        "variadic-value-4",
+      ],
+    },
+    args: [],
+  });
+});
