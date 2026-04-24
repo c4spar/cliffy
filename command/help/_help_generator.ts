@@ -12,6 +12,7 @@ import {
   yellow,
 } from "@std/fmt/colors";
 import { inspect } from "@cliffy/internal/runtime/inspect";
+import { getColumns } from "@cliffy/internal/runtime/get-columns";
 import {
   dedent,
   getDescription,
@@ -55,11 +56,7 @@ export class HelpGenerator {
     private cmd: Command,
     options: HelpOptions = {},
   ) {
-    try {
-      this.width = Math.min(Deno.consoleSize().columns, 150);
-    } catch (_err) {
-      this.width = 150;
-    }
+    this.width = Math.min(getColumns() ?? 150, 150);
     this.options = {
       types: false,
       hints: true,
