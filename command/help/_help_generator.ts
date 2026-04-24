@@ -134,7 +134,7 @@ export class HelpGenerator {
       ])
         .indent(this.indent)
         .maxColWidth(this.width - this.indent)
-        .colRigidity(0)
+        .flexShrink(1)
         .padding(1)
         .toString() +
       "\n";
@@ -227,7 +227,7 @@ export class HelpGenerator {
           .padding([2, 2, 1, 2])
           .indent(this.indent)
           .maxTableWidth(this.width - this.indent)
-          .colRigidity([1, 1, 1, 0, 0])
+          .flexShrink([0, 0, 0, 1, 1])
           .maxColWidth([60, 60, 1, 80, 60])
           .toString() +
         "\n";
@@ -244,7 +244,7 @@ export class HelpGenerator {
       ])
         .indent(this.indent)
         .maxTableWidth(this.width - this.indent)
-        .colRigidity([1, 1, 1, 0])
+        .flexShrink([0, 0, 0, 1])
         .maxColWidth([60, 1, 80, 60])
         .padding([2, 1, 2])
         .toString() +
@@ -278,7 +278,7 @@ export class HelpGenerator {
         ])
           .indent(this.indent)
           .maxTableWidth(this.width - this.indent)
-          .colRigidity([1, 1, 1, 0])
+          .flexShrink([0, 0, 0, 1])
           .maxColWidth([60, 60, 1, 80])
           .padding([2, 2, 1, 2])
           .toString() +
@@ -297,7 +297,7 @@ export class HelpGenerator {
         ]),
       ])
         .maxTableWidth(this.width - this.indent)
-        .colRigidity([1, 1, 0])
+        .flexShrink([0, 0, 1])
         .maxColWidth([60, 1, 80])
         .padding([2, 1, 2])
         .indent(this.indent)
@@ -328,7 +328,7 @@ export class HelpGenerator {
         .padding([2, 2, 1, 2])
         .indent(this.indent)
         .maxTableWidth(this.width - this.indent)
-        .colRigidity([1, 1, 1, 0, 0])
+        .flexShrink([0, 0, 0, 1, 1])
         .maxColWidth([60, 60, 1, 80, 10])
         .toString() +
       "\n";

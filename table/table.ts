@@ -19,8 +19,8 @@ export interface TableSettings {
   maxColWidth: number | Array<number>;
   /** Set max table width. */
   maxTableWidth: number;
-  /** Set column rigidity */
-  colRigidity: number | Array<number>;
+  /** Set column flexibility to shrink. 1 is enabled, 0 disabled. */
+  flexShrink: number | Array<number>;
   /** Set cell padding. */
   padding: number | Array<number>;
   /** Set table characters. */
@@ -62,7 +62,7 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     minColWidth: 0,
     padding: 1,
     maxTableWidth: Infinity,
-    colRigidity: 1,
+    flexShrink: 0,
     chars: { ...Table._chars },
     columns: [],
   };
@@ -247,9 +247,9 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
    * @param rigidity  Column rigidity.
    * @param override  Override existing value.
    */
-  public colRigidity(rigidity: number | Array<number>, override = true): this {
-    if (override || typeof this.options.colRigidity === "undefined") {
-      this.options.colRigidity = rigidity;
+  public flexShrink(rigidity: number | Array<number>, override = true): this {
+    if (override || typeof this.options.flexShrink === "undefined") {
+      this.options.flexShrink = rigidity;
     }
     return this;
   }

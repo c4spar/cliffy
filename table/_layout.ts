@@ -95,22 +95,26 @@ export class TableLayout {
     const totalWidth = sum(width);
     const maxAllowable = this.options.maxTableWidth -
       sum(padding.filter((x) => x));
-    if (totalWidth > maxAllowable && this.options.colRigidity != 1) {
-      const rigidity = width.map(
+    if (totalWidth > maxAllowable && this.options.flexShrink != 0) {
+      const flex = width.map(
         (_w, i) => (
-          Array.isArray(this.options.colRigidity)
-            ? this.options.colRigidity[i]
-            : this.options.colRigidity
+          Array.isArray(this.options.flexShrink)
+            ? this.options.flexShrink[i]
+            : this.options.flexShrink
         ),
       );
-      const rigidTotal = sum(width.map((w, i) => rigidity[i] >= 1 ? w : 0));
+      // Currently treating flexShrink as a boolean, so any non-zero value means
+      // full flexibility. With proper consideration of weights, we might use
+      // multiplication, e.g. `(1 - flex[i]) * w`
+      const rigidTotal = sum(width.map((w, i) => flex[i] === 0 ? w : 0));
 
       const slack = maxAllowable - rigidTotal;
       if (slack > 0) {
-        const flexTotal = sum(width.map((w, i) => rigidity[i] < 1 ? w : 0));
+        // Likewise, this might become something like `flex[i] * w`
+        const flexTotal = sum(width.map((w, i) => flex[i] === 0 ? 0 : w));
         const flexFactor = slack / flexTotal;
         for (let colIndex = 0; colIndex < width.length; colIndex++) {
-          if (rigidity[colIndex] < 1) {
+          if (flex[colIndex] > 0) {
             const column = this.options.columns.at(colIndex);
             const minColWidth: number = column?.getMinWidth() ??
               (Array.isArray(this.options.minColWidth)
