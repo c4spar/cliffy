@@ -19,7 +19,7 @@ export interface TableSettings {
   maxColWidth: number | Array<number>;
   /** Set max table width. */
   maxTableWidth: number;
-  /** Set column flexibility to shrink. 1 is enabled, 0 disabled. */
+  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
   flexShrink: number | Array<number>;
   /** Set cell padding. */
   padding: number | Array<number>;
@@ -62,7 +62,7 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     minColWidth: 0,
     padding: 1,
     maxTableWidth: Infinity,
-    flexShrink: 0,
+    flexShrink: 1,
     chars: { ...Table._chars },
     columns: [],
   };
@@ -242,14 +242,14 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
   }
 
   /**
-   * Set column rigidity
+   * Set column flex-shrink factor (0 = rigid, 1 = flexible).
    *
-   * @param rigidity  Column rigidity.
-   * @param override  Override existing value.
+   * @param flexShrink  Per-column shrink factor, or a single value for all columns.
+   * @param override    Override existing value.
    */
-  public flexShrink(rigidity: number | Array<number>, override = true): this {
+  public flexShrink(flexShrink: number | Array<number> = 1, override = true): this {
     if (override || typeof this.options.flexShrink === "undefined") {
-      this.options.flexShrink = rigidity;
+      this.options.flexShrink = flexShrink;
     }
     return this;
   }

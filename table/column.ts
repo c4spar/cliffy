@@ -12,7 +12,7 @@ export interface ColumnOptions {
   maxWidth?: number;
   /** Set cell padding. */
   padding?: number;
-  /** Set column flexibility to shrink. 1 is enabled, 0 disabled. */
+  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
   flexShrink?: number;
 }
 
@@ -81,6 +81,12 @@ export class Column {
     return this;
   }
 
+  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
+  flexShrink(factor = 1): this {
+    this.opts.flexShrink = factor;
+    return this;
+  }
+
   /** Get min column width. */
   getMinWidth(): number | undefined {
     return this.opts.minWidth;
@@ -106,7 +112,7 @@ export class Column {
     return this.opts.align;
   }
 
-  /** Get flex shrink. */
+  /** Get column flex-shrink factor. */
   getFlexShrink(): number | undefined {
     return this.opts.flexShrink;
   }

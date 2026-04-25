@@ -11,8 +11,8 @@ import {
   setColorEnabled,
   yellow,
 } from "@std/fmt/colors";
-import { inspect } from "@cliffy/internal/runtime/inspect";
 import { getColumns } from "@cliffy/internal/runtime/get-columns";
+import { inspect } from "@cliffy/internal/runtime/inspect";
 import {
   dedent,
   getDescription,
@@ -56,7 +56,8 @@ export class HelpGenerator {
     private cmd: Command,
     options: HelpOptions = {},
   ) {
-    this.width = Math.min(getColumns() ?? 150, 150);
+    this.width = getColumns() ?? 150;
+
     this.options = {
       types: false,
       hints: true,
@@ -134,7 +135,6 @@ export class HelpGenerator {
       ])
         .indent(this.indent)
         .maxColWidth(this.width - this.indent)
-        .flexShrink(1)
         .padding(1)
         .toString() +
       "\n";
@@ -162,6 +162,8 @@ export class HelpGenerator {
       ])
         .padding([2, 1, 2])
         .indent(this.indent)
+        .maxTableWidth(this.width - this.indent)
+        .flexShrink([0, 0, 1, 1])
         .maxColWidth([60, 1, 80, 60])
         .toString() +
       "\n";
@@ -347,6 +349,7 @@ export class HelpGenerator {
         .padding(1)
         .indent(this.indent)
         .maxTableWidth(this.width - this.indent)
+        .flexShrink([0, 1])
         .toString() +
       "\n";
   }
