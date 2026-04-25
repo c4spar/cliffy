@@ -755,13 +755,13 @@ cell1               cell2                 At vero eos et
   );
 });
 
-test("should shrink all columns proportionally when maxTableWidth is set", () => {
+test("should shrink all columns proportionally when maxWidth is set", () => {
   assertEquals(
     Table.from([
       ["JavaScript", "TypeScript"],
     ])
       .padding(1)
-      .maxTableWidth(14)
+      .maxWidth(14)
       .toString(),
     `\
 JavaSc TypeSc
@@ -775,7 +775,7 @@ test("should keep rigid columns unchanged when flexShrink is set per column", ()
       ["--env", "sets the runtime environment"],
     ])
       .padding(1)
-      .maxTableWidth(22)
+      .maxWidth(22)
       .flexShrink([0, 1])
       .toString(),
     `\
@@ -790,7 +790,7 @@ test("should redistribute slack to other flex columns when minColWidth clamps on
       ["--config", "path/to/config.json"],
     ])
       .padding(1)
-      .maxTableWidth(18)
+      .maxWidth(18)
       .minColWidth([7, 0])
       .toString(),
     `\
@@ -805,7 +805,7 @@ test("should respect Column.flexShrink when set via Column API", () => {
       ["--output", "production"],
     ])
       .padding(1)
-      .maxTableWidth(15)
+      .maxWidth(15)
       .column(0, new Column().flexShrink(0))
       .toString(),
     `\

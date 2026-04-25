@@ -162,7 +162,7 @@ export class HelpGenerator {
       ])
         .padding([2, 1, 2])
         .indent(this.indent)
-        .maxTableWidth(this.width - this.indent)
+        .maxWidth(this.width - this.indent)
         .flexShrink([0, 0, 1, 1])
         .maxColWidth([60, 1, 80, 60])
         .toString() +
@@ -228,7 +228,7 @@ export class HelpGenerator {
         ])
           .padding([2, 2, 1, 2])
           .indent(this.indent)
-          .maxTableWidth(this.width - this.indent)
+          .maxWidth(this.width - this.indent)
           .flexShrink([0, 0, 0, 1, 1])
           .maxColWidth([60, 60, 1, 80, 60])
           .toString() +
@@ -245,7 +245,7 @@ export class HelpGenerator {
         ]),
       ])
         .indent(this.indent)
-        .maxTableWidth(this.width - this.indent)
+        .maxWidth(this.width - this.indent)
         .flexShrink([0, 0, 0, 1])
         .maxColWidth([60, 1, 80, 60])
         .padding([2, 1, 2])
@@ -279,7 +279,7 @@ export class HelpGenerator {
           ]),
         ])
           .indent(this.indent)
-          .maxTableWidth(this.width - this.indent)
+          .maxWidth(this.width - this.indent)
           .flexShrink([0, 0, 0, 1])
           .maxColWidth([60, 60, 1, 80])
           .padding([2, 2, 1, 2])
@@ -298,7 +298,7 @@ export class HelpGenerator {
           command.getShortDescription(),
         ]),
       ])
-        .maxTableWidth(this.width - this.indent)
+        .maxWidth(this.width - this.indent)
         .flexShrink([0, 0, 1])
         .maxColWidth([60, 1, 80])
         .padding([2, 1, 2])
@@ -329,7 +329,7 @@ export class HelpGenerator {
       ])
         .padding([2, 2, 1, 2])
         .indent(this.indent)
-        .maxTableWidth(this.width - this.indent)
+        .maxWidth(this.width - this.indent)
         .flexShrink([0, 0, 0, 1, 1])
         .maxColWidth([60, 60, 1, 80, 10])
         .toString() +
@@ -348,7 +348,7 @@ export class HelpGenerator {
       ]))
         .padding(1)
         .indent(this.indent)
-        .maxTableWidth(this.width - this.indent)
+        .maxWidth(this.width - this.indent)
         .flexShrink([0, 1])
         .toString() +
       "\n";

@@ -98,11 +98,11 @@ export class TableLayout {
     }
 
     /* Try to get the total table width within a maximum */
-    if (isFinite(this.options.maxTableWidth)) {
+    if (isFinite(this.options.maxWidth)) {
       const totalPadding = hasBorder
         ? sum(padding) * 2 + (columns + 1)
         : sum(padding.slice(0, -1));
-      const maxAllowable = this.options.maxTableWidth - totalPadding;
+      const maxAllowable = this.options.maxWidth - totalPadding;
 
       if (sum(width) > maxAllowable) {
         const flex = width.map((_w, i) =>

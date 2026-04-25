@@ -18,7 +18,7 @@ export interface TableSettings {
   /** Set max column width. */
   maxColWidth: number | Array<number>;
   /** Set max table width. */
-  maxTableWidth: number;
+  maxWidth: number;
   /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
   flexShrink: number | Array<number>;
   /** Set cell padding. */
@@ -61,7 +61,7 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     maxColWidth: Infinity,
     minColWidth: 0,
     padding: 1,
-    maxTableWidth: Infinity,
+    maxWidth: Infinity,
     flexShrink: 1,
     chars: { ...Table._chars },
     columns: [],
@@ -234,9 +234,9 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
    * @param width     Max table width.
    * @param override  Override existing value.
    */
-  public maxTableWidth(width: number, override = true): this {
-    if (override || typeof this.options.maxTableWidth === "undefined") {
-      this.options.maxTableWidth = width;
+  public maxWidth(width: number, override = true): this {
+    if (override || typeof this.options.maxWidth === "undefined") {
+      this.options.maxWidth = width;
     }
     return this;
   }
