@@ -247,7 +247,10 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
    * @param flexShrink  Per-column shrink factor, or a single value for all columns.
    * @param override    Override existing value.
    */
-  public flexShrink(flexShrink: number | Array<number> = 1, override = true): this {
+  public flexShrink(
+    flexShrink: number | Array<number> = 1,
+    override = true,
+  ): this {
     if (override || typeof this.options.flexShrink === "undefined") {
       this.options.flexShrink = flexShrink;
     }
