@@ -17,6 +17,10 @@ export interface TableSettings {
   minColWidth: number | Array<number>;
   /** Set max column width. */
   maxColWidth: number | Array<number>;
+  /** Set max table width. */
+  maxWidth: number;
+  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
+  flexShrink: number | Array<number>;
   /** Set cell padding. */
   padding: number | Array<number>;
   /** Set table characters. */
@@ -57,6 +61,8 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     maxColWidth: Infinity,
     minColWidth: 0,
     padding: 1,
+    maxWidth: Infinity,
+    flexShrink: 1,
     chars: { ...Table._chars },
     columns: [],
   };
@@ -218,6 +224,35 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
   public minColWidth(width: number | Array<number>, override = true): this {
     if (override || typeof this.options.minColWidth === "undefined") {
       this.options.minColWidth = width;
+    }
+    return this;
+  }
+
+  /**
+   * Set max table width
+   *
+   * @param width     Max table width.
+   * @param override  Override existing value.
+   */
+  public maxWidth(width: number, override = true): this {
+    if (override || typeof this.options.maxWidth === "undefined") {
+      this.options.maxWidth = width;
+    }
+    return this;
+  }
+
+  /**
+   * Set column flex-shrink factor (0 = rigid, 1 = flexible).
+   *
+   * @param flexShrink  Per-column shrink factor, or a single value for all columns.
+   * @param override    Override existing value.
+   */
+  public flexShrink(
+    flexShrink: number | Array<number> = 1,
+    override = true,
+  ): this {
+    if (override || typeof this.options.flexShrink === "undefined") {
+      this.options.flexShrink = flexShrink;
     }
     return this;
   }

@@ -5,6 +5,9 @@ import { Row, type RowType } from "./row.ts";
 import type { BorderOptions, Table, TableSettings } from "./table.ts";
 import { getUnclosedAnsiRuns, longest, strLength } from "./_utils.ts";
 
+const sum = (numList: Array<number>): number =>
+  numList.reduce((a, b) => a + b, 0);
+
 /** Layout render settings. */
 interface RenderSettings {
   padding: Array<number>;
@@ -67,25 +70,89 @@ export class TableLayout {
 
     const padding: Array<number> = [];
     const width: Array<number> = [];
+    const minColWidth: Array<number> = [];
+    const maxColWidth: Array<number> = [];
+
     for (let colIndex = 0; colIndex < columns; colIndex++) {
       const column = this.options.columns.at(colIndex);
-      const minColWidth: number = column?.getMinWidth() ??
+      minColWidth[colIndex] = column?.getMinWidth() ??
         (Array.isArray(this.options.minColWidth)
           ? this.options.minColWidth[colIndex]
           : this.options.minColWidth);
 
-      const maxColWidth: number = column?.getMaxWidth() ??
+      maxColWidth[colIndex] = column?.getMaxWidth() ??
         (Array.isArray(this.options.maxColWidth)
           ? this.options.maxColWidth[colIndex]
           : this.options.maxColWidth);
 
-      const colWidth: number = longest(colIndex, rows, maxColWidth);
-      width[colIndex] = Math.min(maxColWidth, Math.max(minColWidth, colWidth));
+      const colWidth: number = longest(colIndex, rows, maxColWidth[colIndex]);
+      width[colIndex] = Math.min(
+        maxColWidth[colIndex],
+        Math.max(minColWidth[colIndex], colWidth),
+      );
 
       padding[colIndex] = column?.getPadding() ??
         (Array.isArray(this.options.padding)
           ? this.options.padding[colIndex]
           : this.options.padding);
+    }
+
+    /* Try to get the total table width within a maximum */
+    if (isFinite(this.options.maxWidth)) {
+      const totalPadding = hasBorder
+        ? sum(padding) * 2 + (columns + 1)
+        : sum(padding.slice(0, -1));
+      const maxAllowable = this.options.maxWidth - totalPadding;
+
+      if (sum(width) > maxAllowable) {
+        const flex = width.map((_w, i) =>
+          this.options.columns.at(i)?.getFlexShrink() ??
+            (Array.isArray(this.options.flexShrink)
+              ? (this.options.flexShrink[i] ?? 1)
+              : this.options.flexShrink)
+        );
+
+        let changed = true;
+        while (changed) {
+          changed = false;
+          if (sum(width) <= maxAllowable) {
+            break;
+          }
+          // Currently treating flexShrink as a boolean, so any non-zero value means
+          // full flexibility. With proper consideration of weights, we might use
+          // multiplication, e.g. `(1 - flex[i]) * w`
+          const rigidTotal = sum(
+            width.map((w, i) => flex[i] === 0 || w <= minColWidth[i] ? w : 0),
+          );
+
+          const slack = maxAllowable - rigidTotal;
+          if (slack <= 0) {
+            break;
+          }
+          const flexTotal = sum(
+            width.map((w, i) => flex[i] > 0 && w > minColWidth[i] ? w : 0),
+          );
+          if (flexTotal === 0) {
+            break;
+          }
+          const flexFactor = slack / flexTotal;
+          for (let colIndex = 0; colIndex < width.length; colIndex++) {
+            if (
+              flex[colIndex] > 0 && width[colIndex] > minColWidth[colIndex]
+            ) {
+              // NOTE: Math.floor can leave up to N characters of unused space.
+              const target = Math.max(
+                minColWidth[colIndex],
+                Math.floor(width[colIndex] * flexFactor),
+              );
+              if (target !== width[colIndex]) {
+                width[colIndex] = target;
+                changed = true;
+              }
+            }
+          }
+        }
+      }
     }
 
     return {

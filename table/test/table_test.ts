@@ -2,6 +2,7 @@ import { test } from "@cliffy/internal/testing/test";
 import { Table } from "../table.ts";
 import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { Row } from "../row.ts";
+import { Column } from "../column.ts";
 
 test("simple table", () => {
   assertEquals(
@@ -751,5 +752,64 @@ cell1               cell2                 At vero eos et
                                           justo duo     
                                           dolores et ea 
                                           rebum.        `.slice(1),
+  );
+});
+
+test("should shrink all columns proportionally when maxWidth is set", () => {
+  assertEquals(
+    Table.from([
+      ["JavaScript", "TypeScript"],
+    ])
+      .padding(1)
+      .maxWidth(14)
+      .toString(),
+    `\
+JavaSc TypeSc
+ript   ript  `,
+  );
+});
+
+test("should keep rigid columns unchanged when flexShrink is set per column", () => {
+  assertEquals(
+    Table.from([
+      ["--env", "sets the runtime environment"],
+    ])
+      .padding(1)
+      .maxWidth(22)
+      .flexShrink([0, 1])
+      .toString(),
+    `\
+--env sets the runtime
+      environment     `,
+  );
+});
+
+test("should redistribute slack to other flex columns when minColWidth clamps one", () => {
+  assertEquals(
+    Table.from([
+      ["--config", "path/to/config.json"],
+    ])
+      .padding(1)
+      .maxWidth(18)
+      .minColWidth([7, 0])
+      .toString(),
+    `\
+--confi path/to/co
+g       nfig.json `,
+  );
+});
+
+test("should respect Column.flexShrink when set via Column API", () => {
+  assertEquals(
+    Table.from([
+      ["--output", "production"],
+    ])
+      .padding(1)
+      .maxWidth(15)
+      .column(0, new Column().flexShrink(0))
+      .toString(),
+    `\
+--output produc
+         tion  `,
   );
 });
