@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run
 
-import { ArgumentValue, parseFlags } from "@cliffy/flags";
+import { type ArgumentValue, parseFlags } from "@cliffy/flags";
 
 const result = parseFlags(Deno.args, {
   flags: [{

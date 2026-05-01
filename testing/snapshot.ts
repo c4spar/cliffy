@@ -138,6 +138,7 @@ function registerTest(options: SnapshotTestOptions) {
       async fn(ctx) {
         if (steps.length) {
           for (const [name, step] of steps) {
+            // deno-lint-ignore no-await-in-loop
             await ctx.step({
               name,
               ignore: only ? step.only !== true : false,
@@ -228,8 +229,10 @@ async function executeTest(
       );
 
       for (const data of stdin) {
+        // deno-lint-ignore no-await-in-loop
         await writer.write(encoder.encode(data));
         // Workaround to ensure all inputs are processed and rendered separately.
+        // deno-lint-ignore no-await-in-loop
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }

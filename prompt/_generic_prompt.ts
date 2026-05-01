@@ -258,6 +258,7 @@ export abstract class GenericPrompt<
       }
 
       for (const event of events) {
+        // deno-lint-ignore no-await-in-loop
         await this.handleEvent(event);
       }
     }
@@ -311,7 +312,7 @@ export abstract class GenericPrompt<
       : undefined;
   }
 
-  protected setErrorMessage(message: string) {
+  protected setErrorMessage(message: string): void {
     this.#lastError = message;
   }
 

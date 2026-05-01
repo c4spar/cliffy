@@ -5,14 +5,12 @@ import { bold, red } from "@std/fmt/colors";
 import { Input } from "../input.ts";
 
 test("prompt input: value", async () => {
-  console.log();
   Input.inject("hallo");
   const result: string | undefined = await Input.prompt("message");
   assertEquals(result, "hallo");
 });
 
 test("prompt input: validate option", async () => {
-  console.log();
   Input.inject("foo");
   const result: string | undefined = await Input.prompt({
     message: "message",
@@ -22,7 +20,6 @@ test("prompt input: validate option", async () => {
 });
 
 test("prompt input: default value", async () => {
-  console.log();
   Input.inject("");
   const result: string | undefined = await Input.prompt({
     message: "message",
@@ -33,7 +30,6 @@ test("prompt input: default value", async () => {
 });
 
 test("prompt input: empty value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Input.inject("");
@@ -52,7 +48,6 @@ test("prompt input: empty value", async () => {
 });
 
 test("prompt input: invalid value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Input.inject("a".repeat(10));
@@ -69,7 +64,6 @@ test("prompt input: invalid value", async () => {
 });
 
 test("prompt input: null value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       // deno-lint-ignore no-explicit-any

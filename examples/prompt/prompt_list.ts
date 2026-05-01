@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run
 
-import { prompt, PromptOptions } from "@cliffy/prompt";
+import { prompt, type PromptOptions } from "@cliffy/prompt";
 import { Input } from "@cliffy/prompt/input";
 import { Number } from "@cliffy/prompt/number";
 import { Confirm } from "@cliffy/prompt/confirm";

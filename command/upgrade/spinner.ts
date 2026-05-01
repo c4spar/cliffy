@@ -205,7 +205,7 @@ export class Spinner {
    * spinner.start();
    * ```
    */
-  start() {
+  start(): void {
     // dnt-shim-ignore
     if (this.#active || (globalThis as any).Deno?.stdout.writable.locked) {
       return;
@@ -251,7 +251,7 @@ export class Spinner {
    * }, 3_000);
    * ```
    */
-  stop() {
+  stop(): void {
     if (this.#intervalId && this.#active) {
       clearInterval(this.#intervalId);
       writeSync(LINE_CLEAR); // Clear the current line

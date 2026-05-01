@@ -416,7 +416,7 @@ export class HelpGenerator {
   private generateHints(
     type: Type<unknown> | TypeHandler<unknown> | undefined,
     hints: Array<string>,
-  ) {
+  ): string {
     if (type instanceof Type) {
       const possibleValues = type.values?.(this.cmd, this.cmd.getParent());
       if (possibleValues?.length) {
@@ -436,7 +436,7 @@ export class HelpGenerator {
     return "";
   }
 
-  private label(label: string) {
+  private label(label: string): string {
     return "\n" + bold(`${label}:`) + "\n\n";
   }
 }

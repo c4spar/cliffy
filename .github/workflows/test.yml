@@ -70,7 +70,7 @@ jobs:
         run: deno task coverage:deno-v2
 
       - name: Run tests
-        if: matrix.runtime != 'deno'
+        if: matrix.runtime.name != 'deno'
         shell: bash
         run: deno task coverage:${{ matrix.runtime.name }}
 

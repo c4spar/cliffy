@@ -6,7 +6,7 @@ import { FileType } from "../types/file.ts";
 /** Generates bash completions script. */
 export class BashCompletionsGenerator {
   /** Generates bash completions script for given command. */
-  public static generate(name: string, cmd: Command) {
+  public static generate(name: string, cmd: Command): string {
     if (!name || name === "COMMAND") {
       throw new MissingCommandNameCompletionsError("bash");
     }
@@ -226,7 +226,7 @@ ${childCommandCompletions}`;
   private generateCommandCompletionsCommand(
     command: Command,
     path: string,
-  ) {
+  ): string {
     const args: Argument[] = command.getArguments();
     if (args.length) {
       const type = command.getType(args[0].type);
@@ -247,7 +247,7 @@ ${childCommandCompletions}`;
     args: Argument[],
     path: string,
     opts?: { standalone?: boolean },
-  ) {
+  ): string {
     if (args.length) {
       const type = command.getType(args[0].type);
       if (type && type.handler instanceof FileType) {

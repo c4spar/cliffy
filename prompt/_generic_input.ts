@@ -110,7 +110,7 @@ export abstract class GenericInput<
         this.deleteChar();
         break;
       case event.char && !event.meta && !event.ctrl:
-        this.addChar(event.char!);
+        this.addChar(event.char);
         break;
       default:
         await super.handleEvent(event);

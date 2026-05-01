@@ -1,4 +1,5 @@
 // import type { TestContext as NodeTestContext } from "node:test";
+// deno-lint-ignore no-external-import
 import { test as nodeTest } from "node:test";
 import {
   createTestFunction,

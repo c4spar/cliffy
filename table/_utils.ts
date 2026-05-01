@@ -8,6 +8,7 @@ import { Cell, type CellType } from "./cell.ts";
 import { consumeWords } from "./consume_words.ts";
 import { stripAnsiCode } from "@std/fmt/colors";
 import { unicodeWidth } from "./unicode_width.ts";
+
 // import { unicodeWidth } from "@std/cli/unicode-width";
 
 /**
@@ -48,16 +49,28 @@ export const ansiRegexSource =
   /\x1b\[(?:(?<_0>0)|(?<_22>1|2|22)|(?<_23>3|23)|(?<_24>4|24)|(?<_27>7|27)|(?<_28>8|28)|(?<_29>9|29)|(?<_39>30|31|32|33|34|35|36|37|38;2;\d+;\d+;\d+|38;5;\d+|39|90|91|92|93|94|95|96|97)|(?<_49>40|41|42|43|44|45|46|47|48;2;\d+;\d+;\d+|48;5;\d+|49|100|101|102|103|104|105|106|107))m/
     .source;
 
+interface UnclosedAnsiRunsResult {
+  currentSuffix: string;
+  nextPrefix: string;
+}
+
 /**
  * Get unclosed ANSI runs in a string.
  *
  * @param text - A string segment possibly containing unclosed ANSI runs.
  */
-export function getUnclosedAnsiRuns(text: string) {
+export function getUnclosedAnsiRuns(text: string): UnclosedAnsiRunsResult {
   type Token = { kind: string; content: string };
   const tokens: Token[] = [];
   for (const { groups } of text.matchAll(new RegExp(ansiRegexSource, "g"))) {
-    const [_kind, content] = Object.entries(groups!).find(([_, val]) => val)!;
+    if (!groups) {
+      continue;
+    }
+    const entry = Object.entries(groups).find(([_, val]) => val);
+    if (!entry) {
+      continue;
+    }
+    const [_kind, content] = entry;
     tokens.push({ kind: _kind.slice(1), content });
   }
 

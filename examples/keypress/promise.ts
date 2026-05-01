@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run
 
-import { keypress, KeyPressEvent } from "@cliffy/keypress";
+import { keypress, type KeyPressEvent } from "@cliffy/keypress";
 
 const event: KeyPressEvent = await keypress();
 

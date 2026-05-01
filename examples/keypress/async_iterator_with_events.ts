@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run
 
-import { keypress, KeyPressEvent } from "@cliffy/keypress";
+import { keypress, type KeyPressEvent } from "@cliffy/keypress";
 
 keypress().addEventListener("keydown", (event: KeyPressEvent) => {
   console.log("# event");

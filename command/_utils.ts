@@ -7,7 +7,7 @@ import type { ArgDefinition } from "./command.ts";
 import type { Command } from "./command.ts";
 import type { Argument } from "./types.ts";
 
-export function getFlag(name: string) {
+export function getFlag(name: string): string {
   if (name.startsWith("-")) {
     return name;
   }

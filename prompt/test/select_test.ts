@@ -6,7 +6,6 @@ import { assertType, type IsExact } from "@std/testing/types";
 import { Select } from "../select.ts";
 
 test("prompt select: value", async () => {
-  console.log();
   Select.inject("value2");
   const result: string | undefined = await Select.prompt({
     message: "message",

@@ -10,7 +10,7 @@ const EXCLUDE_LIST = ["\n", "\r"];
 const ESCAPE_PATTERN = new RegExp("[\x00-\x1f\x7f-\x9f]", "g");
 const QUOTES = ['"', "'", "`"];
 
-export function quoteString(str: string) {
+export function quoteString(str: string): string {
   const quote = QUOTES.find(
     (c) => !str.includes(c),
   ) ?? QUOTES[0];
@@ -20,7 +20,7 @@ export function quoteString(str: string) {
   return `${quote}${str}${quote}`;
 }
 
-function replaceEscapeSequences(str: string) {
+function replaceEscapeSequences(str: string): string {
   return str
     .replace(
       ESCAPE_PATTERN,

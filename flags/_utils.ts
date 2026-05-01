@@ -58,7 +58,7 @@ export function didYouMean(
   return match ? `${message} "${match}"?` : "";
 }
 
-export function getFlag(name: string) {
+export function getFlag(name: string): string {
   if (name.startsWith("-")) {
     return name;
   }

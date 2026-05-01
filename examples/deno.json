@@ -1,0 +1,10 @@
+{
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-await-in-loop",
+        "single-var-declarator"
+      ]
+    }
+  }
+}

@@ -1,6 +1,5 @@
 /** Alias method for Number constructor. */
-// deno-lint-ignore no-explicit-any
-export function parseNumber(value: any): number {
+export function parseNumber(value: unknown): number {
   return Number(value);
 }
 

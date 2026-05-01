@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run
 
-import { KeyCode, parse } from "@cliffy/keycode";
+import { type KeyCode, parse } from "@cliffy/keycode";
 
 async function* keypress(): AsyncGenerator<KeyCode, void> {
   while (true) {
