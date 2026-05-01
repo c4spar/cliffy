@@ -254,9 +254,9 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
    * Set column flex-shrink weight. Follows CSS flex-shrink semantics: each
    * column's share of the reduction is proportional to `weight × width`, so
    * a wider column or one with a higher weight absorbs more of the overflow.
-   * 0 = rigid (never shrinks), 1 = default. See MDN flex-shrink for full detail.
+   * 0 = no shrink (default), >= 1 = shrinkable.
    *
-   * @param flexShrink  Per-column shrink factor, or a single value for all columns.
+   * @param flexShrink  Per-column shrink weight, or a single value for all columns.
    * @param override    Override existing value.
    */
   public flexShrink(
@@ -272,8 +272,7 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
   /**
    * Set column flex-grow weight. Follows CSS flex-grow semantics: available
    * slack is distributed proportionally by weight, so weight 2 receives twice
-   * the extra space of weight 1. 0 = no grow, 1 = default.
-   * See MDN flex-grow for full detail.
+   * the extra space of weight 1. 0 = no grow (default), >= 1 = growable.
    *
    * @param flexGrow  Per-column grow weight, or a single value for all columns.
    * @param override  Override existing value.
@@ -286,10 +285,9 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
   }
 
   /**
-   * Shorthand to set both flex-grow and flex-shrink to the same value. Follows
-   * CSS flex semantics: columns will both expand into and contract out of
-   * available space proportionally. 0 = rigid, 1 = default.
-   * See MDN flex for full detail.
+   * Shorthand to set both flex-grow and flex-shrink to the same value.
+   * Columns will both expand into and contract out of
+   * available space proportionally. 0 = rigid (default), >= 1 = flexible.
    *
    * @param flex      Per-column weight, or a single value for all columns.
    * @param override  Override existing value.

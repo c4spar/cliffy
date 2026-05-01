@@ -14,12 +14,12 @@ export interface ColumnOptions {
   padding?: number;
   /**
    * Set column flex-shrink weight. Follows CSS flex-shrink semantics: reduction
-   * is proportional to `weight × width`. 0 = rigid, 1 = default (shrinkable).
+   * is proportional to `weight × width`. 0 = no shrink (default), >= 1 = shrinkable.
    */
   flexShrink?: number;
   /**
    * Set column flex-grow weight. Follows CSS flex-grow semantics: available
-   * slack is distributed proportionally by weight. 0 = no grow (default).
+   * slack is distributed proportionally by weight. 0 = no grow (default), >= 1 = growable.
    */
   flexGrow?: number;
 }
