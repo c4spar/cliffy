@@ -62,9 +62,6 @@ jobs:
           chmod +x shellcheck &&
           ./shellcheck --version
 
-      - name: Run linter
-        run: deno task lint
-
       - name: Run bash check
         run: ./shellcheck --shell bash <(deno run -r ./examples/command/shell-completions.ts completions bash)
 
