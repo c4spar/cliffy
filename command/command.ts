@@ -2529,12 +2529,12 @@ export class Command<
     names: readonly string[],
   ): Promise<{ name: string; value: string } | undefined> {
     const statuses = await Promise.all(
-      names.map((name) =>
+      names.map(async (name) => {
         // dnt-shim-ignore
-        (globalThis as any).Deno?.permissions
-          .query({ name: "env", variable: name })
-          .then((status: any) => ({ name, status }))
-      ),
+        const status = await (globalThis as any).Deno?.permissions
+          .query({ name: "env", variable: name });
+        return { name, status };
+      }),
     );
 
     for (const { name, status } of statuses) {
