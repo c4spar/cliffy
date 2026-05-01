@@ -167,7 +167,6 @@ export class HelpGenerator {
         .indent(this.indent)
         .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 1, 1])
-        .maxColWidth([60, 1, 80, 60])
         .toString() +
       "\n";
   }
@@ -233,7 +232,6 @@ export class HelpGenerator {
           .indent(this.indent)
           .maxWidth(this.options.width - this.indent)
           .flexShrink([0, 0, 0, 1, 1])
-          .maxColWidth([60, 60, 1, 80, 60])
           .toString() +
         "\n";
     }
@@ -250,7 +248,6 @@ export class HelpGenerator {
         .indent(this.indent)
         .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 1, 1])
-        .maxColWidth([60, 1, 80, 60])
         .padding([2, 1, 2])
         .toString() +
       "\n";
@@ -284,7 +281,6 @@ export class HelpGenerator {
           .indent(this.indent)
           .maxWidth(this.options.width - this.indent)
           .flexShrink([0, 0, 0, 1])
-          .maxColWidth([60, 60, 1, 80])
           .padding([2, 2, 1, 2])
           .toString() +
         "\n";
@@ -303,7 +299,6 @@ export class HelpGenerator {
       ])
         .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 1])
-        .maxColWidth([60, 1, 80])
         .padding([2, 1, 2])
         .indent(this.indent)
         .toString() +
@@ -334,7 +329,6 @@ export class HelpGenerator {
         .indent(this.indent)
         .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 0, 1, 1])
-        .maxColWidth([60, 60, 1, 80, 10])
         .toString() +
       "\n";
   }
