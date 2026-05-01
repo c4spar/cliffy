@@ -245,8 +245,8 @@ export class HelpGenerator {
         ]),
       ])
         .indent(this.indent)
-        .maxWidth(this.width - this.indent)
-        .flexShrink([0, 0, 0, 1])
+        .maxWidth(this.options.width - this.indent)
+        .flexShrink([0, 0, 1, 1])
         .maxColWidth([60, 1, 80, 60])
         .padding([2, 1, 2])
         .toString() +

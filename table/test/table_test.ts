@@ -762,6 +762,7 @@ test("should shrink all columns proportionally when maxWidth is set", () => {
     ])
       .padding(1)
       .maxWidth(14)
+      .flexShrink()
       .toString(),
     `\
 JavaSc TypeSc
@@ -792,6 +793,7 @@ test("should redistribute slack to other flex columns when minColWidth clamps on
       .padding(1)
       .maxWidth(18)
       .minColWidth([7, 0])
+      .flexShrink()
       .toString(),
     `\
 --confi path/to/co
@@ -806,10 +808,182 @@ test("should respect Column.flexShrink when set via Column API", () => {
     ])
       .padding(1)
       .maxWidth(15)
+      .flexShrink()
       .column(0, new Column().flexShrink(0))
       .toString(),
     `\
 --output produc
          tion  `,
   );
+});
+
+test("should not shrink columns when content already fits within maxWidth", () => {
+  assertEquals(
+    Table.from([
+      ["--host", "localhost"],
+      ["--port", "8080"],
+    ])
+      .padding(1)
+      .maxWidth(20)
+      .toString(),
+    `\
+--host localhost
+--port 8080     `,
+  );
+});
+
+test("should not shrink columns when all have flexShrink set to 0", () => {
+  assertEquals(
+    Table.from([
+      ["--output", "--source"],
+    ])
+      .padding(1)
+      .maxWidth(10)
+      .flexShrink(0)
+      .toString(),
+    "--output --source",
+  );
+});
+
+test("should apply shrink consistently across multiple rows", () => {
+  assertEquals(
+    Table.from([
+      ["--global", "--silent"],
+      ["on", "off"],
+    ])
+      .padding(1)
+      .maxWidth(12)
+      .flexShrink()
+      .toString(),
+    `\
+--glo --sil
+bal   ent  
+on    off  `,
+  );
+});
+
+test("should shrink columns in a bordered table", () => {
+  assertEquals(
+    Table.from([
+      ["redis", "kafka"],
+    ])
+      .border()
+      .maxWidth(15)
+      .flexShrink()
+      .toString(),
+    `\
+┌──────┬──────┐
+│ redi │ kafk │
+│ s    │ a    │
+└──────┴──────┘`,
+  );
+});
+
+test("should expand a column to fill available space when flexGrow is set", () => {
+  assertEquals(
+    Table.from([
+      ["key", "value"],
+    ])
+      .padding(1)
+      .maxWidth(12)
+      .flexGrow([0, 1])
+      .toString(),
+    `\
+key value   `,
+  );
+});
+
+test("should distribute available space proportionally by flexGrow weight", () => {
+  assertEquals(
+    Table.from([
+      ["no", "ok"],
+    ])
+      .padding(1)
+      .maxWidth(14)
+      .flexGrow([1, 2])
+      .toString(),
+    `\
+no    ok      `,
+  );
+});
+
+test("should not expand columns when content already fills maxWidth", () => {
+  assertEquals(
+    Table.from([
+      ["error", "fatal"],
+    ])
+      .padding(1)
+      .maxWidth(11)
+      .flexGrow(1)
+      .toString(),
+    "error fatal",
+  );
+});
+
+test("should cap flexGrow at maxColWidth and redistribute surplus to other columns", () => {
+  assertEquals(
+    Table.from([
+      ["#", "path"],
+    ])
+      .padding(1)
+      .maxWidth(15)
+      .maxColWidth([5, Infinity])
+      .flexGrow([1, 1])
+      .toString(),
+    `\
+#     path     `,
+  );
+});
+
+test("should respect Column.flexGrow when set via Column API", () => {
+  assertEquals(
+    Table.from([
+      ["host", "redis"],
+    ])
+      .padding(1)
+      .maxWidth(18)
+      .column(0, new Column().flexGrow(1))
+      .toString(),
+    "host         redis",
+  );
+});
+
+test("should apply flexShrink and flexGrow cooperatively on different columns", () => {
+  assertEquals(
+    Table.from([
+      ["JavaScript", "TypeScript", "Swift"],
+    ])
+      .padding(1)
+      .maxWidth(16)
+      .flexShrink([1, 1, 0])
+      .flexGrow([0, 0, 1])
+      .toString(),
+    `\
+Java Type Swift 
+Scri Scri       
+pt   pt         `,
+  );
+});
+
+test("should apply flexShrink when minColWidth array is shorter than column count", () => {
+  const out = Table.from([
+    ["aaaaaaaa", "bbbbbbbb", "cccccccc"],
+  ])
+    .padding(1)
+    .maxWidth(14)
+    .minColWidth([1, 1])
+    .flexShrink()
+    .toString();
+  assertEquals(out.split("\n").every((line) => line.length <= 14), true);
+});
+
+test("should not crash when a column shrinks to zero width", () => {
+  Table.from([
+    ["fixed", "(required)"],
+  ])
+    .padding(1)
+    .maxWidth(8)
+    .minColWidth([5, 0])
+    .flexShrink([0, 1])
+    .toString();
 });

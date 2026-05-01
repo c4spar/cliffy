@@ -12,9 +12,11 @@ export function getColumns(): number | null {
 
     // Catch error in none tty mode: Inappropriate ioctl for device (os error 25)
     if (Deno) {
-      return Deno.consoleSize().columns ?? null;
+      const cols = Deno.consoleSize().columns;
+      return cols && cols > 0 ? cols : null;
     } else if (process) {
-      return process.stdout.columns ?? null;
+      const cols = process.stdout.columns;
+      return cols && cols > 0 ? cols : null;
     }
   } catch (_error) {
     return null;
