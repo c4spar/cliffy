@@ -432,7 +432,7 @@ export class Checkbox<TValue> extends GenericList<
       | CheckboxOptionSettings<TValue>
       | CheckboxOptionGroupSettings<TValue>,
     checked: boolean,
-  ) {
+  ): void {
     if (isOption(option)) {
       option.checked = checked;
     } else {
@@ -442,7 +442,7 @@ export class Checkbox<TValue> extends GenericList<
     }
   }
 
-  private checkAllOption() {
+  private checkAllOption(): void {
     const checked = this.options.some((option) => option.checked);
 
     for (const option of this.options) {

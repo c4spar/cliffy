@@ -23,10 +23,12 @@ const data = {
 } as const;
 
 function lookupWidth(cp: number) {
-  if (!tables) tables = data.tables.map(runLengthDecode);
-  const t1Offset = tables[0]![(cp >> 13) & 0xff]!;
-  const t2Offset = tables[1]![128 * t1Offset + ((cp >> 6) & 0x7f)]!;
-  const packedWidths = tables[2]![16 * t2Offset + ((cp >> 2) & 0xf)]!;
+  if (!tables) {
+    tables = data.tables.map(runLengthDecode);
+  }
+  const t1Offset = tables.at(0)?.[(cp >> 13) & 0xff] ?? 0;
+  const t2Offset = tables.at(1)?.[128 * t1Offset + ((cp >> 6) & 0x7f)] ?? 0;
+  const packedWidths = tables.at(2)?.[16 * t2Offset + ((cp >> 2) & 0xf)] ?? 0;
 
   const width = (packedWidths >> (2 * (cp & 0b11))) & 0b11;
 
@@ -34,11 +36,17 @@ function lookupWidth(cp: number) {
 }
 
 const cache = new Map<string, number | null>();
-function charWidth(char: string) {
-  if (cache.has(char)) return cache.get(char)!;
+function charWidth(char: string): number | null {
+  const cached = cache.get(char);
+  if (cached !== undefined) {
+    return cached;
+  }
 
-  const codePoint = char.codePointAt(0)!;
-  let width: number | null = null;
+  const codePoint = char.codePointAt(0);
+  if (codePoint === undefined) {
+    return null;
+  }
+  let width: number | null;
 
   if (codePoint < 0x7f) {
     width = codePoint >= 0x20 ? 1 : codePoint === 0 ? 0 : null;
@@ -100,8 +108,8 @@ function runLengthDecode({ d, r }: { d: string; r: string }) {
   let out = "";
 
   for (const [i, ch] of [...runLengths].entries()) {
-    out += data[i]!.repeat(ch.codePointAt(0)!);
+    out += data.charAt(i).repeat(ch.codePointAt(0) ?? 0);
   }
 
-  return Uint8Array.from([...out].map((x) => x.codePointAt(0)!));
+  return Uint8Array.from([...out].map((x) => x.codePointAt(0) ?? 0));
 }

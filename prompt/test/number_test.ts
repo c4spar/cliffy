@@ -5,21 +5,18 @@ import { bold, red } from "@std/fmt/colors";
 import { Number } from "../number.ts";
 
 test("prompt number: value", async () => {
-  console.log();
   Number.inject("1");
   const result: number | undefined = await Number.prompt("message");
   assertEquals(result, 1);
 });
 
 test("prompt number: negative value", async () => {
-  console.log();
   Number.inject("-1");
   const result: number | undefined = await Number.prompt("message");
   assertEquals(result, -1);
 });
 
 test("prompt number: number value", async () => {
-  console.log();
   Number.inject("0");
   const result: number | undefined = await Number.prompt("message");
   assertEquals(result, 0);

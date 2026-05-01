@@ -5,14 +5,12 @@ import { bold, red } from "@std/fmt/colors";
 import { Secret } from "../secret.ts";
 
 test("prompt secret: value", async () => {
-  console.log();
   Secret.inject("hallo");
   const result: string | undefined = await Secret.prompt("message");
   assertEquals(result, "hallo");
 });
 
 test("prompt secret: validate option", async () => {
-  console.log();
   Secret.inject("a".repeat(9));
   const result: string | undefined = await Secret.prompt({
     message: "message",
@@ -22,7 +20,6 @@ test("prompt secret: validate option", async () => {
 });
 
 test("prompt secret: empty value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Secret.inject("");
@@ -41,7 +38,6 @@ test("prompt secret: empty value", async () => {
 });
 
 test("prompt secret: invalid value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Secret.inject("a".repeat(10));
@@ -58,7 +54,6 @@ test("prompt secret: invalid value", async () => {
 });
 
 test("prompt secret: null value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       // deno-lint-ignore no-explicit-any

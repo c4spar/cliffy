@@ -119,12 +119,12 @@ export class Toggle extends GenericPrompt<boolean, string> {
   }
 
   /** Set active. */
-  protected selectActive() {
+  protected selectActive(): void {
     this.status = this.settings.active;
   }
 
   /** Set inactive. */
-  protected selectInactive() {
+  protected selectInactive(): void {
     this.status = this.settings.inactive;
   }
 

@@ -95,9 +95,11 @@ async function getProjects(): Promise<Array<string>> {
       [".", "node_modules"].every((path) => !entry.path.startsWith(path))
     ) {
       try {
-        const files = [...Deno.readDirSync(entry.path)];
-        if (files.some((file) => file.name === "deno.json")) {
-          projects.push(entry.path);
+        for await (const file of Deno.readDir(entry.path)) {
+          if (file.name === "deno.json" || file.name === "deno.jsonc") {
+            projects.push(entry.path);
+            break;
+          }
         }
       } catch (error) {
         console.error(`Error reading directory ${entry.path}:`, error);

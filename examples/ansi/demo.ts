@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run
 
 import * as stdColors from "@std/fmt/colors";
-import * as ansiEscapes from "@cliffy/ansi/ansi-escapes";
+import type * as ansiEscapes from "@cliffy/ansi/ansi-escapes";
 
 const ansiEscapeNames1: Array<keyof typeof ansiEscapes> = [
   "bel",

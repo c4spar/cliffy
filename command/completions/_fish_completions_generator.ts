@@ -17,7 +17,7 @@ interface CompleteOptions {
 /** Fish completions generator. */
 export class FishCompletionsGenerator {
   /** Generates fish completions script for given command. */
-  public static generate(name: string, cmd: Command) {
+  public static generate(name: string, cmd: Command): string {
     if (!name || name === "COMMAND") {
       throw new MissingCommandNameCompletionsError("fish");
     }
@@ -98,7 +98,7 @@ ${this.generateCompletions(this.name, this.cmd).trim()}`;
     return result;
   }
 
-  private completeOption(command: Command, option: Option) {
+  private completeOption(command: Command, option: Option): string {
     const shortOption: string | undefined = option.flags
       .find((flag) => flag.length === 2)
       ?.replace(/^(-)+/, "");
@@ -119,7 +119,7 @@ ${this.generateCompletions(this.name, this.cmd).trim()}`;
     });
   }
 
-  private complete(command: Command, options: CompleteOptions) {
+  private complete(command: Command, options: CompleteOptions): string {
     const cmd = ["complete"];
     cmd.push("-c", this.name);
     cmd.push(

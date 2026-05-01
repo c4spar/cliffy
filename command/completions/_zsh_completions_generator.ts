@@ -16,7 +16,7 @@ export class ZshCompletionsGenerator {
   private actions: Map<string, ICompletionAction> = new Map();
 
   /** Generates zsh completions script for given command. */
-  public static generate(name: string, cmd: Command) {
+  public static generate(name: string, cmd: Command): string {
     if (!name || name === "COMMAND") {
       throw new MissingCommandNameCompletionsError("zsh");
     }
@@ -254,7 +254,7 @@ fi`;
     return argsCommand;
   }
 
-  private generateOptions(command: Command, path: string) {
+  private generateOptions(command: Command, path: string): Array<string> {
     const options: string[] = [];
     const cmdArgs: string[] = path.split(" ");
     const _baseName: string = cmdArgs.shift() as string;
@@ -331,7 +331,7 @@ fi`;
     return `${result}'[${description}]${args}'`;
   }
 
-  private getFileCompletions(type: TypeDef) {
+  private getFileCompletions(type: TypeDef): string {
     if (!(type.handler instanceof FileType)) {
       return "";
     }

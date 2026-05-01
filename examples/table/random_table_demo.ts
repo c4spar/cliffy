@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run
 
-import { Cell, CellType, Table } from "@cliffy/table";
+import { Cell, type CellType, Table } from "@cliffy/table";
 import { tty } from "@cliffy/ansi/tty";
 import {
   blue,

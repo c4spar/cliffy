@@ -8,10 +8,44 @@
     "keypress",
     "prompt",
     "table",
-    "testing"
+    "testing",
+    "examples"
   ],
   "lock": false,
   "exclude": ["dist"],
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended",
+        "jsr",
+        "workspace"
+      ],
+      "include": [
+        "camelcase",
+        "eqeqeq",
+        "explicit-module-boundary-types",
+        "no-await-in-loop",
+        "no-eval",
+        "no-external-import",
+        "no-implicit-declare-namespace-export",
+        "no-non-null-asserted-optional-chain",
+        "no-non-null-assertion",
+        "no-self-compare",
+        "no-sparse-arrays",
+        "no-sync-fn-in-async-fn",
+        "no-throw-literal",
+        "no-undef",
+        "no-useless-rename",
+        "single-var-declarator",
+        "triple-slash-reference"
+      ]
+    }
+  },
+  "fmt": {
+    "useBraces": "always",
+    "operatorPosition": "maintain",
+    "singleBodyPosition": "nextLine"
+  },
   "tasks": {
     "lint": "deno lint && deno fmt --check",
     "fmt": "deno fmt",

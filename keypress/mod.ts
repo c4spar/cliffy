@@ -227,7 +227,7 @@ export class Keypress extends EventTarget
    *
    * @param error If an error is passed, the event loop will throw an error.
    */
-  dispose(error?: Error) {
+  dispose(error?: Error): void {
     if (this.#disposed) {
       throw new Error("KeyCodeStream already disposed");
     }

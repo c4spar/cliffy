@@ -5,21 +5,18 @@ import { bold, red } from "@std/fmt/colors";
 import { Toggle } from "../toggle.ts";
 
 test("prompt toggle: yes", async () => {
-  console.log();
   Toggle.inject("Yes");
   const result: boolean | undefined = await Toggle.prompt("message");
   assertEquals(result, true);
 });
 
 test("prompt toggle: no", async () => {
-  console.log();
   Toggle.inject("No");
   const result: boolean | undefined = await Toggle.prompt("message");
   assertEquals(result, false);
 });
 
 test("prompt toggle: empty value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Toggle.inject("");
@@ -33,7 +30,6 @@ test("prompt toggle: empty value", async () => {
 });
 
 test("prompt toggle: invalid value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Toggle.inject("aaa");
@@ -47,7 +43,6 @@ test("prompt toggle: invalid value", async () => {
 });
 
 test("prompt toggle: null value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       // deno-lint-ignore no-explicit-any

@@ -2235,7 +2235,7 @@ export class Command<
     }
   }
 
-  private getSubCommand(ctx: ParseContext) {
+  private getSubCommand(ctx: ParseContext): Command<any> | undefined {
     const subCommand = this.getCommand(ctx.unknown[0], true);
 
     if (subCommand) {
@@ -2427,7 +2427,7 @@ export class Command<
   private async executeGlobalAction(
     options: Record<string, unknown>,
     args: Array<unknown>,
-  ) {
+  ): Promise<void> {
     if (!this.settings.noGlobals) {
       await this.parent?.executeGlobalAction(options, args);
     }
@@ -2489,7 +2489,7 @@ export class Command<
     envVars: Array<EnvVar>,
     validate = true,
   ): Promise<void> {
-    for (const envVar of envVars) {
+    await Promise.all(envVars.map(async (envVar: EnvVar) => {
       const env = await this.findEnvVar(envVar.names);
 
       if (env) {
@@ -2522,22 +2522,24 @@ export class Command<
       } else if (envVar.required && validate) {
         throw new MissingRequiredEnvVarError(envVar);
       }
-    }
+    }));
   }
 
   protected async findEnvVar(
     names: readonly string[],
   ): Promise<{ name: string; value: string } | undefined> {
-    for (const name of names) {
-      // dnt-shim-ignore
-      const status = await (globalThis as any).Deno?.permissions.query({
-        name: "env",
-        variable: name,
-      });
+    const statuses = await Promise.all(
+      names.map((name) =>
+        // dnt-shim-ignore
+        (globalThis as any).Deno?.permissions
+          .query({ name: "env", variable: name })
+          .then((status: any) => ({ name, status }))
+      ),
+    );
 
+    for (const { name, status } of statuses) {
       if (!status || status.state === "granted") {
         const value = getEnv(name);
-
         if (value) {
           return { name, value };
         }
@@ -2706,7 +2708,7 @@ export class Command<
         .trim();
   }
 
-  private getRequiredOptionsDefinition() {
+  private getRequiredOptionsDefinition(): string {
     return this.getOptions()
       .filter((option) => option.required)
       .map((option) =>
@@ -2768,7 +2770,7 @@ export class Command<
     return this.settings.help ?? this.parent?.getHelpHandler() as HelpHandler;
   }
 
-  private exit(code = 0) {
+  private exit(code = 0): void | never {
     if (this.shouldExit()) {
       exit(code);
     }

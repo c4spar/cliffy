@@ -295,7 +295,7 @@ export abstract class GenericList<
     this.setOptions(options);
   }
 
-  protected setOptions(options: Array<TOption | TGroup>) {
+  protected setOptions(options: Array<TOption | TGroup>): void {
     this.options = [...options];
 
     const parent = this.getParentOption();
@@ -324,7 +324,7 @@ export abstract class GenericList<
     return this.parentOptions.at(index);
   }
 
-  protected submitBackButton() {
+  protected submitBackButton(): void {
     const parentOption = this.parentOptions.pop();
     if (!parentOption) {
       return;
@@ -333,7 +333,7 @@ export abstract class GenericList<
     this.listIndex = this.options.indexOf(parentOption);
   }
 
-  protected submitGroupOption(selectedOption: TGroup) {
+  protected submitGroupOption(selectedOption: TGroup): void {
     this.parentOptions.push(selectedOption);
     this.match();
     this.listIndex = 0;
@@ -569,7 +569,7 @@ export abstract class GenericList<
     return super.read();
   }
 
-  protected selectSearch() {
+  protected selectSearch(): void {
     this.listIndex = -1;
   }
 

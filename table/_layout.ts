@@ -197,7 +197,7 @@ export class TableLayout {
    * Fills rows and cols by specified row/col span with a reference of the
    * original cell.
    */
-  protected spanRows(rows: Array<RowType>) {
+  protected spanRows(rows: Array<RowType>): Array<Row<Cell>> {
     const rowSpan: Array<number> = [];
     let colSpan = 1;
     let rowIndex = -1;
@@ -261,7 +261,7 @@ export class TableLayout {
     rows: Array<Array<unknown>>,
     rowIndex: number,
     colIndex: number,
-  ) {
+  ): 0 | 1 {
     return colIndex <= rows[rowIndex].length - 1 &&
         typeof rows[rowIndex][colIndex] === "undefined"
       ? 1
@@ -305,7 +305,7 @@ export class TableLayout {
       );
   }
 
-  private isHeaderRow(rowIndex: number) {
+  private isHeaderRow(rowIndex: number): boolean {
     return rowIndex === 0 && this.table.getHeader() !== undefined;
   }
 

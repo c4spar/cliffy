@@ -5,35 +5,30 @@ import { bold, red } from "@std/fmt/colors";
 import { Confirm } from "../confirm.ts";
 
 test("prompt confirm: y", async () => {
-  console.log();
   Confirm.inject("y");
   const result: boolean | undefined = await Confirm.prompt("message");
   assertEquals(result, true);
 });
 
 test("prompt confirm: yes", async () => {
-  console.log();
   Confirm.inject("Yes");
   const result: boolean | undefined = await Confirm.prompt("message");
   assertEquals(result, true);
 });
 
 test("prompt confirm: n", async () => {
-  console.log();
   Confirm.inject("n");
   const result: boolean | undefined = await Confirm.prompt("message");
   assertEquals(result, false);
 });
 
 test("prompt confirm: no", async () => {
-  console.log();
   Confirm.inject("No");
   const result: boolean | undefined = await Confirm.prompt("message");
   assertEquals(result, false);
 });
 
 test("prompt confirm: empty value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Confirm.inject("");
@@ -47,7 +42,6 @@ test("prompt confirm: empty value", async () => {
 });
 
 test("prompt confirm: invalid value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       Confirm.inject("noo");
@@ -61,7 +55,6 @@ test("prompt confirm: invalid value", async () => {
 });
 
 test("prompt confirm: null value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       // deno-lint-ignore no-explicit-any

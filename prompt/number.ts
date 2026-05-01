@@ -134,17 +134,17 @@ export class Number extends GenericSuggestions<number, string> {
   }
 
   /** Increase input number. */
-  public increaseValue() {
+  public increaseValue(): void {
     this.manipulateIndex(false);
   }
 
   /** Decrease input number. */
-  public decreaseValue() {
+  public decreaseValue(): void {
     this.manipulateIndex(true);
   }
 
   /** Decrease/increase input number. */
-  protected manipulateIndex(decrease?: boolean) {
+  protected manipulateIndex(decrease?: boolean): void {
     if (this.inputValue[this.inputIndex] === "-") {
       this.inputIndex++;
     }

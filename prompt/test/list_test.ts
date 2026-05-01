@@ -5,14 +5,12 @@ import { bold, red } from "@std/fmt/colors";
 import { List } from "../list.ts";
 
 test('prompt list: , separator option: ","', async () => {
-  console.log();
   List.inject("tag1, tag2, tag3");
   const result: string[] | undefined = await List.prompt("message");
   assertEquals(result, ["tag1", "tag2", "tag3"]);
 });
 
 test('prompt list: separator option: " "', async () => {
-  console.log();
   List.inject("tag1 tag2 tag3");
   const result: string[] | undefined = await List.prompt({
     message: "message",
@@ -22,7 +20,6 @@ test('prompt list: separator option: " "', async () => {
 });
 
 test('prompt list: separator option: ";"', async () => {
-  console.log();
   List.inject(" tag tag1 ; tag2 ; tag3 ");
   const result: string[] | undefined = await List.prompt({
     message: "message",
@@ -32,7 +29,6 @@ test('prompt list: separator option: ";"', async () => {
 });
 
 test('prompt list: separator option: "-"', async () => {
-  console.log();
   List.inject(" tag tag1 -tag2-tag3 ");
   const result: string[] | undefined = await List.prompt({
     message: "message",
@@ -42,7 +38,6 @@ test('prompt list: separator option: "-"', async () => {
 });
 
 test("prompt list: empty value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       // deno-lint-ignore no-explicit-any
@@ -60,7 +55,6 @@ test("prompt list: empty value", async () => {
 });
 
 test("prompt list: min length", async () => {
-  console.log();
   await assertRejects(
     async () => {
       List.inject("12");
@@ -79,7 +73,6 @@ test("prompt list: min length", async () => {
 });
 
 test("prompt list: max length", async () => {
-  console.log();
   await assertRejects(
     async () => {
       List.inject("123");
@@ -98,7 +91,6 @@ test("prompt list: max length", async () => {
 });
 
 test("prompt list: min tags", async () => {
-  console.log();
   await assertRejects(
     async () => {
       List.inject("");
@@ -117,7 +109,6 @@ test("prompt list: min tags", async () => {
 });
 
 test("prompt list: max tags", async () => {
-  console.log();
   await assertRejects(
     async () => {
       List.inject("123, 456, 789");
@@ -137,7 +128,6 @@ test("prompt list: max tags", async () => {
 
 // @TODO: add maxLength option to list pormpt
 test("prompt list: null value", async () => {
-  console.log();
   await assertRejects(
     async () => {
       // deno-lint-ignore no-explicit-any
