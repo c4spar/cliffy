@@ -34,6 +34,8 @@ export interface HelpOptions {
   hints?: boolean;
   colors?: boolean;
   long?: boolean;
+  width?: number;
+  maxWidth?: number;
 }
 
 interface OptionGroup {
@@ -45,7 +47,6 @@ interface OptionGroup {
 export class HelpGenerator {
   private indent = 2;
   private options: Required<HelpOptions>;
-  private width: number;
 
   /** Generate help text for given command. */
   public static generate(cmd: Command, options?: HelpOptions): string {
@@ -56,15 +57,17 @@ export class HelpGenerator {
     private cmd: Command,
     options: HelpOptions = {},
   ) {
-    this.width = getColumns() ?? 150;
-
     this.options = {
       types: false,
       hints: true,
       colors: true,
       long: false,
+      width: getColumns() ?? 150,
+      maxWidth: Infinity,
       ...options,
     };
+
+    this.options.width = Math.min(this.options.width, this.options.maxWidth);
   }
 
   private generate(): string {
@@ -134,7 +137,7 @@ export class HelpGenerator {
         [dedent(this.cmd.getDescription())],
       ])
         .indent(this.indent)
-        .maxColWidth(this.width - this.indent)
+        .maxColWidth(this.options.width - this.indent)
         .padding(1)
         .toString() +
       "\n";
@@ -162,7 +165,7 @@ export class HelpGenerator {
       ])
         .padding([2, 1, 2])
         .indent(this.indent)
-        .maxWidth(this.width - this.indent)
+        .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 1, 1])
         .maxColWidth([60, 1, 80, 60])
         .toString() +
@@ -228,7 +231,7 @@ export class HelpGenerator {
         ])
           .padding([2, 2, 1, 2])
           .indent(this.indent)
-          .maxWidth(this.width - this.indent)
+          .maxWidth(this.options.width - this.indent)
           .flexShrink([0, 0, 0, 1, 1])
           .maxColWidth([60, 60, 1, 80, 60])
           .toString() +
@@ -279,7 +282,7 @@ export class HelpGenerator {
           ]),
         ])
           .indent(this.indent)
-          .maxWidth(this.width - this.indent)
+          .maxWidth(this.options.width - this.indent)
           .flexShrink([0, 0, 0, 1])
           .maxColWidth([60, 60, 1, 80])
           .padding([2, 2, 1, 2])
@@ -298,7 +301,7 @@ export class HelpGenerator {
           command.getShortDescription(),
         ]),
       ])
-        .maxWidth(this.width - this.indent)
+        .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 1])
         .maxColWidth([60, 1, 80])
         .padding([2, 1, 2])
@@ -329,7 +332,7 @@ export class HelpGenerator {
       ])
         .padding([2, 2, 1, 2])
         .indent(this.indent)
-        .maxWidth(this.width - this.indent)
+        .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 0, 0, 1, 1])
         .maxColWidth([60, 60, 1, 80, 10])
         .toString() +
@@ -348,7 +351,7 @@ export class HelpGenerator {
       ]))
         .padding(1)
         .indent(this.indent)
-        .maxWidth(this.width - this.indent)
+        .maxWidth(this.options.width - this.indent)
         .flexShrink([0, 1])
         .toString() +
       "\n";

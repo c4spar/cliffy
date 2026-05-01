@@ -1,6 +1,4 @@
-import { test } from "@cliffy/internal/testing/test";
 import { snapshotTest } from "@cliffy/testing";
-import { assertEquals } from "@std/assert";
 import { CompletionsCommand } from "../../completions/completions_command.ts";
 import { HelpCommand } from "../../help/help_command.ts";
 import { Command } from "../../command.ts";
@@ -14,6 +12,7 @@ function command(defaultOptions?: boolean, hintOption?: boolean) {
       hints: true,
       types: true,
       colors: false,
+      width: 120,
     });
 
   if (!defaultOptions) {
@@ -86,94 +85,16 @@ function command(defaultOptions?: boolean, hintOption?: boolean) {
   return cmd;
 }
 
-test({
+await snapshotTest({
   name: "command: help command with line break",
-  fn() {
-    const output: string = command(true, true).getHelp();
-
-    assertEquals(
-      output,
-      `
-Usage:   COMMAND --required [val:string] --all <val:string>
-Version: 1.0.0                                             
-
-Description:
-
-  Test description ...
-
-Options:
-
-  -h, --help                         - Show this help.                                                                                   
-  -V, --version                      - Show the version number for this program.                                                         
-  -t, --test           [val:string]  - test description                                                                                  
-  -D, --default        [val:string]  - I have a default value!                    (Default: "test")                                      
-  --default-func       [val:string]  - I have a default handler!                  (Default: "test")                                      
-  -T, --default-text   [val:string]  - I have a default text!                     (Default: "test")                                      
-  --default-text-func  [val:string]  - I have a default text handler!             (Default: "test")                                      
-  -r, --required       [val:string]  - I am required!                             (required)                                             
-  -d, --depends        [val:string]  - I depend on test!                          (Depends: --test)                                      
-  -c, --conflicts      [val:string]  - I conflict with test!                      (Conflicts: --test)                                    
-  -a, --all            <val:string>  - I have many hints!                         (required, Default: "test", Depends: --test, Conflicts:
-                                                                                  --depends)                                             
-
-Commands:
-
-  help         [command:command]               - Show this help or the help of a sub-command.
-  completions                                  - Generate shell completions.                 
-  sub-command  <input:string> <output:string>  - sub command description.                    
-
-Environment variables:
-
-  SOME_ENV_VAR           <value:number>  - Description ...                  
-  SOME_ENV_VAR_2         <value:string>  - Description 2 ...                
-  SOME_REQUIRED_ENV_VAR  <value:string>  - This one is required!  (required)
-`,
-    );
-  },
+  meta: import.meta,
+  fn: () => command(true, true).showHelp(),
 });
 
-test({
+await snapshotTest({
   name: "command: help command with line break but without default options",
-  fn() {
-    const output: string = command(false, true).getHelp();
-
-    assertEquals(
-      output,
-      `
-Usage:   COMMAND --required [val:string] --all <val:string>
-Version: 1.0.0                                             
-
-Description:
-
-  Test description ...
-
-Options:
-
-  -t, --test           [val:string]  - test description                                                                       
-  -D, --default        [val:string]  - I have a default value!         (Default: "test")                                      
-  --default-func       [val:string]  - I have a default handler!       (Default: "test")                                      
-  -T, --default-text   [val:string]  - I have a default text!          (Default: "test")                                      
-  --default-text-func  [val:string]  - I have a default text handler!  (Default: "test")                                      
-  -r, --required       [val:string]  - I am required!                  (required)                                             
-  -d, --depends        [val:string]  - I depend on test!               (Depends: --test)                                      
-  -c, --conflicts      [val:string]  - I conflict with test!           (Conflicts: --test)                                    
-  -a, --all            <val:string>  - I have many hints!              (required, Default: "test", Depends: --test, Conflicts:
-                                                                       --depends)                                             
-
-Commands:
-
-  help         [command:command]               - Show this help or the help of a sub-command.
-  completions                                  - Generate shell completions.                 
-  sub-command  <input:string> <output:string>  - sub command description.                    
-
-Environment variables:
-
-  SOME_ENV_VAR           <value:number>  - Description ...                  
-  SOME_ENV_VAR_2         <value:string>  - Description 2 ...                
-  SOME_REQUIRED_ENV_VAR  <value:string>  - This one is required!  (required)
-`,
-    );
-  },
+  meta: import.meta,
+  fn: () => command(false, true).showHelp(),
 });
 
 await snapshotTest({
