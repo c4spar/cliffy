@@ -19,6 +19,13 @@ interface RenderSettings {
   rows: Array<Row<Cell>>;
 }
 
+interface ColumnDimensions {
+  padding: Array<number>;
+  width: Array<number>;
+  minColWidth: Array<number>;
+  maxColWidth: Array<number>;
+}
+
 /** Table layout renderer. */
 export class TableLayout {
   /**
@@ -68,36 +75,13 @@ export class TableLayout {
       }
     }
 
-    const padding: Array<number> = [];
-    const width: Array<number> = [];
-    const minColWidth: Array<number> = [];
-    const maxColWidth: Array<number> = [];
+    const {
+      padding,
+      width,
+      minColWidth,
+      maxColWidth,
+    } = this.computeColumnDimensions(columns, rows);
 
-    for (let colIndex = 0; colIndex < columns; colIndex++) {
-      const column = this.options.columns.at(colIndex);
-      minColWidth[colIndex] = column?.getMinWidth() ??
-        (Array.isArray(this.options.minColWidth)
-          ? this.options.minColWidth[colIndex]
-          : this.options.minColWidth);
-
-      maxColWidth[colIndex] = column?.getMaxWidth() ??
-        (Array.isArray(this.options.maxColWidth)
-          ? this.options.maxColWidth[colIndex]
-          : this.options.maxColWidth);
-
-      const colWidth: number = longest(colIndex, rows, maxColWidth[colIndex]);
-      width[colIndex] = Math.min(
-        maxColWidth[colIndex],
-        Math.max(minColWidth[colIndex], colWidth),
-      );
-
-      padding[colIndex] = column?.getPadding() ??
-        (Array.isArray(this.options.padding)
-          ? this.options.padding[colIndex]
-          : this.options.padding);
-    }
-
-    /* Try to get the total table width within a maximum */
     if (isFinite(this.options.maxWidth)) {
       const totalPadding = hasBorder
         ? sum(padding) * 2 + (columns + 1)
@@ -105,53 +89,10 @@ export class TableLayout {
       const maxAllowable = this.options.maxWidth - totalPadding;
 
       if (sum(width) > maxAllowable) {
-        const flex = width.map((_w, i) =>
-          this.options.columns.at(i)?.getFlexShrink() ??
-            (Array.isArray(this.options.flexShrink)
-              ? (this.options.flexShrink[i] ?? 1)
-              : this.options.flexShrink)
-        );
-
-        let changed = true;
-        while (changed) {
-          changed = false;
-          if (sum(width) <= maxAllowable) {
-            break;
-          }
-          // Currently treating flexShrink as a boolean, so any non-zero value means
-          // full flexibility. With proper consideration of weights, we might use
-          // multiplication, e.g. `(1 - flex[i]) * w`
-          const rigidTotal = sum(
-            width.map((w, i) => flex[i] === 0 || w <= minColWidth[i] ? w : 0),
-          );
-
-          const slack = maxAllowable - rigidTotal;
-          if (slack <= 0) {
-            break;
-          }
-          const flexTotal = sum(
-            width.map((w, i) => flex[i] > 0 && w > minColWidth[i] ? w : 0),
-          );
-          if (flexTotal === 0) {
-            break;
-          }
-          const flexFactor = slack / flexTotal;
-          for (let colIndex = 0; colIndex < width.length; colIndex++) {
-            if (
-              flex[colIndex] > 0 && width[colIndex] > minColWidth[colIndex]
-            ) {
-              // NOTE: Math.floor can leave up to N characters of unused space.
-              const target = Math.max(
-                minColWidth[colIndex],
-                Math.floor(width[colIndex] * flexFactor),
-              );
-              if (target !== width[colIndex]) {
-                width[colIndex] = target;
-                changed = true;
-              }
-            }
-          }
-        }
+        this.applyFlexShrink(width, minColWidth, maxAllowable);
+      }
+      if (sum(width) < maxAllowable) {
+        this.applyFlexGrow(width, maxColWidth, maxAllowable);
       }
     }
 
@@ -164,6 +105,140 @@ export class TableLayout {
       hasBodyBorder,
       hasHeaderBorder,
     };
+  }
+
+  private computeColumnDimensions(
+    columns: number,
+    rows: Array<Row<Cell>>,
+  ): ColumnDimensions {
+    const padding: Array<number> = [];
+    const width: Array<number> = [];
+    const minColWidth: Array<number> = [];
+    const maxColWidth: Array<number> = [];
+
+    for (let colIndex = 0; colIndex < columns; colIndex++) {
+      const column = this.options.columns.at(colIndex);
+      minColWidth[colIndex] = column?.getMinWidth() ??
+        (Array.isArray(this.options.minColWidth)
+          ? this.options.minColWidth[colIndex]
+          : this.options.minColWidth) ??
+        0;
+
+      maxColWidth[colIndex] = column?.getMaxWidth() ??
+        (Array.isArray(this.options.maxColWidth)
+          ? this.options.maxColWidth[colIndex]
+          : this.options.maxColWidth) ??
+        Infinity;
+
+      const colWidth: number = longest(colIndex, rows, maxColWidth[colIndex]);
+      width[colIndex] = Math.min(
+        maxColWidth[colIndex],
+        Math.max(minColWidth[colIndex], colWidth),
+      );
+
+      padding[colIndex] = column?.getPadding() ??
+        (Array.isArray(this.options.padding)
+          ? this.options.padding[colIndex]
+          : this.options.padding) ??
+        0;
+    }
+    return { padding, width, minColWidth, maxColWidth };
+  }
+
+  private applyFlexShrink(
+    width: Array<number>,
+    minColWidth: Array<number>,
+    maxAllowable: number,
+  ): void {
+    const shrink: Array<number> = width.map((_w, i) =>
+      this.resolveColumnWeight("flexShrink", i)
+    );
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      if (sum(width) <= maxAllowable) {
+        break;
+      }
+
+      const overflow = sum(width) - maxAllowable;
+      // CSS flex-shrink: each column's reduction share is proportional to
+      // shrink × width, so wider or higher-weighted columns absorb more.
+      const scaledTotal = sum(
+        width.map((w, i) =>
+          shrink[i] > 0 && w > minColWidth[i] ? shrink[i] * w : 0
+        ),
+      );
+      if (scaledTotal === 0) {
+        break;
+      }
+
+      for (let i = 0; i < width.length; i++) {
+        if (shrink[i] > 0 && width[i] > minColWidth[i]) {
+          const target = Math.max(
+            Math.max(1, minColWidth[i]),
+            Math.floor(
+              width[i] * (1 - overflow * shrink[i] / scaledTotal),
+            ),
+          );
+          if (target !== width[i]) {
+            width[i] = target;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  private applyFlexGrow(
+    width: Array<number>,
+    maxColWidth: Array<number>,
+    maxAllowable: number,
+  ): void {
+    const grow: Array<number> = width.map((_w, i) =>
+      this.resolveColumnWeight("flexGrow", i)
+    );
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      if (sum(width) >= maxAllowable) {
+        break;
+      }
+
+      const slack = maxAllowable - sum(width);
+      // CSS flex-grow: available slack is distributed proportionally by weight.
+      const totalWeight = sum(
+        grow.map((g, i) => width[i] < maxColWidth[i] ? g : 0),
+      );
+      if (totalWeight === 0) {
+        break;
+      }
+
+      for (let i = 0; i < width.length; i++) {
+        if (grow[i] > 0 && width[i] < maxColWidth[i]) {
+          const extra = Math.floor(slack * grow[i] / totalWeight);
+          const newWidth = Math.min(maxColWidth[i], width[i] + extra);
+          if (newWidth !== width[i]) {
+            width[i] = newWidth;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  private resolveColumnWeight(
+    prop: "flexShrink" | "flexGrow",
+    i: number,
+  ): number {
+    const getter = prop === "flexShrink" ? "getFlexShrink" : "getFlexGrow";
+    const weight = this.options.columns.at(i)?.[getter]() ??
+      (Array.isArray(this.options[prop])
+        ? this.options[prop][i]
+        : this.options[prop]);
+
+    return Number.isFinite(weight) && weight > 0 ? weight : 0;
   }
 
   #getRows(): Array<Row<Cell>> {
@@ -483,6 +558,9 @@ export class TableLayout {
     cell: Cell,
     maxLength: number,
   ): { current: string; next: string } {
+    if (maxLength <= 0) {
+      return { current: "", next: "" };
+    }
     const length: number = Math.min(
       maxLength,
       strLength(cell.toString()),

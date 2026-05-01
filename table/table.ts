@@ -19,8 +19,16 @@ export interface TableSettings {
   maxColWidth: number | Array<number>;
   /** Set max table width. */
   maxWidth: number;
-  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
+  /**
+   * Set column flex-shrink weight. Follows CSS flex-shrink semantics: reduction
+   * is proportional to `weight × width`. 0 = no shrink (default), >= 1 = shrinkable.
+   */
   flexShrink: number | Array<number>;
+  /**
+   * Set column flex-grow weight. Follows CSS flex-grow semantics: available
+   * slack is distributed proportionally by weight. 0 = no grow (default), >= 1 = growable.
+   */
+  flexGrow: number | Array<number>;
   /** Set cell padding. */
   padding: number | Array<number>;
   /** Set table characters. */
@@ -62,7 +70,8 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
     minColWidth: 0,
     padding: 1,
     maxWidth: Infinity,
-    flexShrink: 1,
+    flexShrink: 0,
+    flexGrow: 0,
     chars: { ...Table._chars },
     columns: [],
   };
@@ -242,7 +251,10 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
   }
 
   /**
-   * Set column flex-shrink factor (0 = rigid, 1 = flexible).
+   * Set column flex-shrink weight. Follows CSS flex-shrink semantics: each
+   * column's share of the reduction is proportional to `weight × width`, so
+   * a wider column or one with a higher weight absorbs more of the overflow.
+   * 0 = rigid (never shrinks), 1 = default. See MDN flex-shrink for full detail.
    *
    * @param flexShrink  Per-column shrink factor, or a single value for all columns.
    * @param override    Override existing value.
@@ -255,6 +267,35 @@ export class Table<TRow extends RowType = RowType> extends Array<TRow> {
       this.options.flexShrink = flexShrink;
     }
     return this;
+  }
+
+  /**
+   * Set column flex-grow weight. Follows CSS flex-grow semantics: available
+   * slack is distributed proportionally by weight, so weight 2 receives twice
+   * the extra space of weight 1. 0 = no grow, 1 = default.
+   * See MDN flex-grow for full detail.
+   *
+   * @param flexGrow  Per-column grow weight, or a single value for all columns.
+   * @param override  Override existing value.
+   */
+  public flexGrow(flexGrow: number | Array<number> = 1, override = true): this {
+    if (override || typeof this.options.flexGrow === "undefined") {
+      this.options.flexGrow = flexGrow;
+    }
+    return this;
+  }
+
+  /**
+   * Shorthand to set both flex-grow and flex-shrink to the same value. Follows
+   * CSS flex semantics: columns will both expand into and contract out of
+   * available space proportionally. 0 = rigid, 1 = default.
+   * See MDN flex for full detail.
+   *
+   * @param flex      Per-column weight, or a single value for all columns.
+   * @param override  Override existing value.
+   */
+  public flex(flex: number | Array<number> = 1, override = true): this {
+    return this.flexGrow(flex, override).flexShrink(flex, override);
   }
 
   /**

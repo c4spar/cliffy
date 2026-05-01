@@ -12,8 +12,16 @@ export interface ColumnOptions {
   maxWidth?: number;
   /** Set cell padding. */
   padding?: number;
-  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
+  /**
+   * Set column flex-shrink weight. Follows CSS flex-shrink semantics: reduction
+   * is proportional to `weight × width`. 0 = rigid, 1 = default (shrinkable).
+   */
   flexShrink?: number;
+  /**
+   * Set column flex-grow weight. Follows CSS flex-grow semantics: available
+   * slack is distributed proportionally by weight. 0 = no grow (default).
+   */
+  flexGrow?: number;
 }
 
 /**
@@ -81,9 +89,37 @@ export class Column {
     return this;
   }
 
-  /** Set column flex-shrink factor (0 = rigid, 1 = flexible). */
-  flexShrink(factor = 1): this {
-    this.opts.flexShrink = factor;
+  /**
+   * Set column flex-shrink weight. Follows CSS flex-shrink semantics: each
+   * column's share of the reduction is proportional to `weight × width`, so
+   * a wider column or one with a higher weight absorbs more of the overflow.
+   * 0 = rigid (never shrinks), 1 = default. See MDN flex-shrink for full detail.
+   */
+  flexShrink(weight = 1): this {
+    this.opts.flexShrink = weight;
+    return this;
+  }
+
+  /**
+   * Set column flex-grow weight. Follows CSS flex-grow semantics: available
+   * slack is distributed proportionally by weight, so weight 2 receives twice
+   * the extra space of weight 1. 0 = no grow.
+   * See MDN flex-grow for full detail.
+   */
+  flexGrow(weight = 1): this {
+    this.opts.flexGrow = weight;
+    return this;
+  }
+
+  /**
+   * Shorthand to set both flex-grow and flex-shrink to the same value. Follows
+   * CSS flex semantics: the column will both expand into and contract out of
+   * available space proportionally. 0 = rigid.
+   * See MDN flex for full detail.
+   */
+  flex(weight = 1): this {
+    this.opts.flexGrow = weight;
+    this.opts.flexShrink = weight;
     return this;
   }
 
@@ -112,8 +148,13 @@ export class Column {
     return this.opts.align;
   }
 
-  /** Get column flex-shrink factor. */
+  /** Get column flex-shrink weight. */
   getFlexShrink(): number | undefined {
     return this.opts.flexShrink;
+  }
+
+  /** Get column flex-grow weight. */
+  getFlexGrow(): number | undefined {
+    return this.opts.flexGrow;
   }
 }
