@@ -983,7 +983,7 @@ _completions_test() {
     '(- *)'{-V,--version}'[Show the version number for this program.]' \\\\
     '(-h --help -V --version -g --global)'{-g,--global}'[Foo option.]:val:->val-boolean' \\\\
     '(-h --help -V --version -m --main)'{-m,--main}'[Bar option.]:val:->val-boolean' \\\\
-    '(-h --help -V --version --color)'--color='[Color option with \\\\"'"'"'quotes'"'"'\\\\" and (\\\\[{brackets}\\\\])]:val:->val-color' \\\\
+    '(-h --help -V --version --color)'--color='[Color option with "'"'"'quotes'"'"'" and (\\\\[{brackets}\\\\])]:val:->val-color' \\\\
     '(-h --help -V --version -C --colors)'{-C,--colors}'[Color option.]:val:->val-color' \\\\
     '1:command:_commands'\\\\
     '2::path:_files'\\\\
@@ -1477,7 +1477,7 @@ _foo_command() {
     '(- *)'{-V,--version}'[Show the version number for this program.]' \\\\
     '(-h --help -V --version -g --global)'{-g,--global}'[Foo option.]:val:->val-boolean' \\\\
     '(-h --help -V --version -m --main)'{-m,--main}'[Bar option.]:val:->val-boolean' \\\\
-    '(-h --help -V --version --color)'--color='[Color option with \\\\"'"'"'quotes'"'"'\\\\" and (\\\\[{brackets}\\\\])]:val:->val-color' \\\\
+    '(-h --help -V --version --color)'--color='[Color option with "'"'"'quotes'"'"'" and (\\\\[{brackets}\\\\])]:val:->val-color' \\\\
     '(-h --help -V --version -C --colors)'{-C,--colors}'[Color option.]:val:->val-color' \\\\
     '1:command:_commands'\\\\
     '2::path:_files'\\\\

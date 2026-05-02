@@ -293,10 +293,9 @@ fi`;
       }
     }
     const description: string = getDescription(option.description, true)
-      // escape brackets and quotes
+      .replace(/\\/g, "\\\\")
       .replace(/\[/g, "\\[")
       .replace(/]/g, "\\]")
-      .replace(/"/g, '\\"')
       .replace(/'/g, "'\"'\"'");
 
     const collect: string = option.collect ? "*" : "";

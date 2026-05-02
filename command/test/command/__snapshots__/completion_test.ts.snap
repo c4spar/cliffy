@@ -188,6 +188,151 @@ stderr:
 ""
 `;
 
+snapshot[`should escape special characters in option descriptions > zsh 1`] = `
+stdout:
+\`#compdef completions-test
+
+# zsh completion support for completions-test v1.0.0
+
+autoload -U is-at-least
+
+# shellcheck disable=SC2154
+(( \$+functions[__completions_test_complete] )) ||
+function __completions_test_complete {
+  local name="\$1"; shift
+  local action="\$1"; shift
+  integer ret=1
+  local -a values
+  local expl lines
+  _tags "\$name"
+  while _tags; do
+    if _requested "\$name"; then
+      # shellcheck disable=SC2034
+      lines="\$(completions-test completions complete "\${action}" "\${@}")"
+      values=("\${(ps:\\\\n:)lines}")
+      if (( \${#values[@]} )); then
+        while _next_label "\$name" expl "\$action"; do
+          compadd -S '' "\${expl[@]}" "\${values[@]}"
+        done
+      fi
+    fi
+  done
+}
+
+# shellcheck disable=SC2154
+_completions_test() {
+  local state
+
+  function _commands() {
+    local -a commands
+    # shellcheck disable=SC2034
+    commands=(
+      'completions:Generate shell completions.'
+    )
+    _describe 'command' commands
+  }
+
+  function _command_args() {
+    case "\${words[1]}" in
+      completions) _completions_test_completions ;;
+    esac
+  }
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(- *)'{-V,--version}'[Show the version number for this program.]' \\\\
+    '(-h --help -V --version --backslash)'--backslash'[description with \\\\\\\\backslash]:val:->val-string' \\\\
+    '(-h --help -V --version --double-quote)'--double-quote'[description with "double quotes"]:val:->val-string' \\\\
+    '(-h --help -V --version --brackets)'--brackets'[description with \\\\[brackets\\\\]]:val:->val-string' \\\\
+    '(-h --help -V --version --single-quote)'--single-quote'[description with '"'"'single quotes'"'"']:val:->val-string' \\\\
+    '1:command:_commands' \\\\
+    '*::sub command:->command_args'
+
+  case "\$state" in
+    command_args) _command_args ;;
+    val-string) __completions_test_complete val string  ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_completions_test_completions] )) || _completions_test_completions() {
+
+  function _commands() {
+    local -a commands
+    # shellcheck disable=SC2034
+    commands=(
+      'bash:Generate shell completions for bash.'
+      'fish:Generate shell completions for fish.'
+      'zsh:Generate shell completions for zsh.'
+    )
+    _describe 'command' commands
+  }
+
+  function _command_args() {
+    case "\${words[1]}" in
+      bash) _completions_test_completions_bash ;;
+      fish) _completions_test_completions_fish ;;
+      zsh) _completions_test_completions_zsh ;;
+    esac
+  }
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '1:command:_commands' \\\\
+    '*::sub command:->command_args'
+
+  case "\$state" in
+    command_args) _command_args ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_completions_test_completions_bash] )) || _completions_test_completions_bash() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -n --name)'{-n,--name}'[The name of the main command.]:command-name:->command-name-string'
+
+  case "\$state" in
+    command-name-string) __completions_test_complete command-name string completions bash ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_completions_test_completions_fish] )) || _completions_test_completions_fish() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -n --name)'{-n,--name}'[The name of the main command.]:command-name:->command-name-string'
+
+  case "\$state" in
+    command-name-string) __completions_test_complete command-name string completions fish ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_completions_test_completions_zsh] )) || _completions_test_completions_zsh() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -n --name)'{-n,--name}'[The name of the main command.]:command-name:->command-name-string'
+
+  case "\$state" in
+    command-name-string) __completions_test_complete command-name string completions zsh ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+if [ "\${funcstack[1]}" = "_completions-test" ]; then
+  _completions_test "\${@}"
+else
+  compdef _completions_test completions-test;
+fi
+\`
+stderr:
+""
+`;
+
 snapshot[`should generate file type completions in arguments > zsh 1`] = `
 stdout:
 \`#compdef completions-test

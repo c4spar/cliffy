@@ -126,6 +126,25 @@ await snapshotTest({
 });
 
 await snapshotTest({
+  name: "should escape special characters in option descriptions",
+  meta: import.meta,
+  steps: {
+    zsh: { args: ["completions", "zsh"] },
+  },
+  async fn(): Promise<void> {
+    await new Command()
+      .version("1.0.0")
+      .name("completions-test")
+      .option("--backslash <val:string>", "description with \\backslash")
+      .option("--double-quote <val:string>", 'description with "double quotes"')
+      .option("--brackets <val:string>", "description with [brackets]")
+      .option("--single-quote <val:string>", "description with 'single quotes'")
+      .command("completions", new CompletionsCommand())
+      .parse();
+  },
+});
+
+await snapshotTest({
   name: "should generate file type completions in arguments",
   meta: import.meta,
   steps: {
