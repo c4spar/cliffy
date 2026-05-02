@@ -48,7 +48,7 @@ export class MissingCommandNameCompletionsError extends CommandError {
   constructor(shell: string) {
     super(
       `Failed to generate shell completions. Missing main command name. Use '${
-        bold('cmd.name("<comand-name>")')
+        bold('cmd.name("<command-name>")')
       }' to set the name of the main command or use the '${
         bold("--name")
       }' option from the '${
