@@ -3,10 +3,9 @@ import { eraseDown } from "@cliffy/ansi/ansi-escapes";
 import { getRuntimeName } from "@cliffy/internal/runtime/runtime-name";
 import { getEnv } from "@cliffy/internal/runtime/get-env";
 import { test } from "@cliffy/internal/testing/test";
-
-import { quoteString } from "./_quote_string.ts";
 import { red } from "@std/fmt/colors";
 import { AssertionError } from "@std/assert/assertion-error";
+import { quoteString } from "./_quote_string.ts";
 
 /** Snapshot test step options. */
 export interface SnapshotTestStep {
@@ -62,12 +61,16 @@ export interface SnapshotTestOptions extends SnapshotTestStep {
   /** Enable/disable colors. Default is `false`. */
   colors?: boolean;
   /**
-   * Timeout in milliseconds to wait until the input stream data is buffered
-   * before writing the next data to the stream. This ensures that each user
-   * input is rendered as separate line in the snapshot file. If your test gets
-   * flaky, try to increase the timeout. The default timeout is `600`.
+   * Max time in ms to wait for the subprocess to produce output after each
+   * stdin chunk. Only hit when an input produces no output. Default: `1200`
+   * on Windows, `300` elsewhere.
    */
   timeout?: number;
+  /**
+   * Time in ms to wait for output to settle after each stdin chunk before
+   * sending the next one. Default: `50` on Windows, `20` elsewhere.
+   */
+  idleMs?: number;
   /** If truthy the current test step will be ignored.
    *
    * It is a quick way to skip over a step, but also can be used for
@@ -181,9 +184,11 @@ async function executeTest(
   options: SnapshotTestOptions,
   step?: SnapshotTestStep,
 ): Promise<{ stdout: string; stderr: string }> {
-  let output: Deno.CommandOutput | undefined;
+  let status: Deno.CommandStatus | undefined;
   let stdout: string | undefined;
   let stderr: string | undefined;
+  let stdoutBuf = "";
+  let stderrBuf = "";
 
   try {
     let denoArgs: Array<string>;
@@ -217,50 +222,192 @@ async function executeTest(
     const child: Deno.ChildProcess = cmd.spawn();
     const writer = child.stdin.getWriter();
 
+    const state: State = {
+      stdoutBytes: 0,
+      stderrBytes: 0,
+      lastDataAt: Date.now(),
+      dataResolver: Promise.withResolvers(),
+      finished: false,
+    };
+
+    const onChunk = (text: string, bytes: number) => {
+      state.lastDataAt = Date.now();
+      const old = state.dataResolver;
+      state.dataResolver = Promise.withResolvers();
+      old.resolve();
+      return { text, bytes };
+    };
+
+    const stdoutReader = readStream(child.stdout, (text, bytes) => {
+      stdoutBuf += text;
+      state.stdoutBytes += bytes;
+      onChunk(text, bytes);
+    });
+    const stderrReader = readStream(child.stderr, (text, bytes) => {
+      stderrBuf += text;
+      state.stderrBytes += bytes;
+      onChunk(text, bytes);
+    });
+
+    Promise.all([stdoutReader, stderrReader]).then(() => {
+      state.finished = true;
+      const old = state.dataResolver;
+      state.dataResolver = Promise.withResolvers();
+      old.resolve();
+    });
+
     const stdin = [
       ...options?.stdin ?? [],
       ...step?.stdin ?? [],
     ];
 
     if (stdin.length) {
-      const delay = Number(
-        await getEnvIfGranted("CLIFFY_SNAPSHOT_DELAY") ||
-          (options.timeout ?? Deno.build.os === "windows" ? 1200 : 300),
-      );
+      const envCeiling = await getEnvIfGranted("CLIFFY_SNAPSHOT_DELAY");
+      const timeoutMs = envCeiling
+        ? Number(envCeiling)
+        : (options.timeout ?? (Deno.build.os === "windows" ? 1200 : 300));
+
+      const envIdle = await getEnvIfGranted("CLIFFY_SNAPSHOT_IDLE_MS");
+      const idleMs = envIdle
+        ? Number(envIdle)
+        : (options.idleMs ?? (Deno.build.os === "windows" ? 50 : 20));
+
+      assertWaitOption("idleMs", idleMs);
+      assertWaitOption("timeout", timeoutMs);
 
       for (const data of stdin) {
+        const baseline = {
+          stdoutBytes: state.stdoutBytes,
+          stderrBytes: state.stderrBytes,
+        };
         // deno-lint-ignore no-await-in-loop
         await writer.write(encoder.encode(data));
-        // Workaround to ensure all inputs are processed and rendered separately.
         // deno-lint-ignore no-await-in-loop
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await waitForRenderAfter(baseline, state, { idleMs, timeoutMs });
       }
     }
 
-    output = await child.output();
-    stdout = addLineBreaks(new TextDecoder().decode(output.stdout));
-    stderr = addLineBreaks(new TextDecoder().decode(output.stderr));
-
     writer.releaseLock();
     await child.stdin.close();
+
+    [status] = await Promise.all([
+      child.status,
+      stdoutReader,
+      stderrReader,
+    ]);
+
+    stdout = addLineBreaks(stdoutBuf);
+    stderr = addLineBreaks(stderrBuf);
   } catch (error: unknown) {
     const assertionError = new AssertionError(
-      `Snapshot test failed: ${options.meta.url}.\n${red(stderr ?? "")}`,
+      `Snapshot test failed: ${options.meta.url}.\n${red(stderr ?? stderrBuf)}`,
     );
     assertionError.cause = error;
     throw assertionError;
   }
 
-  if (!output.success && !options.canFail && !step?.canFail) {
+  if (!status.success && !options.canFail && !step?.canFail) {
     throw new AssertionError(
       `Snapshot test failed: ${options.meta.url}.` +
-        `Test command failed with a none zero exit code: ${output.code}.\n${
+        `Test command failed with a none zero exit code: ${status.code}.\n${
           red(stderr ?? "")
         }`,
     );
   }
 
   return { stdout, stderr };
+}
+
+interface State {
+  stdoutBytes: number;
+  stderrBytes: number;
+  lastDataAt: number;
+  dataResolver: PromiseWithResolvers<void>;
+  finished: boolean;
+}
+
+function readStream(
+  stream: ReadableStream<Uint8Array>,
+  onChunk: (text: string, bytes: number) => void,
+): Promise<void> {
+  const decoder = new TextDecoder();
+  return stream.pipeTo(
+    new WritableStream({
+      write(chunk) {
+        onChunk(decoder.decode(chunk, { stream: true }), chunk.byteLength);
+      },
+      close() {
+        const tail = decoder.decode();
+        if (tail) {
+          onChunk(tail, 0);
+        }
+      },
+    }),
+  );
+}
+
+/**
+ * Wait for the subprocess to produce new output since `baseline` (capped at
+ * `timeoutMs`), then wait for `idleMs` of quiet.
+ */
+async function waitForRenderAfter(
+  baseline: { stdoutBytes: number; stderrBytes: number },
+  state: State,
+  opts: { idleMs: number; timeoutMs: number },
+): Promise<void> {
+  const ceilingDeadline = Date.now() + opts.timeoutMs;
+
+  // First wait for new output since baseline, with a timeout to avoid waiting
+  // indefinitely if the input produces no output.
+  while (
+    !state.finished &&
+    state.stdoutBytes === baseline.stdoutBytes &&
+    state.stderrBytes === baseline.stderrBytes
+  ) {
+    const remaining = ceilingDeadline - Date.now();
+    if (remaining <= 0) {
+      break;
+    }
+    // deno-lint-ignore no-await-in-loop
+    await raceWithTimeout(state.dataResolver.promise, remaining);
+  }
+
+  // Then wait for `idleMs` of quiet.
+  while (!state.finished) {
+    const sinceLastData = Date.now() - state.lastDataAt;
+    if (sinceLastData >= opts.idleMs) {
+      break;
+    }
+    const wait = opts.idleMs - sinceLastData;
+    // deno-lint-ignore no-await-in-loop
+    await raceWithTimeout(state.dataResolver.promise, wait);
+  }
+}
+
+function assertWaitOption(name: string, value: number): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new AssertionError(
+      `Invalid \`${name}\`: ${value}. Must be a finite non-negative number.`,
+    );
+  }
+}
+
+/** Race a promise against a timeout, clearing the timer when done. */
+async function raceWithTimeout(
+  promise: Promise<unknown>,
+  ms: number,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms);
+  });
+  try {
+    await Promise.race([promise, timeout]);
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 /** Add a line break after each test input. */
