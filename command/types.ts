@@ -585,7 +585,22 @@ export type VersionHandler<
   >,
 > = (this: TCommand, cmd: TCommand) => string;
 
-export type ErrorHandler = (
+/** Context passed to the error handler with parsed state at the time of the error. */
+export type ErrorContext<
+  TOptions extends Record<string, any> | void = any,
+  TArguments extends Array<unknown> = any,
+> = {
+  /** Parsed options at the time of the error. */
+  options: TOptions extends void ? Record<string, unknown> : TOptions;
+  /** Parsed arguments at the time of the error. */
+  args: TArguments;
+};
+
+export type ErrorHandler<
+  TOptions extends Record<string, any> | void = any,
+  TArguments extends Array<unknown> = any,
+> = (
   error: Error | ValidationError,
   cmd: Command,
+  ctx: ErrorContext<TOptions, TArguments>,
 ) => unknown;

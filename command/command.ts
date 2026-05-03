@@ -63,6 +63,7 @@ import type {
   ArgumentValue,
   ArgumentValueHandler,
   CommandArgumentOptions,
+  CommandOptions,
   CommandResult,
   CompleteHandler,
   CompleteOptions,
@@ -137,6 +138,8 @@ interface CommandProps {
   versionOption?: Option;
   helpOption?: Option;
   isRoot?: boolean;
+  parsedOptions?: Record<string, unknown>;
+  parsedArgs?: unknown[];
 }
 
 interface BuilderProps {
@@ -1582,7 +1585,12 @@ export class Command<
    *
    * @param handler Error handler callback function.
    */
-  public error(handler: ErrorHandler): this {
+  public error(
+    handler: ErrorHandler<
+      CommandOptions<TCommandOptions, TCommandGlobals, TParentCommandGlobals>,
+      MapTypes<TCommandArguments>
+    >,
+  ): this {
     this.cmd.settings.errorHandler = handler;
     return this;
   }
@@ -2207,10 +2215,12 @@ export class Command<
       // Parse rest options & env vars.
       await this.parseOptionsAndEnvVars(ctx, preParseGlobals);
       const options = { ...ctx.env, ...ctx.flags };
+      this.props.parsedOptions = options;
 
       // Process arguments.
       await this.processArguments(ctx);
       const args = ctx.args ?? [];
+      this.props.parsedArgs = args;
       this.props.literalArgs = ctx.literal;
 
       // Execute option action.
@@ -2598,7 +2608,10 @@ export class Command<
     if (error instanceof ValidationError) {
       error.cmd = this as unknown as Command;
     }
-    this.getErrorHandler()?.(error, this as unknown as Command);
+    this.getErrorHandler()?.(error, this as unknown as Command, {
+      options: this.props.parsedOptions ?? {},
+      args: this.props.parsedArgs ?? [],
+    });
 
     if (this.shouldThrowErrors() || !(error instanceof ValidationError)) {
       throw error;

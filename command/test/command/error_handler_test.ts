@@ -1,7 +1,13 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
 import { assertSpyCalls, spy } from "@std/testing/mock";
-import { Command, type ErrorHandler, ValidationError } from "../../mod.ts";
+import { assertType, type IsExact } from "@std/testing/types";
+import {
+  Command,
+  type ErrorContext,
+  type ErrorHandler,
+  ValidationError,
+} from "../../mod.ts";
 
 test("[command] should call error handler on error", async () => {
   let error: unknown;
@@ -102,6 +108,70 @@ test("[command] should handle error with useRawArgs enabled", async () => {
   );
 
   assertSpyCalls(errorHandlerSpy, 1);
+});
+
+test("[command] error handler ctx should have options and args when error occurs in action", async () => {
+  await assertRejects(
+    () =>
+      new Command()
+        .throwErrors()
+        .option("-f, --foo <val:string>", "...")
+        .arguments("<bar:string>")
+        .error((_error, _cmd, ctx) => {
+          assertEquals(ctx.options.foo, "hello");
+          assertEquals(ctx.args[0], "world");
+        })
+        .action(() => {
+          throw new ValidationError("test error");
+        })
+        .parse(["--foo", "hello", "world"]),
+    ValidationError,
+  );
+});
+
+test("[command] error handler ctx should have empty options and args when error occurs during option parsing", async () => {
+  await assertRejects(
+    () =>
+      new Command()
+        .throwErrors()
+        .option("-f, --foo <val:string>", "...")
+        .error((_error, _cmd, ctx) => {
+          assertEquals(ctx.options, {});
+          assertEquals(ctx.args, []);
+        })
+        .parse(["--unknown"]),
+    ValidationError,
+  );
+});
+
+test("[command] error handler ctx should have options but empty args when error occurs during argument processing", async () => {
+  await assertRejects(
+    () =>
+      new Command()
+        .throwErrors()
+        .option("-f, --foo <val:string>", "...")
+        .error((_error, _cmd, ctx) => {
+          assertEquals(ctx.options.foo, "hello");
+          assertEquals(ctx.args, []);
+        })
+        .parse(["--foo", "hello", "unexpected-arg"]),
+    ValidationError,
+  );
+});
+
+test("[command] error handler ctx should be typed with parsed options and arguments", () => {
+  new Command()
+    .option("-f, --foo <val:string>", "...")
+    .globalOption("-v, --verbose", "...")
+    .arguments("<bar:string>")
+    .error((_error, _cmd, ctx) => {
+      assertType<
+        IsExact<
+          typeof ctx,
+          ErrorContext<{ foo?: string; verbose?: true }, [bar: string]>
+        >
+      >(true);
+    });
 });
 
 test("[command] should handle error on sub command with useRawArgs enabled", async () => {
