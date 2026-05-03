@@ -62,7 +62,7 @@ _completions_test() {
 
   _completions_test_complete() {
     local action="\$1"; shift
-    mapfile -t values < <( completions-test completions complete "\${action}" "\${@}" )
+    mapfile -t values < <( completions-test completions complete "\${action}" "\${@}" 2>/dev/null )
     for i in "\${values[@]}"; do
       opts+=("\$i")
     done
@@ -400,7 +400,7 @@ _foo_command() {
 
   _foo_command_complete() {
     local action="\$1"; shift
-    mapfile -t values < <( foo-command completions complete "\${action}" "\${@}" )
+    mapfile -t values < <( foo-command completions complete "\${action}" "\${@}" 2>/dev/null )
     for i in "\${values[@]}"; do
       opts+=("\$i")
     done
@@ -748,71 +748,71 @@ function __fish_completions_test_using_command
   return 1
 end
 
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a '(completions-test completions complete color )'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a '(completions-test completions complete color  2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s V -l version -x -k -f -d 'Show the version number for this program.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s g -l global -k -f -r -a '(completions-test completions complete boolean )' -d 'Foo option.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s m -l main -k -f -r -a '(completions-test completions complete boolean )' -d 'Bar option.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -l color -k -f -r -a '(completions-test completions complete color )' -d 'Color option with "\\\\'quotes\\\\'" and ([{brackets}])'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s C -l colors -k -f -r -a '(completions-test completions complete color )' -d 'Color option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s g -l global -k -f -r -a '(completions-test completions complete boolean  2>/dev/null)' -d 'Foo option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s m -l main -k -f -r -a '(completions-test completions complete boolean  2>/dev/null)' -d 'Bar option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -l color -k -f -r -a '(completions-test completions complete color  2>/dev/null)' -d 'Color option with "\\\\'quotes\\\\'" and ([{brackets}])'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s C -l colors -k -f -r -a '(completions-test completions complete color  2>/dev/null)' -d 'Color option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a foo -d 'Foo command with "\\\\'quotes\\\\'" and ([{brackets}])'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo' -s g -l global -k -f -r -a '(completions-test completions complete boolean foo)' -d 'Foo option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo' -s g -l global -k -f -r -a '(completions-test completions complete boolean foo 2>/dev/null)' -d 'Foo option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo' -s f -l foo -k -f -d 'Foo option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo' -k -f -a bar -d 'Bar command.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s g -l global -k -f -r -a '(completions-test completions complete boolean foo bar)' -d 'Foo option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s g -l global -k -f -r -a '(completions-test completions complete boolean foo bar 2>/dev/null)' -d 'Foo option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s b -l bar -k -f -d 'Bar option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a bar
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_bar' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_bar' -s g -l global -k -f -r -a '(completions-test completions complete boolean bar)' -d 'Foo option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_bar' -s g -l global -k -f -r -a '(completions-test completions complete boolean bar 2>/dev/null)' -d 'Foo option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a foo:bar
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s g -l global -k -f -r -a '(completions-test completions complete boolean foo:bar)' -d 'Foo option.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s f -l file -k -f -r -a '(completions-test completions complete string foo:bar)' -d '...'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s g -l global -k -f -r -a '(completions-test completions complete boolean foo:bar 2>/dev/null)' -d 'Foo option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_foo_bar' -s f -l file -k -f -r -a '(completions-test completions complete string foo:bar 2>/dev/null)' -d '...'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a validation-error
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_validation_error' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_validation_error' -s g -l global -k -f -r -a '(completions-test completions complete boolean validation-error)' -d 'Foo option.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_validation_error' -s g -l global -k -f -r -a '(completions-test completions complete boolean validation-error 2>/dev/null)' -d 'Foo option.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a completions -d 'Generate shell completions.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -k -f -a bash -d 'Generate shell completions for bash.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_bash' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_bash' -s n -l name -k -f -r -a '(completions-test completions complete string completions bash)' -d 'The name of the main command.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_bash' -s n -l name -k -f -r -a '(completions-test completions complete string completions bash 2>/dev/null)' -d 'The name of the main command.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -k -f -a fish -d 'Generate shell completions for fish.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_fish' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_fish' -s n -l name -k -f -r -a '(completions-test completions complete string completions fish)' -d 'The name of the main command.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_fish' -s n -l name -k -f -r -a '(completions-test completions complete string completions fish 2>/dev/null)' -d 'The name of the main command.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -k -f -a zsh -d 'Generate shell completions for zsh.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_zsh' -s h -l help -x -k -f -d 'Show this help.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_zsh' -s n -l name -k -f -r -a '(completions-test completions complete string completions zsh)' -d 'The name of the main command.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_zsh' -s n -l name -k -f -r -a '(completions-test completions complete string completions zsh 2>/dev/null)' -d 'The name of the main command.'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help)'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -k -f -a '(completions-test completions complete command help 2>/dev/null)'
 complete -c completions-test -n '__fish_completions_test_using_command __completions_test_help' -s h -l help -x -k -f -d 'Show this help.'
 \`
 stderr:
@@ -846,71 +846,71 @@ function __fish_foo_command_using_command
   return 1
 end
 
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a '(foo-command completions complete color )'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a '(foo-command completions complete color  2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s V -l version -x -k -f -d 'Show the version number for this program.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s g -l global -k -f -r -a '(foo-command completions complete boolean )' -d 'Foo option.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s m -l main -k -f -r -a '(foo-command completions complete boolean )' -d 'Bar option.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -l color -k -f -r -a '(foo-command completions complete color )' -d 'Color option with "\\\\'quotes\\\\'" and ([{brackets}])'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s C -l colors -k -f -r -a '(foo-command completions complete color )' -d 'Color option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s g -l global -k -f -r -a '(foo-command completions complete boolean  2>/dev/null)' -d 'Foo option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s m -l main -k -f -r -a '(foo-command completions complete boolean  2>/dev/null)' -d 'Bar option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -l color -k -f -r -a '(foo-command completions complete color  2>/dev/null)' -d 'Color option with "\\\\'quotes\\\\'" and ([{brackets}])'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -s C -l colors -k -f -r -a '(foo-command completions complete color  2>/dev/null)' -d 'Color option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a foo -d 'Foo command with "\\\\'quotes\\\\'" and ([{brackets}])'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo' -s g -l global -k -f -r -a '(foo-command completions complete boolean foo)' -d 'Foo option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo' -s g -l global -k -f -r -a '(foo-command completions complete boolean foo 2>/dev/null)' -d 'Foo option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo' -s f -l foo -k -f -d 'Foo option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo' -k -f -a bar -d 'Bar command.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s g -l global -k -f -r -a '(foo-command completions complete boolean foo bar)' -d 'Foo option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s g -l global -k -f -r -a '(foo-command completions complete boolean foo bar 2>/dev/null)' -d 'Foo option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s b -l bar -k -f -d 'Bar option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a bar
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_bar' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_bar' -s g -l global -k -f -r -a '(foo-command completions complete boolean bar)' -d 'Foo option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_bar' -s g -l global -k -f -r -a '(foo-command completions complete boolean bar 2>/dev/null)' -d 'Foo option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a foo:bar
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s g -l global -k -f -r -a '(foo-command completions complete boolean foo:bar)' -d 'Foo option.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s f -l file -k -f -r -a '(foo-command completions complete string foo:bar)' -d '...'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s g -l global -k -f -r -a '(foo-command completions complete boolean foo:bar 2>/dev/null)' -d 'Foo option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_foo_bar' -s f -l file -k -f -r -a '(foo-command completions complete string foo:bar 2>/dev/null)' -d '...'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a validation-error
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_validation_error' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_validation_error' -s g -l global -k -f -r -a '(foo-command completions complete boolean validation-error)' -d 'Foo option.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_validation_error' -s g -l global -k -f -r -a '(foo-command completions complete boolean validation-error 2>/dev/null)' -d 'Foo option.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a completions -d 'Generate shell completions.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions' -k -f -a bash -d 'Generate shell completions for bash.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_bash' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_bash' -s n -l name -k -f -r -a '(foo-command completions complete string completions bash)' -d 'The name of the main command.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_bash' -s n -l name -k -f -r -a '(foo-command completions complete string completions bash 2>/dev/null)' -d 'The name of the main command.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions' -k -f -a fish -d 'Generate shell completions for fish.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_fish' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_fish' -s n -l name -k -f -r -a '(foo-command completions complete string completions fish)' -d 'The name of the main command.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_fish' -s n -l name -k -f -r -a '(foo-command completions complete string completions fish 2>/dev/null)' -d 'The name of the main command.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions' -k -f -a zsh -d 'Generate shell completions for zsh.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_zsh' -s h -l help -x -k -f -d 'Show this help.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_zsh' -s n -l name -k -f -r -a '(foo-command completions complete string completions zsh)' -d 'The name of the main command.'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_completions_zsh' -s n -l name -k -f -r -a '(foo-command completions complete string completions zsh 2>/dev/null)' -d 'The name of the main command.'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command' -k -f -a help -d 'Show this help or the help of a sub-command.'
-complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help)'
+complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -k -f -a '(foo-command completions complete command help 2>/dev/null)'
 complete -c foo-command -n '__fish_foo_command_using_command __foo_command_help' -s h -l help -x -k -f -d 'Show this help.'
 \`
 stderr:
@@ -937,7 +937,7 @@ function __completions_test_complete {
   while _tags; do
     if _requested "\$name"; then
       # shellcheck disable=SC2034
-      lines="\$(completions-test completions complete "\${action}" "\${@}")"
+      lines="\$(completions-test completions complete "\${action}" "\${@}" 2>/dev/null)"
       values=("\${(ps:\\\\n:)lines}")
       if (( \${#values[@]} )); then
         while _next_label "\$name" expl "\$action"; do
@@ -1431,7 +1431,7 @@ function __foo_command_complete {
   while _tags; do
     if _requested "\$name"; then
       # shellcheck disable=SC2034
-      lines="\$(foo-command completions complete "\${action}" "\${@}")"
+      lines="\$(foo-command completions complete "\${action}" "\${@}" 2>/dev/null)"
       values=("\${(ps:\\\\n:)lines}")
       if (( \${#values[@]} )); then
         while _next_label "\$name" expl "\$action"; do
