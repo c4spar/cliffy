@@ -390,6 +390,9 @@ function parseArgs<TFlagOptions extends FlagOptions>(
             }
           }
 
+          if (!maybeIsFlag) {
+            throw new TooManyArgumentsError([currentRaw]);
+          }
           throw new UnknownOptionError(current, opts.flags);
         }
       }
