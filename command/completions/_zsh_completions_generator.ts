@@ -53,7 +53,7 @@ function __${replaceSpecialChars(this.name)}_complete {
   while _tags; do
     if _requested "$name"; then
       # shellcheck disable=SC2034
-      lines="$(${this.name} completions complete "\${action}" "\${@}")"
+      lines="$(${this.name} completions complete "\${action}" "\${@}" 2>/dev/null)"
       values=("\${(ps:\\n:)lines}")
       if (( \${#values[@]} )); then
         while _next_label "$name" expl "$action"; do

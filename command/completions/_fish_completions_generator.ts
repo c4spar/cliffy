@@ -157,7 +157,7 @@ ${this.generateCompletions(this.name, this.cmd).trim()}`;
     }
     return `'(${this.name} completions complete ${
       arg.action + " " + getCompletionsPath(cmd)
-    })'`;
+    } 2>/dev/null)'`;
   }
 }
 

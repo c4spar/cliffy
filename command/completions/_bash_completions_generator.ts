@@ -40,7 +40,7 @@ _${replaceSpecialChars(path)}() {
 
   _${replaceSpecialChars(this.name)}_complete() {
     local action="$1"; shift
-    mapfile -t values < <( ${this.name} completions complete "\${action}" "\${@}" )
+    mapfile -t values < <( ${this.name} completions complete "\${action}" "\${@}" 2>/dev/null )
     for i in "\${values[@]}"; do
       opts+=("$i")
     done
