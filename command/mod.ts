@@ -77,6 +77,7 @@ export type {
   EnvVar,
   EnvVarOptions,
   EnvVarValueHandler,
+  ErrorContext,
   ErrorHandler,
   Example,
   GlobalEnvVarOptions,
