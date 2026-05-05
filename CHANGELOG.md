@@ -1,3 +1,46 @@
+# [v1.1.0](https://github.com/c4spar/deno-cliffy/compare/v1.0.1...v1.1.0) (May 5, 2026)
+
+### 🚀 Features
+
+- **command:** add `ErrorContext` to error handling with parsed options and
+  arguments (#874)
+- **command:** make help output fully responsive (#870, #761)
+- **command:** add `width` and `maxWidth` options for help output (#870)
+- **command:** skip optional options and arguments that have an empty string as
+  value (#805)
+- **command:** print help by default for container commands if no arguments are
+  provided (#857)
+- **flags:** skip optional options and arguments that have an empty string as
+  value (#805)
+- **flags:** track and expose parsed flags in context (#859)
+- **flags:** add support for positional arguments (#863)
+- **snapshot:** support env vars in test and test steps (#862)
+- **table:** add support for `flexShrink` and `flexGrow` (#761, #870)
+- **testing:** add support for `only` option in steps (#861)
+
+### 🩹 Bug Fixes
+
+- **command:** suppress error messages during command completions generation
+  (#873)
+- **command:** escape special characters in option descriptions for zsh
+  completions (#872)
+- **command:** correct typo in error message
+- **command:** allow leading dash(s) in positional arguments (#864)
+- **flags:** throw TooManyArgumentsError when non-flag arguments are passed
+  (#875)
+
+### 🔥 Performance Improvements
+
+- **testing:** improve snapshotTest performance (#871)
+
+### 📖 Documentation Updates
+
+- **table:** update docs for flex-grow and flex-shrink
+
+### 🏡 Chore
+
+- setup lint and formatting rules (#869)
+
 # [v1.0.1](https://github.com/c4spar/deno-cliffy/compare/v1.0.0...v1.0.1) (Apr 19, 2026)
 
 ### 🩹 Bug Fixes
