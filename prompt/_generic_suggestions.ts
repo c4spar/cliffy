@@ -46,6 +46,19 @@ export interface GenericSuggestionsOptions<TValue, TRawValue>
   files?: boolean | RegExp;
   /** Show auto suggestions as a list. */
   list?: boolean;
+  /**
+   * Accept the highlighted suggestion when submitting the prompt. If enabled
+   * and a suggestion is highlighted, pressing the submit key completes the
+   * highlighted suggestion and submits it instead of the raw input value. If no
+   * suggestion matches the current input, the typed value is submitted as
+   * usual. Respects a custom `complete` handler and file mode.
+   *
+   * Defaults to the value of `list`: enabled when suggestions are shown as a
+   * highlighted list (menu-like behavior), and disabled for inline suggestions
+   * (where the submit key submits the typed value, like fish/zsh
+   * autosuggestions). Set explicitly to override the per-mode default.
+   */
+  completeOnSubmit?: boolean;
   /** Display prompt info. */
   info?: boolean;
   /** Change list pointer. Default is `brightBlue("❯")`. */
@@ -63,6 +76,7 @@ export interface GenericSuggestionsSettings<TValue, TRawValue>
   complete?: CompleteHandler;
   files?: boolean | RegExp;
   list?: boolean;
+  completeOnSubmit: boolean;
   info?: boolean;
   listPointer: string;
   maxRows: number;
@@ -72,6 +86,12 @@ export interface GenericSuggestionsSettings<TValue, TRawValue>
 export interface GenericSuggestionsKeys extends GenericInputKeys {
   /** Apply auto-suggestion keymap. Default is `["tab"]`. */
   complete?: string[];
+  /**
+   * Dismiss the highlighted suggestion keymap. Default is `["escape"]`. Clears
+   * the current selection so the typed value is submitted instead of the
+   * highlighted suggestion. Typing or navigating re-activates suggestions.
+   */
+  deselect?: string[];
   /** Select next option keymap. Default is `["up"]`. */
   next?: string[];
   /** Select previous option keymap. Default is `["down"]`. */
@@ -112,6 +132,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
   protected suggestionsIndex = -1;
   protected suggestionsOffset = 0;
   protected suggestions: Array<string | number> = [];
+  #deselected = false;
   #envPermissions: Record<string, boolean> = {};
   #hasReadPermissions?: boolean;
 
@@ -123,8 +144,10 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       ...settings,
       listPointer: options.listPointer ?? brightBlue(Figures.POINTER),
       maxRows: options.maxRows ?? 8,
+      completeOnSubmit: options.completeOnSubmit ?? !!options.list,
       keys: {
         complete: ["tab"],
+        deselect: ["escape"],
         next: ["up"],
         previous: ["down"],
         nextPage: ["pageup"],
@@ -189,10 +212,14 @@ export abstract class GenericSuggestions<TValue, TRawValue>
 
   protected async match(): Promise<void> {
     this.suggestions = await this.getSuggestions();
-    this.suggestionsIndex = Math.max(
-      this.getCurrentInputValue().trim().length === 0 ? -1 : 0,
-      Math.min(this.suggestions.length - 1, this.suggestionsIndex),
-    );
+    if (this.#deselected) {
+      this.suggestionsIndex = -1;
+    } else {
+      this.suggestionsIndex = Math.max(
+        this.getCurrentInputValue().trim().length === 0 ? -1 : 0,
+        Math.min(this.suggestions.length - 1, this.suggestionsIndex),
+      );
+    }
     this.suggestionsOffset = Math.max(
       0,
       Math.min(
@@ -306,6 +333,11 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       actions.push(
         ["Complete", getFiguresByKeys(this.settings.keys?.complete ?? [])],
       );
+      if (this.settings.completeOnSubmit && this.suggestionsIndex >= 0) {
+        actions.push(
+          ["Deselect", getFiguresByKeys(this.settings.keys?.deselect ?? [])],
+        );
+      }
     }
     actions.push(
       ["Submit", getFiguresByKeys(this.settings.keys?.submit ?? [])],
@@ -375,6 +407,13 @@ export abstract class GenericSuggestions<TValue, TRawValue>
     );
   }
 
+  protected override async submit(): Promise<void> {
+    if (this.settings.completeOnSubmit && this.suggestionsIndex >= 0) {
+      await this.#completeValue();
+    }
+    await super.submit();
+  }
+
   /**
    * Handle user input event.
    * @param event Key event.
@@ -412,6 +451,9 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       case this.isKey(this.settings.keys, "complete", event):
         await this.#completeValue();
         break;
+      case this.isKey(this.settings.keys, "deselect", event):
+        this.deselectSuggestion();
+        break;
       case this.isKey(this.settings.keys, "moveCursorRight", event):
         if (this.inputIndex < this.inputValue.length) {
           this.moveCursorRight();
@@ -424,9 +466,22 @@ export abstract class GenericSuggestions<TValue, TRawValue>
     }
   }
 
+  /** Clear the current selection so the typed value is submitted on enter. */
+  protected deselectSuggestion(): void {
+    this.#deselected = true;
+    this.suggestionsIndex = -1;
+    this.suggestionsOffset = 0;
+  }
+
+  protected override addChar(char: string): void {
+    this.#deselected = false;
+    super.addChar(char);
+  }
+
   /** Delete char right. */
   protected override deleteCharRight(): void {
     if (this.inputIndex < this.inputValue.length) {
+      this.#deselected = false;
       super.deleteCharRight();
       if (!this.getCurrentInputValue().length) {
         this.suggestionsIndex = -1;
@@ -436,6 +491,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
   }
 
   async #completeValue() {
+    this.#deselected = false;
     const inputValue = await this.complete();
     this.setInputValue(inputValue);
   }
@@ -473,6 +529,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
 
   /** Select previous suggestion. */
   protected selectPreviousSuggestion(): void {
+    this.#deselected = false;
     if (this.suggestions.length) {
       if (this.suggestionsIndex > -1) {
         this.suggestionsIndex--;
@@ -485,6 +542,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
 
   /** Select next suggestion. */
   protected selectNextSuggestion(): void {
+    this.#deselected = false;
     if (this.suggestions.length) {
       if (this.suggestionsIndex < this.suggestions.length - 1) {
         this.suggestionsIndex++;
@@ -500,6 +558,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
 
   /** Select previous suggestions page. */
   protected selectPreviousSuggestionsPage(): void {
+    this.#deselected = false;
     if (this.suggestions.length) {
       const height: number = this.getListHeight();
       if (this.suggestionsOffset >= height) {
@@ -514,6 +573,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
 
   /** Select next suggestions page. */
   protected selectNextSuggestionsPage(): void {
+    this.#deselected = false;
     if (this.suggestions.length) {
       const height: number = this.getListHeight();
       if (this.suggestionsOffset + height + height < this.suggestions.length) {
