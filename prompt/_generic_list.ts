@@ -224,8 +224,8 @@ export abstract class GenericList<
       keys: {
         next: options.search ? ["down"] : ["down", "j", "d", "n", "2"],
         previous: options.search ? ["up"] : ["up", "k", "u", "p", "8"],
-        nextPage: ["pagedown", "right", "l"],
-        previousPage: ["pageup", "left", "h"],
+        nextPage: options.search ? ["pagedown"] : ["pagedown", "right", "l"],
+        previousPage: options.search ? ["pageup"] : ["pageup", "left", "h"],
         open: ["right", "enter", "return"],
         back: ["left", "escape", "enter", "return"],
         ...(settings.keys ?? {}),

@@ -51,6 +51,34 @@ await snapshotTest({
 });
 
 await snapshotTest({
+  name: "checkbox prompt > should treat h and l as search input",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("h")
+    .text("t")
+    .text("m")
+    .text("l")
+    .text("\n")
+    .text(" ")
+    .text("\n")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Checkbox.prompt({
+      message: "Select an option",
+      search: true,
+      options: [
+        { name: "Foo", value: "foo" },
+        { name: "Bar", value: "bar" },
+        { name: "html", value: "html" },
+        { name: "Baz", value: "baz" },
+      ],
+    });
+  },
+});
+
+await snapshotTest({
   name: "checkbox prompt > should format option value",
   meta: import.meta,
   osSuffix: ["windows"],
