@@ -54,8 +54,8 @@ export interface GenericSuggestionsOptions<TValue, TRawValue>
    * usual. Respects a custom `complete` handler and file mode.
    *
    * Defaults to the value of `list`: enabled when suggestions are shown as a
-   * highlighted list (menu-like behavior), and disabled for inline "ghost text"
-   * suggestions (where the submit key submits the typed value, like fish/zsh
+   * highlighted list (menu-like behavior), and disabled for inline suggestions
+   * (where the submit key submits the typed value, like fish/zsh
    * autosuggestions). Set explicitly to override the per-mode default.
    */
   completeOnSubmit?: boolean;
