@@ -133,9 +133,15 @@ export interface GenericListOptionGroupSettings<
 
 /** GenericList key options. */
 export interface GenericListKeys extends GenericInputKeys {
-  /** Select next option keymap. Default is `["down", "j", "d", "n", "2"]`. */
+  /**
+   * Select next option keymap. Default is `["down", "j", "d", "n", "2"]`, or
+   * `["down", "ctrl+n"]` when search is enabled.
+   */
   next?: string[];
-  /** Select previous option keymap. Default is `["up", "k", "u", "p", "8"]`. */
+  /**
+   * Select previous option keymap. Default is `["up", "k", "u", "p", "8"]`, or
+   * `["up", "ctrl+p"]` when search is enabled.
+   */
   previous?: string[];
   /** Select next page keymap. Default is `["pagedown", "right", "l"]`. */
   nextPage?: string[];
@@ -222,8 +228,12 @@ export abstract class GenericList<
       maxRows: options.maxRows ?? 10,
       options: this.mapOptions(options, options.options),
       keys: {
-        next: options.search ? ["down"] : ["down", "j", "d", "n", "2"],
-        previous: options.search ? ["up"] : ["up", "k", "u", "p", "8"],
+        next: options.search
+          ? ["down", "ctrl+n"]
+          : ["down", "j", "d", "n", "2"],
+        previous: options.search
+          ? ["up", "ctrl+p"]
+          : ["up", "k", "u", "p", "8"],
         nextPage: options.search ? ["pagedown"] : ["pagedown", "right", "l"],
         previousPage: options.search ? ["pageup"] : ["pageup", "left", "h"],
         open: ["right", "enter", "return"],
