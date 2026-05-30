@@ -1,6 +1,6 @@
 {
   "name": "@cliffy/ansi",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "exports": {
     ".": "./ansi.ts",
     "./ansi-escapes": "./ansi_escapes.ts",

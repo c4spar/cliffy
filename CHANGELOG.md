@@ -1,3 +1,13 @@
+# [v1.1.1](https://github.com/c4spar/deno-cliffy/compare/v1.1.0...v1.1.1) (May 30, 2026)
+
+### 🩹 Bug Fixes
+
+- use `any` for return type of `setInterval` to fix type errors with deno => 2.8
+  (#878)
+- **command:** respect `minimum-dependency-age` and `min-release-age` in upgrade
+  command (#880)
+- **prompt:** treat `h` and `l` as search input when `search` is enabled (#879)
+
 # [v1.1.0](https://github.com/c4spar/deno-cliffy/compare/v1.0.1...v1.1.0) (May 5, 2026)
 
 ### 🚀 Features
