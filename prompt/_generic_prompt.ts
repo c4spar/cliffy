@@ -445,11 +445,27 @@ export abstract class GenericPrompt<
   ): boolean {
     // deno-lint-ignore no-explicit-any
     const keyNames: Array<unknown> | undefined = keys?.[name] as any;
-    return typeof keyNames !== "undefined" && (
-      (typeof event.name !== "undefined" &&
-        keyNames.indexOf(event.name) !== -1) ||
-      (typeof event.sequence !== "undefined" &&
-        keyNames.indexOf(event.sequence) !== -1)
-    );
+    return typeof keyNames !== "undefined" &&
+      keyNames.some((keyName) => this.matchKey(keyName, event));
+  }
+
+  private matchKey(keyName: unknown, event: KeyCode): boolean {
+    // Support shortcuts like `ctrl+n`
+    if (
+      typeof keyName === "string" && keyName.length > 1 &&
+      keyName.includes("+")
+    ) {
+      const parts: Array<string> = keyName.split("+");
+      const key: string | undefined = parts.pop();
+      const modifiers: Record<string, boolean | undefined> = {
+        ctrl: event.ctrl,
+        meta: event.meta,
+        alt: event.meta,
+        shift: event.shift,
+      };
+      return !!key && event.name === key &&
+        parts.every((modifier) => modifiers[modifier] === true);
+    }
+    return event.name === keyName || event.sequence === keyName;
   }
 }

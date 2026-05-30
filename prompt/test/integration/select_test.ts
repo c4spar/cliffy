@@ -46,6 +46,29 @@ await snapshotTest({
 });
 
 await snapshotTest({
+  name: "select prompt > should navigate with ctrl+n and ctrl+p when searching",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("\x0e") // ctrl+n: Foo -> Bar
+    .text("\x0e") // ctrl+n: Bar -> Baz
+    .text("\x10") // ctrl+p: Baz -> Bar
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Select.prompt({
+      message: "Select an option",
+      search: true,
+      options: [
+        { name: "Foo", value: "foo" },
+        { name: "Bar", value: "bar" },
+        { name: "Baz", value: "baz" },
+      ],
+    });
+  },
+});
+
+await snapshotTest({
   name: "select prompt > should treat h and l as search input",
   meta: import.meta,
   osSuffix: ["windows"],
