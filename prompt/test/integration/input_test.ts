@@ -36,7 +36,7 @@ await snapshotTest({
 
 await snapshotTest({
   name:
-    "input prompt with completeOnSubmit should accept highlighted suggestion",
+    "input prompt > should accept the highlighted suggestion on submit when list is enabled",
   meta: import.meta,
   osSuffix: ["windows"],
   stdin: ansi
@@ -48,7 +48,6 @@ await snapshotTest({
       message: "Whats your name?",
       suggestions: ["foo", "bar", "baz"],
       list: true,
-      completeOnSubmit: true,
     });
     console.log(result);
   },
@@ -56,31 +55,49 @@ await snapshotTest({
 
 await snapshotTest({
   name:
-    "input prompt with completeOnSubmit should submit typed value when no suggestion matches",
+    "input prompt > should submit the typed value when completeOnSubmit is disabled",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .cursorDown
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["foo", "bar", "baz"],
+      list: true,
+      completeOnSubmit: false,
+    });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name:
+    "input prompt > should submit the typed value for inline suggestions by default",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("fo")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["foo", "bar", "baz"],
+    });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name:
+    "input prompt > should submit the typed value when no suggestion matches",
   meta: import.meta,
   osSuffix: ["windows"],
   stdin: ansi
     .text("xyz")
-    .text("\n")
-    .toArray(),
-  async fn() {
-    const result = await Input.prompt({
-      message: "Whats your name?",
-      suggestions: ["foo", "bar", "baz"],
-      list: true,
-      completeOnSubmit: true,
-    });
-    console.log(result);
-  },
-});
-
-await snapshotTest({
-  name:
-    "input prompt without completeOnSubmit should submit raw input when navigating",
-  meta: import.meta,
-  osSuffix: ["windows"],
-  stdin: ansi
-    .cursorDown
     .text("\n")
     .toArray(),
   async fn() {

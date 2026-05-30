@@ -51,8 +51,12 @@ export interface GenericSuggestionsOptions<TValue, TRawValue>
    * and a suggestion is highlighted, pressing the submit key completes the
    * highlighted suggestion and submits it instead of the raw input value. If no
    * suggestion matches the current input, the typed value is submitted as
-   * usual. Respects a custom `complete` handler and file mode. Default is
-   * `false`.
+   * usual. Respects a custom `complete` handler and file mode.
+   *
+   * Defaults to the value of `list`: enabled when suggestions are shown as a
+   * highlighted list (menu-like behavior), and disabled for inline "ghost text"
+   * suggestions (where the submit key submits the typed value, like fish/zsh
+   * autosuggestions). Set explicitly to override the per-mode default.
    */
   completeOnSubmit?: boolean;
   /** Display prompt info. */
@@ -72,7 +76,7 @@ export interface GenericSuggestionsSettings<TValue, TRawValue>
   complete?: CompleteHandler;
   files?: boolean | RegExp;
   list?: boolean;
-  completeOnSubmit?: boolean;
+  completeOnSubmit: boolean;
   info?: boolean;
   listPointer: string;
   maxRows: number;
@@ -133,6 +137,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       ...settings,
       listPointer: options.listPointer ?? brightBlue(Figures.POINTER),
       maxRows: options.maxRows ?? 8,
+      completeOnSubmit: options.completeOnSubmit ?? !!options.list,
       keys: {
         complete: ["tab"],
         next: ["up"],
