@@ -83,6 +83,45 @@ stderr:
 ""
 `;
 
+snapshot[`input prompt > should submit the typed value after dismissing the suggestion with escape 1`] = `
+stdout:
+"? Whats your name? › 
+  abbey
+  abbot\\x1b[2A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › abbey
+❯ abbey
+  abbot\\x1b[2A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+  abbey
+  abbot\\x1b[2A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+\\x1b[?25h\\x1b[?25hab
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should show the deselect hint in the info row while a suggestion is highlighted 1`] = `
+stdout:
+"? Whats your name? › 
+  abbey
+  abbot
+ℹ 0/2 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Submit: ↵\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › abbey
+❯ abbey
+  abbot
+ℹ 1/2 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Deselect: escape, Submit: ↵\\x1b[3A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+  abbey
+  abbot
+ℹ 0/2 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Submit: ↵\\x1b[3A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+\\x1b[?25h\\x1b[?25hab
+"
+stderr:
+""
+`;
+
 snapshot[`input prompt with prefix > should change prefix 1`] = `
 stdout:
 "PREFIX Whats your name? (foo) › \\x1b[33G\\x1b[G\\x1b[0J

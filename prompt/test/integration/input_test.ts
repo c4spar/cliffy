@@ -111,6 +111,47 @@ await snapshotTest({
 });
 
 await snapshotTest({
+  name:
+    "input prompt > should submit the typed value after dismissing the suggestion with escape",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("ab")
+    .text("\x1b")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["abbey", "abbot"],
+      list: true,
+    });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name:
+    "input prompt > should show the deselect hint in the info row while a suggestion is highlighted",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("ab")
+    .text("\x1b")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["abbey", "abbot"],
+      list: true,
+      info: true,
+    });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
   name: "input prompt with prefix",
   meta: import.meta,
   osSuffix: ["windows"],
