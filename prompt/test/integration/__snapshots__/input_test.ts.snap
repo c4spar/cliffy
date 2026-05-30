@@ -24,6 +24,54 @@ stderr:
 ""
 `;
 
+snapshot[`input prompt with completeOnSubmit should accept highlighted suggestion 1`] = `
+stdout:
+"? Whats your name? › 
+  foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo
+❯ foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo
+\\x1b[?25h\\x1b[?25hfoo
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt with completeOnSubmit should submit typed value when no suggestion matches 1`] = `
+stdout:
+"? Whats your name? › 
+  foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › xyz\\x1b[25G\\x1b[G\\x1b[0J
+? Whats your name? › xyz
+\\x1b[?25h\\x1b[?25hxyz
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt without completeOnSubmit should submit raw input when navigating 1`] = `
+stdout:
+"? Whats your name? › 
+  foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo
+❯ foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › 
+\\x1b[?25h\\x1b[?25h
+"
+stderr:
+""
+`;
+
 snapshot[`input prompt with prefix > should change prefix 1`] = `
 stdout:
 "PREFIX Whats your name? (foo) › \\x1b[33G\\x1b[G\\x1b[0J

@@ -1,3 +1,4 @@
+import { ansi } from "@cliffy/ansi";
 import { Input } from "../../input.ts";
 import { snapshotTest } from "@cliffy/testing";
 
@@ -30,6 +31,65 @@ await snapshotTest({
       suggestions: ["foo", "bar", "baz"],
       list: true,
     });
+  },
+});
+
+await snapshotTest({
+  name:
+    "input prompt with completeOnSubmit should accept highlighted suggestion",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .cursorDown
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["foo", "bar", "baz"],
+      list: true,
+      completeOnSubmit: true,
+    });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name:
+    "input prompt with completeOnSubmit should submit typed value when no suggestion matches",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("xyz")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["foo", "bar", "baz"],
+      list: true,
+      completeOnSubmit: true,
+    });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name:
+    "input prompt without completeOnSubmit should submit raw input when navigating",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .cursorDown
+    .text("\n")
+    .toArray(),
+  async fn() {
+    const result = await Input.prompt({
+      message: "Whats your name?",
+      suggestions: ["foo", "bar", "baz"],
+      list: true,
+    });
+    console.log(result);
   },
 });
 

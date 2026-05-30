@@ -46,6 +46,15 @@ export interface GenericSuggestionsOptions<TValue, TRawValue>
   files?: boolean | RegExp;
   /** Show auto suggestions as a list. */
   list?: boolean;
+  /**
+   * Accept the highlighted suggestion when submitting the prompt. If enabled
+   * and a suggestion is highlighted, pressing the submit key completes the
+   * highlighted suggestion and submits it instead of the raw input value. If no
+   * suggestion matches the current input, the typed value is submitted as
+   * usual. Respects a custom `complete` handler and file mode. Default is
+   * `false`.
+   */
+  completeOnSubmit?: boolean;
   /** Display prompt info. */
   info?: boolean;
   /** Change list pointer. Default is `brightBlue("❯")`. */
@@ -63,6 +72,7 @@ export interface GenericSuggestionsSettings<TValue, TRawValue>
   complete?: CompleteHandler;
   files?: boolean | RegExp;
   list?: boolean;
+  completeOnSubmit?: boolean;
   info?: boolean;
   listPointer: string;
   maxRows: number;
@@ -373,6 +383,13 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       suggestions.length,
       this.settings.maxRows || suggestions.length,
     );
+  }
+
+  protected override async submit(): Promise<void> {
+    if (this.settings.completeOnSubmit && this.suggestionsIndex >= 0) {
+      await this.#completeValue();
+    }
+    await super.submit();
   }
 
   /**
