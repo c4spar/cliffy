@@ -34,6 +34,30 @@ stderr:
 ""
 `;
 
+snapshot[`select prompt > should navigate with ctrl+n and ctrl+p when searching 1`] = `
+stdout:
+"? Select an option 🔎 
+❯ Foo
+  Bar
+  Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 
+  Foo
+❯ Bar
+  Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 
+  Foo
+  Bar
+❯ Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 
+  Foo
+❯ Bar
+  Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option » Bar
+\\x1b[?25h\\x1b[?25h"
+stderr:
+""
+`;
+
 snapshot[`select prompt > should treat h and l as search input 1`] = `
 stdout:
 "? Select an option 🔎 
