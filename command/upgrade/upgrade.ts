@@ -47,8 +47,6 @@ export async function upgrade(
         options.name,
         options.to,
       );
-      const { latest } = await provider.getVersions(options.name);
-      options.to = latest;
     } else {
       options.logger?.log(
         dim("Upgrading %s to version %s"),
@@ -56,6 +54,7 @@ export async function upgrade(
         options.to,
       );
     }
+    options.to = await provider.resolveVersion(options.name, options.to);
     options.logger?.log(dim("Upgrading %s:"), options.name);
     options.logger?.log(dim("  - current version: %s"), options.from);
     options.logger?.log(dim("  - target version: %s"), options.to);

@@ -26,6 +26,7 @@ export type JsrProviderOptions =
 
 export class JsrProvider extends Provider {
   name = "jsr";
+  protected override readonly delegateLatestResolution = true;
   private readonly repositoryUrl = "https://jsr.io/";
   private readonly packageName?: string;
   private readonly packageScope: string;
@@ -76,7 +77,9 @@ export class JsrProvider extends Provider {
     ).href;
   }
 
-  getRegistryUrl(name: string, version: Semver): string {
-    return `jsr:@${this.packageScope}/${this.packageName ?? name}@${version}`;
+  getRegistryUrl(name: string, version: string): string {
+    return `jsr:@${this.packageScope}/${this.packageName ?? name}@${
+      this.resolveSpecifierVersion(version)
+    }`;
   }
 }

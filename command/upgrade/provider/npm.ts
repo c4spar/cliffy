@@ -11,6 +11,7 @@ export type NpmProviderOptions =
 
 export class NpmProvider extends Provider {
   name = "npm";
+  protected override readonly delegateLatestResolution = true;
   private readonly repositoryUrl = "https://npmjs.org/";
   private readonly apiUrl = "https://registry.npmjs.org/";
   private readonly packageName?: string;
@@ -69,7 +70,9 @@ export class NpmProvider extends Provider {
   }
 
   getRegistryUrl(name: string, version: string): string {
-    return `npm:${this.#getPackageName(name)}@${version}`;
+    return `npm:${this.#getPackageName(name)}@${
+      this.resolveSpecifierVersion(version)
+    }`;
   }
 
   #getPackageName(name: string): string {
