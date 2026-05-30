@@ -37,6 +37,16 @@ test({
     });
 
     await ctx.step({
+      name: "should map the latest target to a wildcard registry url",
+      fn() {
+        assertEquals(
+          provider.getRegistryUrl("foo", "latest"),
+          "jsr:@example/foo@*",
+        );
+      },
+    });
+
+    await ctx.step({
       name: "should return repository url",
       fn() {
         assertEquals(
@@ -99,7 +109,7 @@ test({
     });
 
     await ctx.step({
-      name: "should upgrade to latest version",
+      name: "should upgrade to latest version using a wildcard specifier",
       ignore: ["node"],
       async fn() {
         const versionsResponse = {
@@ -111,7 +121,9 @@ test({
             },
           }),
         };
-        mockFetch("https://jsr.io/@example/foo/meta.json", versionsResponse);
+        // Only the isOutdated check fetches the versions; resolving the latest
+        // target is delegated to the runtime so the install specifier keeps the
+        // `@*` range instead of pinning a concrete version (#877).
         mockFetch("https://jsr.io/@example/foo/meta.json", versionsResponse);
 
         mockCommand({
@@ -122,7 +134,7 @@ test({
             "--global",
             "--force",
             "--quiet",
-            "jsr:@example/foo@1.0.1",
+            "jsr:@example/foo@*",
           ],
           stdout: "piped",
           stderr: "piped",
@@ -136,6 +148,36 @@ test({
         });
 
         resetFetch();
+        resetCommand();
+      },
+    });
+
+    await ctx.step({
+      name: "should upgrade to an explicit version using a pinned specifier",
+      ignore: ["node"],
+      async fn() {
+        mockCommand({
+          command: Deno.execPath(),
+          args: [
+            "install",
+            "--name=foo",
+            "--global",
+            "--force",
+            "--quiet",
+            "jsr:@example/foo@1.0.0",
+          ],
+          stdout: "piped",
+          stderr: "piped",
+        });
+
+        await upgrade({
+          name: "foo",
+          from: "0.9.0",
+          to: "1.0.0",
+          provider,
+          force: true,
+        });
+
         resetCommand();
       },
     });

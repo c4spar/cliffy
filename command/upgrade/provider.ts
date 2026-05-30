@@ -57,6 +57,15 @@ export abstract class Provider {
   protected logger: Logger;
   private maxCols = 8;
 
+  /**
+   * Whether resolving the `latest` target is delegated to the runtime /
+   * package manager instead of being resolved to a concrete version by the
+   * provider. Registries that support a min-release-age policy (npm, jsr)
+   * enable this so the runtime can downgrade to the newest version allowed by
+   * the configured policy. See {@link resolveSpecifierVersion}.
+   */
+  protected readonly delegateLatestResolution: boolean = false;
+
   protected constructor({ main, logger = console }: ProviderOptions = {}) {
     this.main = main;
     this.logger = logger;
@@ -74,6 +83,42 @@ export abstract class Provider {
 
   getSpecifier(name: string, version: string, defaultMain?: string): string {
     return `${this.getRegistryUrl(name, version)}${this.getMain(defaultMain)}`;
+  }
+
+  /**
+   * Resolve the requested target version to an installable version.
+   *
+   * By default the `latest` target is resolved to the concrete latest version
+   * reported by the registry. Providers that delegate resolution to the
+   * runtime (see {@link delegateLatestResolution}) keep the `latest` target
+   * unresolved so the runtime can apply its own min-release-age policy when
+   * installing the specifier produced by {@link resolveSpecifierVersion}.
+   */
+  async resolveVersion(name: string, version: string): Promise<string> {
+    if (version === "latest" && !this.delegateLatestResolution) {
+      const { latest } = await this.getVersions(name);
+      return latest;
+    }
+    return version;
+  }
+
+  /**
+   * Map the version part of an install specifier.
+   *
+   * For providers that delegate resolution, the `latest` target is mapped to
+   * the `*` semver range instead of the `latest` dist-tag. This lets the
+   * runtime / package manager downgrade to the newest version permitted by a
+   * configured minimumDependencyAge (deno) or min-release-age (npm/pnpm/bun).
+   *
+   * `*` is used rather than the `latest` tag because Deno rejects a too-new
+   * tag instead of downgrading it (npm and bun downgrade the tag either way,
+   * and jsr has no `latest` tag at all). Use the `latest` tag once deno
+   * resolves tags like npm/pnpm/bun do: https://github.com/denoland/deno/issues/34579
+   */
+  protected resolveSpecifierVersion(version: string): string {
+    return this.delegateLatestResolution && version === "latest"
+      ? "*"
+      : version;
   }
 
   async isOutdated(
