@@ -24,6 +24,104 @@ stderr:
 ""
 `;
 
+snapshot[`input prompt > should accept the highlighted suggestion on submit when list is enabled 1`] = `
+stdout:
+"? Whats your name? › 
+  foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo
+❯ foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo
+\\x1b[?25h\\x1b[?25hfoo
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should submit the typed value when completeOnSubmit is disabled 1`] = `
+stdout:
+"? Whats your name? › 
+  foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo
+❯ foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › 
+\\x1b[?25h\\x1b[?25h
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should submit the typed value for inline suggestions by default 1`] = `
+stdout:
+"? Whats your name? › \\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › foo\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › fo
+\\x1b[?25h\\x1b[?25hfo
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should submit the typed value when no suggestion matches 1`] = `
+stdout:
+"? Whats your name? › 
+  foo
+  bar
+  baz\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › xyz\\x1b[25G\\x1b[G\\x1b[0J
+? Whats your name? › xyz
+\\x1b[?25h\\x1b[?25hxyz
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should submit the typed value after dismissing the suggestion with escape 1`] = `
+stdout:
+"? Whats your name? › 
+  abbey
+  abbot\\x1b[2A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › abbey
+❯ abbey
+  abbot\\x1b[2A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+  abbey
+  abbot\\x1b[2A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+\\x1b[?25h\\x1b[?25hab
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should show the deselect hint in the info row while a suggestion is highlighted 1`] = `
+stdout:
+"? Whats your name? › 
+  abbey
+  abbot
+ℹ 0/2 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Submit: ↵\\x1b[3A\\x1b[22G\\x1b[G\\x1b[0J
+? Whats your name? › abbey
+❯ abbey
+  abbot
+ℹ 1/2 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Deselect: escape, Submit: ↵\\x1b[3A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+  abbey
+  abbot
+ℹ 0/2 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Submit: ↵\\x1b[3A\\x1b[24G\\x1b[G\\x1b[0J
+? Whats your name? › ab
+\\x1b[?25h\\x1b[?25hab
+"
+stderr:
+""
+`;
+
 snapshot[`input prompt with prefix > should change prefix 1`] = `
 stdout:
 "PREFIX Whats your name? (foo) › \\x1b[33G\\x1b[G\\x1b[0J
