@@ -30,6 +30,14 @@ export interface GenericInputKeys extends GenericPromptKeys {
   deleteCharLeft?: string[];
   /** Delete cursor right keymap. Default is `["delete"]`. */
   deleteCharRight?: string[];
+  /** Move cursor one word left. Default is `["alt+left", "ctrl+left"]`. */
+  moveWordLeft?: string[];
+  /** Move cursor one word right. Default is `["alt+right", "ctrl+right"]`. */
+  moveWordRight?: string[];
+  /** Delete word to the left of cursor. Default is `["ctrl+w", "alt+backspace"]`. */
+  deleteWordLeft?: string[];
+  /** Delete word to the right of cursor. Default is `["alt+d"]`. */
+  deleteWordRight?: string[];
 }
 
 /** Generic input prompt representation. */
@@ -56,6 +64,10 @@ export abstract class GenericInput<
         moveCursorRight: ["right"],
         deleteCharLeft: ["backspace"],
         deleteCharRight: ["delete"],
+        moveWordLeft: ["alt+left", "ctrl+left"],
+        moveWordRight: ["alt+right", "ctrl+right"],
+        deleteWordLeft: ["ctrl+w", "alt+backspace"],
+        deleteWordRight: ["alt+d"],
         ...(settings.keys ?? {}),
       },
     };
@@ -81,6 +93,18 @@ export abstract class GenericInput<
    */
   protected override async handleEvent(event: KeyCode): Promise<void> {
     switch (true) {
+      case this.isKey(this.settings.keys, "moveWordLeft", event):
+        this.moveWordLeft();
+        break;
+      case this.isKey(this.settings.keys, "moveWordRight", event):
+        this.moveWordRight();
+        break;
+      case this.isKey(this.settings.keys, "deleteWordLeft", event):
+        this.deleteWordLeft();
+        break;
+      case this.isKey(this.settings.keys, "deleteWordRight", event):
+        this.deleteWordRight();
+        break;
       case this.isKey(this.settings.keys, "moveCursorLeft", event):
         this.moveCursorLeft();
         break;
@@ -136,5 +160,56 @@ export abstract class GenericInput<
       this.inputValue = this.inputValue.slice(0, this.inputIndex) +
         this.inputValue.slice(this.inputIndex + 1);
     }
+  }
+
+  /** Move cursor one word to the left (whitespace-delimited). */
+  protected moveWordLeft(): void {
+    let i = this.inputIndex;
+    while (i > 0 && this.inputValue[i - 1] === " ") {
+      i--;
+    }
+    while (i > 0 && this.inputValue[i - 1] !== " ") {
+      i--;
+    }
+    this.inputIndex = i;
+  }
+
+  /** Move cursor one word to the right (whitespace-delimited). */
+  protected moveWordRight(): void {
+    let i = this.inputIndex;
+    while (i < this.inputValue.length && this.inputValue[i] !== " ") {
+      i++;
+    }
+    while (i < this.inputValue.length && this.inputValue[i] === " ") {
+      i++;
+    }
+    this.inputIndex = i;
+  }
+
+  /** Delete the word to the left of the cursor (whitespace-delimited). */
+  protected deleteWordLeft(): void {
+    let i = this.inputIndex;
+    while (i > 0 && this.inputValue[i - 1] === " ") {
+      i--;
+    }
+    while (i > 0 && this.inputValue[i - 1] !== " ") {
+      i--;
+    }
+    this.inputValue = this.inputValue.slice(0, i) +
+      this.inputValue.slice(this.inputIndex);
+    this.inputIndex = i;
+  }
+
+  /** Delete the word to the right of the cursor (whitespace-delimited). */
+  protected deleteWordRight(): void {
+    let i = this.inputIndex;
+    while (i < this.inputValue.length && this.inputValue[i] !== " ") {
+      i++;
+    }
+    while (i < this.inputValue.length && this.inputValue[i] === " ") {
+      i++;
+    }
+    this.inputValue = this.inputValue.slice(0, this.inputIndex) +
+      this.inputValue.slice(i);
   }
 }

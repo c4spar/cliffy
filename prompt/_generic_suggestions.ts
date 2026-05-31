@@ -482,6 +482,12 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       case this.isKey(this.settings.keys, "deselect", event):
         this.deselectSuggestion();
         break;
+      case this.isKey(this.settings.keys, "moveWordLeft", event):
+        this.moveWordLeft();
+        break;
+      case this.isKey(this.settings.keys, "moveWordRight", event):
+        this.moveWordRight();
+        break;
       case this.isKey(this.settings.keys, "moveCursorRight", event):
         if (this.inputIndex < this.inputValue.length) {
           this.moveCursorRight();
