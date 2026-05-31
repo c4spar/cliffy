@@ -64,6 +64,17 @@ test("search: should typo match in typo mode", () => {
   assertExists(search("stroberry", "strawberry", "typo"));
 });
 
+test("search: should not typo match across word boundaries", () => {
+  assertEquals(
+    search(
+      "harry potter order",
+      "harry potter and the philosopher's stone",
+      "typo",
+    ),
+    undefined,
+  );
+});
+
 test("search: should not fuzzy match in typo mode", () => {
   const value = "axxxxxxxxbxxxxxxxxc";
   assertExists(search("abc", value, "fuzzy"));

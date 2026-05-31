@@ -150,45 +150,53 @@ function matchSubsequence(
 }
 
 function matchTypo(query: string, text: string): SearchMatch | undefined {
-  if (query.length < MIN_TYPO_LENGTH) {
+  const queryWords = query.split(/\s+/).filter((w) => w.length > 0);
+
+  // Need at least one word long enough to benefit from typo tolerance.
+  if (!queryWords.some((w) => w.length >= MIN_TYPO_LENGTH)) {
     return undefined;
   }
-  const maxDistance = Math.floor(query.length / 4) + 1;
-  const minLength = Math.max(1, query.length - maxDistance);
-  const maxLength = query.length + maxDistance;
 
-  let bestDistance = Infinity;
-  let bestStart = -1;
-  let bestLength = 0;
+  // Build a word list with positions once so we can iterate in order.
+  const textWords: Array<{ word: string; start: number }> = [];
+  const wordRe = /\S+/g;
+  let m;
+  while ((m = wordRe.exec(text)) !== null) {
+    textWords.push({ word: m[0], start: m.index });
+  }
 
-  for (let start = 0; start < text.length; start++) {
-    for (
-      let length = minLength;
-      length <= maxLength && start + length <= text.length;
-      length++
-    ) {
-      const window = text.slice(start, start + length);
-      const distance = levenshteinDistance(window, query);
+  let textIndex = 0;
+  const positions: Array<number> = [];
+  let totalDistance = 0;
 
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestStart = start;
-        bestLength = length;
+  for (const queryWord of queryWords) {
+    // Short words require an exact match; longer words allow per-word tolerance
+    // capped at 2 so "order" never matches "and" (distance 4).
+    const maxDist = queryWord.length >= MIN_TYPO_LENGTH
+      ? Math.min(Math.floor(queryWord.length / 4) + 1, 2)
+      : 0;
+    let found = false;
+
+    while (textIndex < textWords.length) {
+      const { word, start } = textWords[textIndex++];
+      const dist = levenshteinDistance(word, queryWord);
+      if (dist <= maxDist) {
+        for (let i = start; i < start + word.length; i++) {
+          positions.push(i);
+        }
+        totalDistance += dist;
+        found = true;
+        break;
       }
+    }
+
+    if (!found) {
+      return undefined;
     }
   }
 
-  if (bestStart === -1 || bestDistance > maxDistance) {
-    return undefined;
-  }
-
-  const positions: Array<number> = [];
-  for (let i = bestStart; i < bestStart + bestLength; i++) {
-    positions.push(i);
-  }
-
   return {
-    score: TYPO_TIER + bestDistance * 1000 + bestStart,
+    score: TYPO_TIER + totalDistance * 1000 + positions[0],
     positions,
   };
 }
