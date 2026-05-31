@@ -50,7 +50,7 @@ export function search(
   }
 
   if (mode === "typo" || mode === "all") {
-    return matchTypo(query, text);
+    return matchTypo(query, text, mode === "all");
   }
 
   return undefined;
@@ -149,15 +149,17 @@ function matchSubsequence(
   };
 }
 
-function matchTypo(query: string, text: string): SearchMatch | undefined {
+function matchTypo(
+  query: string,
+  text: string,
+  useWordSubsequence: boolean,
+): SearchMatch | undefined {
   const queryWords = query.split(/\s+/).filter((w) => w.length > 0);
 
-  // Need at least one word long enough to benefit from typo tolerance.
   if (!queryWords.some((w) => w.length >= MIN_TYPO_LENGTH)) {
     return undefined;
   }
 
-  // Build a word list with positions once so we can iterate in order.
   const textWords: Array<{ word: string; start: number }> = [];
   const wordRe = /\S+/g;
   let m;
@@ -170,7 +172,7 @@ function matchTypo(query: string, text: string): SearchMatch | undefined {
   let totalDistance = 0;
 
   for (const queryWord of queryWords) {
-    // Short words require an exact match; longer words allow per-word tolerance
+    // Short words require exact match; longer words allow per-word tolerance
     // capped at 2 so "order" never matches "and" (distance 4).
     const maxDist = queryWord.length >= MIN_TYPO_LENGTH
       ? Math.min(Math.floor(queryWord.length / 4) + 1, 2)
@@ -179,6 +181,16 @@ function matchTypo(query: string, text: string): SearchMatch | undefined {
 
     while (textIndex < textWords.length) {
       const { word, start } = textWords[textIndex++];
+
+      if (useWordSubsequence) {
+        const seqPos = wordSubsequencePositions(queryWord, word, start);
+        if (seqPos) {
+          positions.push(...seqPos);
+          found = true;
+          break;
+        }
+      }
+
       const dist = levenshteinDistance(word, queryWord);
       if (dist <= maxDist) {
         for (let i = start; i < start + word.length; i++) {
@@ -199,4 +211,22 @@ function matchTypo(query: string, text: string): SearchMatch | undefined {
     score: TYPO_TIER + totalDistance * 1000 + positions[0],
     positions,
   };
+}
+
+function wordSubsequencePositions(
+  queryWord: string,
+  textWord: string,
+  offset: number,
+): Array<number> | undefined {
+  const positions: Array<number> = [];
+  let queryIndex = 0;
+
+  for (let i = 0; i < textWord.length && queryIndex < queryWord.length; i++) {
+    if (textWord[i] === queryWord[queryIndex]) {
+      positions.push(offset + i);
+      queryIndex++;
+    }
+  }
+
+  return queryIndex === queryWord.length ? positions : undefined;
 }

@@ -64,6 +64,11 @@ test("search: should typo match in typo mode", () => {
   assertExists(search("stroberry", "strawberry", "typo"));
 });
 
+test("search: should match mixed typo and abbreviation per word in all mode", () => {
+  assertExists(search("harrry ott", "harry potter", "all"));
+  assertEquals(search("harrry ott", "harry potter", "typo"), undefined);
+});
+
 test("search: should not typo match across word boundaries", () => {
   assertEquals(
     search(
