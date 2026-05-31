@@ -27,6 +27,55 @@ stdout:
   Bar
   Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
 ? Select an option 🔎 baz
+❯ Baz
+  Bar\\x1b[2A\\x1b[26G\\x1b[G\\x1b[0J
+? Select an option » Baz
+\\x1b[?25h\\x1b[?25h"
+stderr:
+""
+`;
+
+snapshot[`select prompt > should fuzzy search an option 1`] = `
+stdout:
+"? Select an option 🔎 
+❯ Foo
+  Bar
+  Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 bz
+❯ Baz\\x1b[1A\\x1b[25G\\x1b[G\\x1b[0J
+? Select an option » Baz
+\\x1b[?25h\\x1b[?25h"
+stderr:
+""
+`;
+
+snapshot[`select prompt > should typo search an option in all mode 1`] = `
+stdout:
+"? Select an option 🔎 
+❯ structure-builder
+  other\\x1b[2A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 structer
+❯ structure-builder\\x1b[1A\\x1b[31G\\x1b[G\\x1b[0J
+? Select an option » structure-builder
+\\x1b[?25h\\x1b[?25h"
+stderr:
+""
+`;
+
+snapshot[`select prompt > should restrict matching with searchMode substring 1`] = `
+stdout:
+"? Select an option 🔎 
+❯ Foo
+  Bar
+  Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 bz
+  No matches...\\x1b[1A\\x1b[25G\\x1b[G\\x1b[0J
+? Select an option 🔎 
+❯ Foo
+  Bar
+  Baz
+× No selectable options available. All options are disabled.\\x1b[4A\\x1b[23G\\x1b[G\\x1b[0J
+? Select an option 🔎 baz
 ❯ Baz\\x1b[1A\\x1b[26G\\x1b[G\\x1b[0J
 ? Select an option » Baz
 \\x1b[?25h\\x1b[?25h"
