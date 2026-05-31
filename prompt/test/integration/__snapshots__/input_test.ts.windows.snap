@@ -195,3 +195,58 @@ stdout:
 stderr:
 ""
 `;
+
+snapshot[`input prompt > should delete word to the left with ctrl+w 1`] = `
+stdout:
+"? Enter text » \\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » hello wo\\x1b[24G\\x1b[G\\x1b[0J
+? Enter text » hello world\\x1b[27G\\x1b[G\\x1b[0J
+? Enter text » hello \\x1b[22G\\x1b[G\\x1b[0J
+? Enter text » hello
+\\x1b[?25h\\x1b[?25hhello
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should delete word to the right with alt+d 1`] = `
+stdout:
+"? Enter text » \\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » foo bar\\x1b[23G\\x1b[G\\x1b[0J
+? Enter text » foo bar\\x1b[20G\\x1b[G\\x1b[0J
+? Enter text » foo bar\\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » bar\\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » bar
+\\x1b[?25h\\x1b[?25hbar
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should move cursor one word left with alt+left 1`] = `
+stdout:
+"? Enter text » \\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » hello wo\\x1b[24G\\x1b[G\\x1b[0J
+? Enter text » hello world\\x1b[27G\\x1b[G\\x1b[0J
+? Enter text » hello world\\x1b[22G\\x1b[G\\x1b[0J
+? Enter text » hello Xworld\\x1b[23G\\x1b[G\\x1b[0J
+? Enter text » hello Xworld
+\\x1b[?25h\\x1b[?25hhello Xworld
+"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should move cursor one word right with alt+right 1`] = `
+stdout:
+"? Enter text » \\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » foo\\x1b[19G\\x1b[G\\x1b[0J
+? Enter text » foo\\x1b[16G\\x1b[G\\x1b[0J
+? Enter text » foo\\x1b[19G\\x1b[G\\x1b[0J
+? Enter text » fooX\\x1b[20G\\x1b[G\\x1b[0J
+? Enter text » fooX
+\\x1b[?25h\\x1b[?25hfooX
+"
+stderr:
+""
+`;
