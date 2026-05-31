@@ -5,7 +5,7 @@ import {
   type GenericPromptOptions,
   type GenericPromptSettings,
 } from "./_generic_prompt.ts";
-import { brightBlue, dim, stripAnsiCode, underline } from "@std/fmt/colors";
+import { stripAnsiCode, underline } from "@std/fmt/colors";
 
 /** Generic input prompt options. */
 export interface GenericInputPromptOptions<TValue, TRawValue>
@@ -73,22 +73,6 @@ export abstract class GenericInput<
 
   protected input(): string {
     return underline(this.inputValue);
-  }
-
-  protected highlight(
-    value: string | number,
-    color1: (val: string) => string = dim,
-    color2: (val: string) => string = brightBlue,
-  ): string {
-    value = value.toString();
-    const inputLowerCase = this.getCurrentInputValue().toLowerCase();
-    const valueLowerCase = value.toLowerCase();
-    const index = valueLowerCase.indexOf(inputLowerCase);
-    const matched: string = value.slice(index, index + inputLowerCase.length);
-    return index >= 0
-      ? color1(value.slice(0, index)) + color2(matched) +
-        color1(value.slice(index + inputLowerCase.length))
-      : value;
   }
 
   /**

@@ -24,6 +24,40 @@ stderr:
 ""
 `;
 
+snapshot[`input prompt > should fuzzy match suggestions in the default search mode 1`] = `
+stdout:
+"? Choose a color » 
+  Abbey
+  Aqua
+  Other
+ℹ 0/3 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Submit: ↵\\x1b[4A\\x1b[20G\\x1b[G\\x1b[0J
+? Choose a color » abbyy
+❯ Abbey
+ℹ 1/1 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Deselect: escape, Submit: ↵\\x1b[2A\\x1b[24G\\x1b[G\\x1b[0J
+? Choose a color » Abbey
+❯ Abbey
+ℹ 1/1 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Deselect: escape, Submit: ↵\\x1b[2A\\x1b[25G\\x1b[G\\x1b[0J
+? Choose a color » Abbey
+\\x1b[?25h\\x1b[?25h"
+stderr:
+""
+`;
+
+snapshot[`input prompt > should restrict suggestions with searchMode substring 1`] = `
+stdout:
+"? Choose a color » 
+  Abbey
+  Aqua
+  Other
+ℹ 0/3 Next: ↑, Previous: ↓, Next Page: ⇞, Previous Page: ⇟, Complete: ⇥, Submit: ↵\\x1b[4A\\x1b[20G\\x1b[G\\x1b[0J
+? Choose a color » abby
+Submit: ↵\\x1b[1A\\x1b[24G\\x1b[G\\x1b[0J
+? Choose a color » abby
+\\x1b[?25h\\x1b[?25h"
+stderr:
+""
+`;
+
 snapshot[`input prompt > should accept the highlighted suggestion on submit when list is enabled 1`] = `
 stdout:
 "? Whats your name? » 

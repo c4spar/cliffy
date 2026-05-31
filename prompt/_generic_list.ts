@@ -7,7 +7,7 @@ import {
 } from "./_generic_input.ts";
 import type { WidenType } from "./_utils.ts";
 import { bold, brightBlue, dim, stripAnsiCode, yellow } from "@std/fmt/colors";
-import { levenshteinDistance } from "@std/text/levenshtein-distance";
+import { highlight, search, type SearchMode } from "./_search.ts";
 import { Figures, getFiguresByKeys } from "./_figures.ts";
 
 type UnsupportedInputOptions = "suggestions" | "list";
@@ -36,6 +36,17 @@ export interface GenericListOptions<TValue, TReturnValue, TRawValue>
   searchLabel?: string;
   /** Enable search. */
   search?: boolean;
+  /**
+   * Matching strategy used when `search` is enabled. Defaults to `"all"`.
+   *
+   * - `"substring"`: classic contiguous substring match.
+   * - `"fuzzy"`: match the typed characters in order, allowing gaps (e.g.
+   *   `strubu` matches `structure-builder`).
+   * - `"typo"`: tolerate misspellings via edit distance (e.g. `stroberry`
+   *   matches `strawberry`), without fuzzy subsequence matching.
+   * - `"all"`: combines `"substring"`, `"fuzzy"` and `"typo"`.
+   */
+  searchMode?: SearchMode;
   /** Display prompt info. */
   info?: boolean;
   /** Limit maximum amount of breadcrumb items. */
@@ -68,6 +79,7 @@ export interface GenericListSettings<
   maxRows: number;
   searchLabel: string;
   search?: boolean;
+  searchMode: SearchMode;
   info?: boolean;
   maxBreadcrumbItems: number;
   breadcrumbSeparator: string;
@@ -226,6 +238,7 @@ export abstract class GenericList<
       breadcrumbSeparator: options.breadcrumbSeparator ??
         ` ${Figures.POINTER_SMALL} `,
       maxRows: options.maxRows ?? 10,
+      searchMode: options.searchMode ?? "all",
       options: this.mapOptions(options, options.options),
       keys: {
         next: options.search
@@ -298,6 +311,7 @@ export abstract class GenericList<
       const matches = matchOptions<TValue, TOption, TGroup>(
         input,
         this.getCurrentOptions(),
+        this.settings.searchMode,
       );
       options = flatMatchedOptions(matches);
     }
@@ -500,9 +514,11 @@ export abstract class GenericList<
       label = this.getBreadCrumb();
       label = isSelected && !option.disabled ? label : yellow(label);
     } else {
+      const input = this.getCurrentInputValue();
+      const mode = this.settings.searchMode;
       label = isSelected && !option.disabled
-        ? this.highlight(label, (val) => val)
-        : this.highlight(label);
+        ? highlight(input, label, mode, brightBlue, (val) => val)
+        : highlight(input, label, mode, brightBlue, dim);
     }
 
     if (this.isBackButton(option) || isOptionGroup(option)) {
@@ -809,6 +825,7 @@ function matchOptions<
 >(
   searchInput: string,
   options: Array<TOption | TGroup>,
+  mode: SearchMode,
 ): Array<MatchedOption<TValue, TOption, TGroup>> {
   const matched: Array<MatchedOption<TValue, TOption, TGroup>> = [];
 
@@ -817,6 +834,7 @@ function matchOptions<
       const children = matchOptions<TValue, TOption, TGroup>(
         searchInput,
         option.options,
+        mode,
       )
         .sort(sortByDistance);
 
@@ -830,10 +848,11 @@ function matchOptions<
       }
     }
 
-    if (matchOption(searchInput, option)) {
+    const distance = matchOption(searchInput, option, mode);
+    if (distance !== undefined) {
       matched.push({
         option,
-        distance: levenshteinDistance(option.name, searchInput),
+        distance,
         children: [],
       });
     }
@@ -856,18 +875,23 @@ function matchOption<
 >(
   inputString: string,
   option: TOption | TGroup,
-): boolean {
-  return matchInput(inputString, option.name) || (
-    isOption(option) &&
-    option.name !== option.value &&
-    matchInput(inputString, String(option.value))
-  );
-}
+  mode: SearchMode,
+): number | undefined {
+  const nameDistance = search(inputString, stripAnsiCode(option.name), mode)
+    ?.score;
 
-function matchInput(inputString: string, value: string): boolean {
-  return stripAnsiCode(value)
-    .toLowerCase()
-    .includes(inputString);
+  if (isOption(option) && option.name !== option.value) {
+    const valueDistance = search(inputString, String(option.value), mode)
+      ?.score;
+
+    if (valueDistance !== undefined) {
+      return nameDistance === undefined
+        ? valueDistance
+        : Math.min(nameDistance, valueDistance);
+    }
+  }
+
+  return nameDistance;
 }
 
 function flatMatchedOptions<

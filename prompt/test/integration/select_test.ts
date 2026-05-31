@@ -46,6 +46,71 @@ await snapshotTest({
 });
 
 await snapshotTest({
+  name: "select prompt > should fuzzy search an option",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("bz")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Select.prompt({
+      message: "Select an option",
+      search: true,
+      options: [
+        { name: "Foo", value: "foo" },
+        { name: "Bar", value: "bar" },
+        { name: "Baz", value: "baz" },
+      ],
+    });
+  },
+});
+
+await snapshotTest({
+  name: "select prompt > should typo search an option in all mode",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("structer")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Select.prompt({
+      message: "Select an option",
+      search: true,
+      options: [
+        { name: "structure-builder", value: "structure-builder" },
+        { name: "other", value: "other" },
+      ],
+    });
+  },
+});
+
+await snapshotTest({
+  name: "select prompt > should restrict matching with searchMode substring",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("bz")
+    .text("\b\b")
+    .text("baz")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Select.prompt({
+      message: "Select an option",
+      search: true,
+      searchMode: "substring",
+      options: [
+        { name: "Foo", value: "foo" },
+        { name: "Bar", value: "bar" },
+        { name: "Baz", value: "baz" },
+      ],
+    });
+  },
+});
+
+await snapshotTest({
   name: "select prompt > should navigate with ctrl+n and ctrl+p when searching",
   meta: import.meta,
   osSuffix: ["windows"],

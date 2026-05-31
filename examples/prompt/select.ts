@@ -5,6 +5,7 @@ import { Select } from "@cliffy/prompt/select";
 const title: string = await Select.prompt({
   message: "Pick a book",
   search: true,
+  searchMode: "all",
   maxBreadcrumbItems: 2,
   options: [
     {

@@ -36,14 +36,18 @@ stdout:
   ✘ Bar
   ✘ Baz\\x1b[3A\\x1b[23G\\x1b[G\\x1b[0J
 ? Select an option 🔎 baz
-  ✘ Baz\\x1b[1A\\x1b[26G\\x1b[G\\x1b[0J
+  ✘ Baz
+  ✘ Bar\\x1b[2A\\x1b[26G\\x1b[G\\x1b[0J
 ? Select an option 🔎 baz
-❯ ✘ Baz\\x1b[1A\\x1b[26G\\x1b[G\\x1b[0J
-? Select an option 🔎 baz
-❯ ✔ Baz\\x1b[1A\\x1b[26G\\x1b[G\\x1b[0J
+❯ ✘ Baz
+  ✘ Bar\\x1b[2A\\x1b[26G\\x1b[G\\x1b[0J
 ? Select an option 🔎 baz
 ❯ ✔ Baz
-Press ↵ again to submit. To check or uncheck the selected option press space.\\x1b[2A\\x1b[26G\\x1b[G\\x1b[0J
+  ✘ Bar\\x1b[2A\\x1b[26G\\x1b[G\\x1b[0J
+? Select an option 🔎 baz
+❯ ✔ Baz
+  ✘ Bar
+Press ↵ again to submit. To check or uncheck the selected option press space.\\x1b[3A\\x1b[26G\\x1b[G\\x1b[0J
 ? Select an option › Baz
 \\x1b[?25h\\x1b[?25h"
 stderr:
