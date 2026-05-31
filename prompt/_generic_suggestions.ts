@@ -9,7 +9,12 @@ import {
   underline,
 } from "@std/fmt/colors";
 import { dirname, join, normalize } from "@std/path";
-import { levenshteinDistance } from "@std/text/levenshtein-distance";
+import {
+  highlight,
+  search,
+  type SearchMatch,
+  type SearchMode,
+} from "./_search.ts";
 import { Figures, getFiguresByKeys } from "./_figures.ts";
 import {
   GenericInput,
@@ -47,6 +52,18 @@ export interface GenericSuggestionsOptions<TValue, TRawValue>
   /** Show auto suggestions as a list. */
   list?: boolean;
   /**
+   * Matching strategy used to filter, rank and highlight suggestions. Defaults
+   * to `"all"`.
+   *
+   * - `"substring"`: classic contiguous substring match.
+   * - `"fuzzy"`: match the typed characters in order, allowing gaps (e.g.
+   *   `strubu` matches `structure-builder`).
+   * - `"typo"`: tolerate misspellings via edit distance (e.g. `stroberry`
+   *   matches `strawberry`), without fuzzy subsequence matching.
+   * - `"all"`: combines `"substring"`, `"fuzzy"` and `"typo"`.
+   */
+  searchMode?: SearchMode;
+  /**
    * Accept the highlighted suggestion when submitting the prompt. If enabled
    * and a suggestion is highlighted, pressing the submit key completes the
    * highlighted suggestion and submits it instead of the raw input value. If no
@@ -76,6 +93,7 @@ export interface GenericSuggestionsSettings<TValue, TRawValue>
   complete?: CompleteHandler;
   files?: boolean | RegExp;
   list?: boolean;
+  searchMode: SearchMode;
   completeOnSubmit: boolean;
   info?: boolean;
   listPointer: string;
@@ -144,6 +162,7 @@ export abstract class GenericSuggestions<TValue, TRawValue>
       ...settings,
       listPointer: options.listPointer ?? brightBlue(Figures.POINTER),
       maxRows: options.maxRows ?? 8,
+      searchMode: options.searchMode ?? "all",
       completeOnSubmit: options.completeOnSubmit ?? !!options.list,
       keys: {
         complete: ["tab"],
@@ -290,15 +309,21 @@ export abstract class GenericSuggestions<TValue, TRawValue>
     }
 
     return suggestions
-      .filter((value: string | number) =>
-        stripAnsiCode(value.toString())
-          .toLowerCase()
-          .startsWith(input.toLowerCase())
+      .map((value: string | number) => ({
+        value,
+        match: search(
+          input,
+          stripAnsiCode(value.toString()),
+          this.settings.searchMode,
+        ),
+      }))
+      .filter((
+        entry,
+      ): entry is { value: string | number; match: SearchMatch } =>
+        entry.match !== undefined
       )
-      .sort((a: string | number, b: string | number) =>
-        levenshteinDistance((a || a).toString(), input) -
-        levenshteinDistance((b || b).toString(), input)
-      );
+      .sort((a, b) => a.match.score - b.match.score)
+      .map((entry) => entry.value);
   }
 
   protected override body(): string | Promise<string> {
@@ -389,11 +414,14 @@ export abstract class GenericSuggestions<TValue, TRawValue>
   ): string {
     let line = this.settings.indent ?? "";
     line += isSelected ? `${this.settings.listPointer} ` : "  ";
-    if (isSelected) {
-      line += underline(this.highlight(value));
-    } else {
-      line += this.highlight(value);
-    }
+    const highlighted = highlight(
+      this.getCurrentInputValue(),
+      value,
+      this.settings.searchMode,
+      brightBlue,
+      dim,
+    );
+    line += isSelected ? underline(highlighted) : highlighted;
     return line;
   }
 

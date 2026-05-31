@@ -36,6 +36,45 @@ await snapshotTest({
 
 await snapshotTest({
   name:
+    "input prompt > should fuzzy match suggestions in the default search mode",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("abby")
+    .text("\t")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Input.prompt({
+      message: "Choose a color",
+      suggestions: ["Abbey", "Aqua", "Other"],
+      list: true,
+      info: true,
+    });
+  },
+});
+
+await snapshotTest({
+  name: "input prompt > should restrict suggestions with searchMode substring",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: ansi
+    .text("abby")
+    .text("\n")
+    .toArray(),
+  async fn() {
+    await Input.prompt({
+      message: "Choose a color",
+      suggestions: ["Abbey", "Aqua", "Other"],
+      list: true,
+      info: true,
+      searchMode: "substring",
+    });
+  },
+});
+
+await snapshotTest({
+  name:
     "input prompt > should accept the highlighted suggestion on submit when list is enabled",
   meta: import.meta,
   osSuffix: ["windows"],
