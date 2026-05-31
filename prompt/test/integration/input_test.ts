@@ -252,3 +252,68 @@ await snapshotTest({
     });
   },
 });
+
+await snapshotTest({
+  name: "input prompt > should delete word to the left with ctrl+w",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: [
+    "hello world",
+    "\x17", // ctrl+w
+    "\n",
+  ],
+  async fn() {
+    const result = await Input.prompt({ message: "Enter text" });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name: "input prompt > should delete word to the right with alt+d",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: [
+    "foo bar",
+    "\x1b[1;3D", // alt+left (to before "bar")
+    "\x1b[1;3D", // alt+left (to before "foo")
+    "\x1bd", // alt+d (delete "foo ")
+    "\n",
+  ],
+  async fn() {
+    const result = await Input.prompt({ message: "Enter text" });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name: "input prompt > should move cursor one word left with alt+left",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: [
+    "hello world",
+    "\x1b[1;3D", // alt+left (cursor to before "world")
+    "X",
+    "\n",
+  ],
+  async fn() {
+    const result = await Input.prompt({ message: "Enter text" });
+    console.log(result);
+  },
+});
+
+await snapshotTest({
+  name: "input prompt > should move cursor one word right with alt+right",
+  meta: import.meta,
+  osSuffix: ["windows"],
+  stdin: [
+    "foo",
+    "\x1b[1;3D", // alt+left (cursor to before "foo")
+    "\x1b[1;3C", // alt+right (cursor back to after "foo")
+    "X",
+    "\n",
+  ],
+  async fn() {
+    const result = await Input.prompt({ message: "Enter text" });
+    console.log(result);
+  },
+});
