@@ -64,3 +64,57 @@ test("command optionConflicts videoAudioImageType", async () => {
     `Option "--video-type" depends on option "--image-type".`,
   );
 });
+
+test("command optionConflicts should not conflict with default value on nested sub-command", async () => {
+  const { options } = await new Command()
+    .throwErrors()
+    .globalOption("-j, --json", "Output as JSON", { default: true })
+    .globalOption("--table", "Force table output", { conflicts: ["json"] })
+    .command("foo", new Command().command("bar"))
+    .parse(["foo", "bar", "--table"]);
+
+  assertEquals(options, { json: true, table: true });
+});
+
+test("command optionConflicts should not conflict with its own negated option on nested sub-command", async () => {
+  const { options } = await new Command()
+    .throwErrors()
+    .globalOption("-j, --json", "Output as JSON", { default: true })
+    .globalOption("--no-json", "Force table output", { conflicts: ["json"] })
+    .command("foo", new Command().command("bar"))
+    .parse(["foo", "bar", "--no-json"]);
+
+  assertEquals(options, { json: false });
+});
+
+test("command optionConflicts should conflict with explicitly provided option", async () => {
+  await assertRejects(
+    async () => {
+      await new Command()
+        .throwErrors()
+        .globalOption("-j, --json", "Output as JSON", { default: true })
+        .globalOption("--table", "Force table output", { conflicts: ["json"] })
+        .command("foo", new Command().command("bar"))
+        .parse(["foo", "bar", "--json", "--table"]);
+    },
+    Error,
+    `Option "--table" conflicts with option "--json".`,
+  );
+});
+
+test("command optionConflicts should reject a negation combined with its positive option", async () => {
+  await assertRejects(
+    async () => {
+      await new Command()
+        .throwErrors()
+        .globalOption("-j, --json", "Output as JSON", { default: true })
+        .globalOption("--no-json", "Force table output", {
+          conflicts: ["json"],
+        })
+        .command("foo", new Command().command("bar"))
+        .parse(["foo", "bar", "--json", "--no-json"]);
+    },
+    Error,
+    `Option "--json" can only occur once, but was found several times.`,
+  );
+});
