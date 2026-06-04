@@ -1583,6 +1583,11 @@ export class Command<
   /**
    * Set custom error handler.
    *
+   * The error handler is inherited by all nested sub-commands, at any depth.
+   * The handler closest to the failed command wins. For errors other than
+   * {@linkcode ValidationError}, the error is re-thrown to the `.parse()`
+   * caller if the handler doesn't exit or throw.
+   *
    * @param handler Error handler callback function.
    */
   public error(
@@ -1595,10 +1600,9 @@ export class Command<
     return this;
   }
 
-  /** Get error handler callback function. */
+  /** Get error handler callback function from this or any parent command. */
   private getErrorHandler(): ErrorHandler | undefined {
-    return this.settings.errorHandler ??
-      (this.parent && this.parent.settings.errorHandler);
+    return this.settings.errorHandler ?? this.parent?.getErrorHandler();
   }
 
   /**
