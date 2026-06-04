@@ -1,3 +1,13 @@
+# [v1.2.1](https://github.com/c4spar/deno-cliffy/compare/v1.2.0...v1.2.1) (Jun 4, 2026)
+
+### 🩹 Bug Fixes
+
+- **flags:** only trigger conflicts for explicitly provided options (#888)
+
+### 💅 Code Refactoring
+
+- **command:** use typeof setInterval instead of any (#887)
+
 # [v1.2.0](https://github.com/c4spar/deno-cliffy/compare/v1.1.1...v1.2.0) (Jun 4, 2026)
 
 ### 🚀 Features
