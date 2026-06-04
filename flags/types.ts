@@ -60,6 +60,10 @@ export interface FlagOptions
    * An array of conflicting flags that cannot be called together with this flag.
    * If one of the flags is used together with this flag, an error will be
    * thrown.
+   *
+   * Conflicts are only checked against explicitly provided flags (as command
+   * line argument or environment variable). A conflicting flag that only has
+   * its default value does not trigger an error.
    */
   conflicts?: string[];
   /**

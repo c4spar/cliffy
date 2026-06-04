@@ -43,7 +43,7 @@ export function validateFlags<TOptions extends FlagOptions = FlagOptions>(
 
   for (const [name, option] of options) {
     validateUnknownOption(option, opts);
-    validateConflictingOptions(ctx, option);
+    validateConflictingOptions(ctx, option, opts);
     validateDependingOptions(ctx, option, opts);
     validateRequiredValues(ctx, option, name);
   }
@@ -139,18 +139,48 @@ function validateStandaloneOption(
   }
 }
 
-function validateConflictingOptions(
+function validateConflictingOptions<
+  TOptions extends FlagOptions = FlagOptions,
+>(
   ctx: ParseFlagsContext<Record<string, unknown>>,
   option: FlagOptions,
+  opts: ParseFlagsOptions<TOptions>,
 ): void {
   if (!option.conflicts?.length) {
     return;
   }
   for (const flag of option.conflicts) {
-    if (isset(flag, ctx.flags)) {
+    // Only explicitly provided options trigger a conflict. Values coming
+    // from default values or negations (--no-[flag]) are ignored.
+    if (isExplicitlyProvided(flag, ctx, opts)) {
       throw new ConflictingOptionError(option.name, flag);
     }
   }
+}
+
+/**
+ * Check if an option was explicitly provided, either as command line
+ * argument or as environment variable.
+ */
+function isExplicitlyProvided<TOptions extends FlagOptions = FlagOptions>(
+  flag: string,
+  ctx: ParseFlagsContext<Record<string, unknown>>,
+  opts: ParseFlagsOptions<TOptions>,
+): boolean {
+  const option = getOption(opts.flags ?? [], flag);
+  const flagNames = [flag, ...(option?.aliases ?? [])];
+  const isProvidedAsArg = ctx.parsedFlags.some((arg) => {
+    const name = arg.replace(/^-+/, "").split("=")[0];
+    return flagNames.includes(name);
+  });
+
+  if (isProvidedAsArg) {
+    return true;
+  }
+
+  // TODO: replace ignoreDefaults if flags module has support for environment variables
+  return typeof opts.ignoreDefaults?.[paramCaseToCamelCase(flag)] !==
+    "undefined";
 }
 
 function validateDependingOptions<TOptions extends FlagOptions = FlagOptions>(
