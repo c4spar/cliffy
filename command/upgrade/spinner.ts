@@ -121,7 +121,7 @@ export class Spinner {
 
   #interval: number;
   #color?: Color;
-  #intervalId?: any;
+  #intervalId?: ReturnType<typeof setInterval>;
   #active = false;
 
   /**
