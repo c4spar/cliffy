@@ -1,3 +1,22 @@
+# [v1.2.0](https://github.com/c4spar/deno-cliffy/compare/v1.1.1...v1.2.0) (Jun 4, 2026)
+
+### 🚀 Features
+
+- **prompt:** add word navigation and deletion (#884)
+- **prompt:** add support for fuzzy search (#883)
+- **prompt:** support `ctrl+n` and `ctrl+p` to navigate select/checkbox while
+  searching (#882)
+- **prompt:** add `completeOnSubmit` option to accept highlighted suggestion on
+  submit (#881)
+
+### 🩹 Bug Fixes
+
+- **command:** inherit error handlers from all ancestor commands (#885)
+
+### 🏡 Chore
+
+- **deps:** upgrade deps (#886)
+
 # [v1.1.1](https://github.com/c4spar/deno-cliffy/compare/v1.1.0...v1.1.1) (May 30, 2026)
 
 ### 🩹 Bug Fixes
