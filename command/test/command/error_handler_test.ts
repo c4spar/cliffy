@@ -85,6 +85,90 @@ test("[command] should call child error handler on child error", async () => {
   assertEquals(error.cmd.getName(), "child2");
 });
 
+test("[command] should call error handler for runtime errors from deeply nested sub-commands", async () => {
+  const runtimeError = new Error("runtime error message.");
+  const errorHandlerSpy = spy((error: Error, cmd: Command) => {
+    assertEquals(error, runtimeError);
+    assertInstanceOf(cmd, Command);
+    assertEquals(cmd.getName(), "leaf");
+  });
+
+  const cmd = new Command()
+    .throwErrors()
+    .error(errorHandlerSpy)
+    .command(
+      "mid",
+      new Command()
+        .command("leaf")
+        .action(() => {
+          throw runtimeError;
+        }),
+    );
+
+  await assertRejects(
+    () => cmd.parse(["mid", "leaf"]),
+    Error,
+    "runtime error message.",
+  );
+
+  assertSpyCalls(errorHandlerSpy, 1);
+});
+
+test("[command] should call error handler for validation errors from deeply nested sub-commands", async () => {
+  const errorHandlerSpy = spy((error: Error, cmd: Command) => {
+    assertInstanceOf(error, ValidationError);
+    assertInstanceOf(cmd, Command);
+    assertEquals(cmd.getName(), "leaf");
+  });
+
+  const cmd = new Command()
+    .throwErrors()
+    .error(errorHandlerSpy)
+    .command(
+      "mid",
+      new Command()
+        .command("leaf")
+        .action(() => {
+          throw new ValidationError("validation error message.");
+        }),
+    );
+
+  await assertRejects(
+    () => cmd.parse(["mid", "leaf"]),
+    ValidationError,
+    "validation error message.",
+  );
+
+  assertSpyCalls(errorHandlerSpy, 1);
+});
+
+test("[command] should call closest error handler for nested sub-command errors", async () => {
+  const rootErrorHandlerSpy = spy();
+  const midErrorHandlerSpy = spy();
+
+  const cmd = new Command()
+    .throwErrors()
+    .error(rootErrorHandlerSpy)
+    .command(
+      "mid",
+      new Command()
+        .error(midErrorHandlerSpy)
+        .command("leaf")
+        .action(() => {
+          throw new Error("runtime error message.");
+        }),
+    );
+
+  await assertRejects(
+    () => cmd.parse(["mid", "leaf"]),
+    Error,
+    "runtime error message.",
+  );
+
+  assertSpyCalls(midErrorHandlerSpy, 1);
+  assertSpyCalls(rootErrorHandlerSpy, 0);
+});
+
 test("[command] should handle error with useRawArgs enabled", async () => {
   const errorHandlerSpy = spy();
 
