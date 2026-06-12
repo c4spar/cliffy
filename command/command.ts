@@ -2308,7 +2308,9 @@ export class Command<
     }
   }
 
-  private async getSubCommand(ctx: ParseContext): Promise<Command<any> | undefined> {
+  private async getSubCommand(
+    ctx: ParseContext,
+  ): Promise<Command<any> | undefined> {
     const subCommand = await this.loadCommand(ctx.unknown[0], true);
 
     if (subCommand) {

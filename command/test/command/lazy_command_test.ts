@@ -84,7 +84,9 @@ test("should execute action of lazy loaded command", async () => {
 });
 
 test("should load lazy command only once for concurrent loads", async () => {
-  const lazySpy = spy(() => Promise.resolve(new Command().description("loaded description")));
+  const lazySpy = spy(() =>
+    Promise.resolve(new Command().description("loaded description"))
+  );
 
   const main = new Command()
     .name("main")
