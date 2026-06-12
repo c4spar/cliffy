@@ -3071,7 +3071,7 @@ export class Command<
   public hasBaseCommands(hidden?: boolean): boolean {
     return hidden
       ? this.settings.commands.size > 0
-      : this.settings.commands.values().some((command) =>
+      : [...this.settings.commands.values()].some((command) =>
         !command.settings.isHidden
       );
   }
@@ -3104,7 +3104,7 @@ export class Command<
     hidden?: boolean,
   ): Promise<void> {
     await Promise.all(
-      this.settings.commands.keys().map((name) =>
+      [...this.settings.commands.keys()].map((name) =>
         this.loadBaseCommand(name, hidden)
       ),
     );
