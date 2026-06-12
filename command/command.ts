@@ -126,6 +126,7 @@ interface CommandSettings {
   commands: Map<string, Command<any>>;
   commandAliases: Map<string, Command<any>>;
   lazyCommands: Map<Command<any>, LazyCommand>;
+  loadingCommands: Map<Command<any>, Promise<Command<any>>>;
   versionOptions?: DefaultOption | false;
   helpOptions?: DefaultOption | false;
   autoHelp?: boolean;
@@ -295,6 +296,7 @@ export class Command<
     commands: new Map<string, Command<any>>(),
     commandAliases: new Map<string, Command<any>>(),
     lazyCommands: new Map<Command<any>, LazyCommand>(),
+    loadingCommands: new Map<Command<any>, Promise<Command<any>>>(),
   };
   builder: BuilderProps = {
     groupName: null,
@@ -752,45 +754,6 @@ export class Command<
     return this;
   }
 
-  // extends(parentCommand: Command<any>): Command<any> {
-  //   this.builder = {
-  //     groupName: parentCommand.builder.groupName || this.builder.groupName,
-  //     options: [...parentCommand.builder.options, ...this.builder.options],
-  //     envVars: [...parentCommand.builder.envVars, ...this.builder.envVars],
-  //     types: new Map([...parentCommand.builder.types, ...this.builder.types]),
-  //     completions: new Map([
-  //       ...parentCommand.builder.completions,
-  //       ...this.builder.completions,
-  //     ]),
-  //   };
-  //   this.settings = {
-  //     ...parentCommand.settings,
-  //     ...this.settings,
-  //     name: this.settings.name || parentCommand.settings.name,
-  //     description: this.settings.description ||
-  //       parentCommand.settings.description,
-  //     examples: [
-  //       ...parentCommand.settings.examples,
-  //       ...this.settings.examples,
-  //     ],
-  //     aliases: [...parentCommand.settings.aliases, ...this.settings.aliases],
-  //     meta: { ...parentCommand.settings.meta, ...this.settings.meta },
-  //     commands: new Map([
-  //       ...parentCommand.settings.commands,
-  //       ...this.settings.commands,
-  //     ]),
-  //     commandAliases: new Map([
-  //       ...parentCommand.settings.commandAliases,
-  //       ...this.settings.commandAliases,
-  //     ]),
-  //     lazyCommands: new Map([
-  //       ...parentCommand.settings.lazyCommands,
-  //       ...this.settings.lazyCommands,
-  //     ]),
-  //   };
-  //   return this;
-  // }
-
   private merge(cmd: Command<any>): Command<any> {
     this.builder = {
       groupName: this.builder.groupName || cmd.builder.groupName,
@@ -822,6 +785,10 @@ export class Command<
       lazyCommands: new Map([
         ...this.settings.lazyCommands,
         ...cmd.settings.lazyCommands,
+      ]),
+      loadingCommands: new Map([
+        ...this.settings.loadingCommands,
+        ...cmd.settings.loadingCommands,
       ]),
     };
     return this;
@@ -3252,17 +3219,32 @@ export class Command<
     name: string,
     hidden?: boolean,
   ): Promise<TCommand | undefined> {
-    let cmd: Command<any> | undefined = this.getBaseCommand(name, hidden);
-    const loadCmd = cmd && this.settings.lazyCommands.get(cmd);
+    const placeholder: Command<any> | undefined = this.getBaseCommand(
+      name,
+      hidden,
+    );
+    const loadCmd = placeholder && this.settings.lazyCommands.get(placeholder);
+
     if (loadCmd) {
-      cmd = await loadCmd();
-      this.settings.lazyCommands.delete(cmd);
+      let loading = this.settings.loadingCommands.get(placeholder);
+
+      if (!loading) {
+        loading = loadCmd();
+        this.settings.loadingCommands.set(placeholder, loading);
+      }
+      const cmd = await loading;
+      this.settings.lazyCommands.delete(placeholder);
+      this.settings.loadingCommands.delete(placeholder);
       this.settings.commands.set(cmd.getName(), cmd);
+
       for (const alias of cmd.getAliases()) {
         this.settings.commandAliases.set(alias, cmd);
       }
+
+      return cmd as TCommand;
     }
-    return cmd as TCommand;
+
+    return placeholder as TCommand;
   }
 
   /**
