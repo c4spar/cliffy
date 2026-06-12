@@ -173,10 +173,10 @@ export interface CustomHelpOptions {
   auto?: boolean;
 }
 
-type LazyCommandFn = () =>
-  | Command<any>
-  | Promise<Command<any>>
-  | Promise<{ default: Command<any> }>;
+type LazyCommandFn<TCommand extends Command<any> = Command<any>> = () =>
+  | TCommand
+  | Promise<TCommand>
+  | Promise<{ default: TCommand }>;
 
 type LazyCommand = () => Promise<Command<any>>;
 
@@ -579,9 +579,7 @@ export class Command<
         : Merge<TParentCommandTypes, TCommandTypes>),
   >(
     name: string,
-    cmd:
-      | TCommand
-      | (() => TCommand | Promise<TCommand | { default: TCommand }>),
+    cmd: TCommand | LazyCommandFn<TCommand>,
     options?: SubCommandOptions,
   ): ReturnType<TCommand["reset"]> extends Command<
     Record<string, unknown> | void,
@@ -630,9 +628,7 @@ export class Command<
         : Merge<TParentCommandTypes, TCommandTypes>),
   >(
     name: string,
-    cmd:
-      | TCommand
-      | (() => TCommand | Promise<TCommand | { default: TCommand }>),
+    cmd: TCommand | LazyCommandFn<TCommand>,
     options?: SubCommandOptions,
   ): TCommand extends Command<
     Record<string, unknown> | void,
@@ -714,7 +710,6 @@ export class Command<
       }
       this.removeCommand(name);
     }
-
     let cmd: Command<any>;
 
     if (typeof cmdOrDescription === "function") {
