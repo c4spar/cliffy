@@ -4,6 +4,8 @@ import { Command } from "@cliffy/command";
 
 await new Command()
   .option("-l, --local [val:string]", "Only available on this command.")
+  // Define global options before adding child commands, or call `.reset()`
+  // before adding them, so the chain is back on the parent command.
   .globalOption(
     "-g, --global [val:string]",
     "Available on this and all nested child commands.",
