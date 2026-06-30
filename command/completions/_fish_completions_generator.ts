@@ -141,7 +141,8 @@ ${this.generateCompletions(this.name, this.cmd).trim()}`;
 
     if (options.description) {
       const description: string = getDescription(options.description, true)
-        // escape single quotes
+        // escape backslashes and single quotes
+        .replace(/\\/g, "\\\\")
         .replace(/'/g, "\\'");
 
       cmd.push("-d", `'${description}'`);

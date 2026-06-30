@@ -333,6 +333,54 @@ stderr:
 ""
 `;
 
+snapshot[`should escape backslashes in option descriptions for fish completions > fish 1`] = `
+stdout:
+\`#!/usr/bin/env fish
+# fish completion support for completions-test v1.0.0
+
+function __fish_completions_test_using_command
+  set -l cmds __completions_test __completions_test_completions __completions_test_completions_bash __completions_test_completions_fish __completions_test_completions_zsh
+  set -l words (commandline -opc)
+  set -l cmd "_"
+  for word in \$words
+    switch \$word
+      case '-*'
+        continue
+      case '*'
+        set word (string replace -r -a '\\\\W' '_' \$word)
+        set -l cmd_tmp \$cmd"_\$word"
+        if contains \$cmd_tmp \$cmds
+          set cmd \$cmd_tmp
+        end
+    end
+  end
+  if test "\$cmd" = "\$argv[1]"
+    return 0
+  end
+  return 1
+end
+
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s h -l help -x -k -f -d 'Show this help.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -s V -l version -x -k -f -d 'Show the version number for this program.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -l double-backslash -k -f -r -a '(completions-test completions complete string  2>/dev/null)' -d 'write a \\\\\\\\\\\\\\\\ for a backslash'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -l trailing-backslash -k -f -r -a '(completions-test completions complete string  2>/dev/null)' -d 'ends with a backslash\\\\\\\\'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -l single-quote -k -f -r -a '(completions-test completions complete string  2>/dev/null)' -d 'description with \\\\'single quotes\\\\''
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test' -k -f -a completions -d 'Generate shell completions.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -s h -l help -x -k -f -d 'Show this help.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -k -f -a bash -d 'Generate shell completions for bash.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_bash' -s h -l help -x -k -f -d 'Show this help.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_bash' -s n -l name -k -f -r -a '(completions-test completions complete string completions bash 2>/dev/null)' -d 'The name of the main command.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -k -f -a fish -d 'Generate shell completions for fish.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_fish' -s h -l help -x -k -f -d 'Show this help.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_fish' -s n -l name -k -f -r -a '(completions-test completions complete string completions fish 2>/dev/null)' -d 'The name of the main command.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions' -k -f -a zsh -d 'Generate shell completions for zsh.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_zsh' -s h -l help -x -k -f -d 'Show this help.'
+complete -c completions-test -n '__fish_completions_test_using_command __completions_test_completions_zsh' -s n -l name -k -f -r -a '(completions-test completions complete string completions zsh 2>/dev/null)' -d 'The name of the main command.'
+\`
+stderr:
+""
+`;
+
 snapshot[`should generate file type completions in arguments > zsh 1`] = `
 stdout:
 \`#compdef completions-test

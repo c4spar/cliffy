@@ -145,6 +145,24 @@ await snapshotTest({
 });
 
 await snapshotTest({
+  name: "should escape backslashes in option descriptions for fish completions",
+  meta: import.meta,
+  steps: {
+    fish: { args: ["completions", "fish"] },
+  },
+  async fn(): Promise<void> {
+    await new Command()
+      .version("1.0.0")
+      .name("completions-test")
+      .option("--double-backslash <val:string>", "write a \\\\ for a backslash")
+      .option("--trailing-backslash <val:string>", "ends with a backslash\\")
+      .option("--single-quote <val:string>", "description with 'single quotes'")
+      .command("completions", new CompletionsCommand())
+      .parse();
+  },
+});
+
+await snapshotTest({
   name: "should generate file type completions in arguments",
   meta: import.meta,
   steps: {
