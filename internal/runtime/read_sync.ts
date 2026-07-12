@@ -1,10 +1,15 @@
 // deno-lint-ignore-file no-explicit-any
 
-// dnt-shim-ignore
-const { Deno, process, Buffer } = globalThis as any;
-const { readSync: readSyncNode } = process
-  ? await import("node:fs")
-  : { readSync: null };
+type ReadSyncNode = (
+  fd: number,
+  buffer: Uint8Array,
+  offset: number,
+  length: number,
+  position: number | null,
+) => number;
+
+let readSyncNode: ReadSyncNode | null | undefined;
+
 /**
  * Read from stdin.
  *
@@ -12,11 +17,19 @@ const { readSync: readSyncNode } = process
  * @param data Uint8Array to store the data.
  */
 export function readSync(data: Uint8Array): number {
+  // dnt-shim-ignore
+  const { Deno, process, Buffer } = globalThis as any;
+
   if (Deno) {
     return Deno.stdin.readSync(data);
-  } else if (readSyncNode) {
+  }
+
+  if (process) {
+    const read: ReadSyncNode = readSyncNode ??=
+      process.getBuiltinModule("node:fs").readSync;
+
     const buffer = Buffer.alloc(data.byteLength);
-    const bytesRead = readSyncNode(
+    const bytesRead = read(
       process.stdout.fd,
       buffer,
       0,
@@ -29,7 +42,7 @@ export function readSync(data: Uint8Array): number {
     }
 
     return bytesRead;
-  } else {
-    throw new Error("unsupported runtime");
   }
+
+  throw new Error("unsupported runtime");
 }
