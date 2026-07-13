@@ -36,7 +36,9 @@ test({
 
     const snapshotContent = await Deno.readTextFile(snapshotPath);
 
-    await assertSnapshot(ctx, snapshotContent, { serializer: quoteString });
+    await assertSnapshot(ctx as Deno.TestContext, snapshotContent, {
+      serializer: quoteString,
+    });
 
     await Deno.remove(snapshotPath);
   },
