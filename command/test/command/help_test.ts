@@ -1,5 +1,10 @@
 import { test } from "@cliffy/internal/testing/test";
 import { assertEquals } from "@std/assert";
+import {
+  getColorEnabled,
+  setColorEnabled,
+  stripAnsiCode,
+} from "@std/fmt/colors";
 import { Command } from "../../command.ts";
 import { snapshotTest } from "../../../testing/mod.ts";
 import { deleteEnv } from "../../../internal/runtime/delete_env.ts";
@@ -176,6 +181,24 @@ test({
 
     assertEquals(ctx.options, { help: true });
   },
+});
+
+test("[command] help - should respect setColorEnabled", () => {
+  const colorsEnabled = getColorEnabled();
+  setColorEnabled(false);
+
+  try {
+    const cmd = new Command()
+      .throwErrors()
+      .name("main")
+      .description("Main command.")
+      .option("-f, --foo <val:string>", "Foo option.", { default: "bar" });
+
+    const help = cmd.getHelp();
+    assertEquals(help, stripAnsiCode(help));
+  } finally {
+    setColorEnabled(colorsEnabled);
+  }
 });
 
 await snapshotTest({
