@@ -60,7 +60,7 @@ export class HelpGenerator {
     this.options = {
       types: false,
       hints: true,
-      colors: true,
+      colors: getColorEnabled(),
       long: false,
       width: getColumns() ?? 150,
       maxWidth: Infinity,
