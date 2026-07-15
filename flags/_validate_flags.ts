@@ -239,7 +239,15 @@ function validateRequiredOptions<TOptions extends FlagOptions = FlagOptions>(
   const optionsValues = [...options.values()];
 
   for (const option of opts.flags) {
-    if (!option.required || paramCaseToCamelCase(option.name) in ctx.flags) {
+    if (!option.required) {
+      continue;
+    }
+    const name = paramCaseToCamelCase(option.name);
+    if (
+      name in ctx.flags ||
+      // TODO: remove ignoreDefaults if flags module has support for environment variables
+      typeof opts.ignoreDefaults?.[name] !== "undefined"
+    ) {
       continue;
     }
     const conflicts = option.conflicts ?? [];

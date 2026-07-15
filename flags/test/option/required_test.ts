@@ -37,6 +37,17 @@ test("flags - option - required - missing required option", () => {
   );
 });
 
+test("flags - option - required - should not throw if required option is provided via ignoreDefaults", () => {
+  const { flags, unknown, literal } = parseFlags([], {
+    ...options,
+    ignoreDefaults: { required: "env value" },
+  });
+
+  assertEquals(flags, { requiredDefault: "default" });
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
+
 test("flags - option - required - required option value", () => {
   const { flags, unknown, literal } = parseFlags(
     ["--required", "foo", "--required-value", "bar"],
