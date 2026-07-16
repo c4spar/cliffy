@@ -222,3 +222,10 @@ export function underscoreToCamelCase(str: string): string {
       (g) => g[1].toUpperCase(),
     );
 }
+
+export function optionNameToEnvVarName(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/-/g, "_")
+    .toUpperCase();
+}

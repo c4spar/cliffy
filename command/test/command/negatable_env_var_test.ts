@@ -1,30 +1,11 @@
 import { test } from "@cliffy/internal/testing/test";
-import { deleteEnv } from "@cliffy/internal/runtime/delete-env";
-import { setEnv } from "@cliffy/internal/runtime/set-env";
 import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { assertType, type IsExact } from "@std/testing/types";
 import { Command } from "../../command.ts";
+import { withEnv } from "../_utils.ts";
 
 function command() {
   return new Command().noExit();
-}
-
-function withEnv(
-  vars: Record<string, string>,
-  fn: () => Promise<void> | void,
-) {
-  return async () => {
-    for (const [name, value] of Object.entries(vars)) {
-      setEnv(name, value);
-    }
-    try {
-      await fn();
-    } finally {
-      for (const name of Object.keys(vars)) {
-        deleteEnv(name);
-      }
-    }
-  };
 }
 
 test(

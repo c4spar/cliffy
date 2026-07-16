@@ -39,6 +39,7 @@ import {
   UnexpectedOptionalEnvVarValueError,
   UnexpectedVariadicEnvVarValueError,
   UnknownCommandError,
+  UnsupportedOptionEnvVarError,
   ValidationError,
 } from "./_errors.ts";
 import { exit } from "@cliffy/internal/runtime/exit";
@@ -53,6 +54,7 @@ import type {
 } from "./_type_utils.ts";
 import {
   getDescription,
+  optionNameToEnvVarName,
   parseArgumentsDefinition,
   splitArguments,
   trimEnvVarPrefix,
@@ -102,6 +104,12 @@ import type { ArgumentOptions } from "@cliffy/flags";
 export interface ArgDefinition extends CommandArgumentOptions<any, any, any> {
   arg: string;
   description?: string;
+}
+
+interface AddEnvVarOptions extends EnvVarOptions {
+  details: Array<Argument>;
+  source: string;
+  propertyName?: string;
 }
 
 interface CommandSettings {
@@ -1978,6 +1986,10 @@ export class Command<
       }
     }
 
+    if (option.env) {
+      this.addOptionEnvVar(option);
+    }
+
     if (option.prepend) {
       this.cmd.builder.options.unshift(option);
     } else {
@@ -1985,6 +1997,70 @@ export class Command<
     }
 
     return this;
+  }
+
+  private addOptionEnvVar(option: Option): void {
+    const flag = option.flags[0];
+
+    if (option.name.includes(".")) {
+      throw new UnsupportedOptionEnvVarError(
+        flag,
+        "dotted options are not supported. Register the environment variable " +
+          "separately with the `env` method.",
+      );
+    }
+    const details: Array<Argument> = option.args.length
+      ? option.args
+      : parseArgumentsDefinition("<value:boolean>");
+
+    const negatable = option.name.startsWith("no-");
+
+    if (negatable && details[0].type !== "boolean") {
+      throw new UnsupportedOptionEnvVarError(
+        flag,
+        "negatable options with a non-boolean value are not supported.",
+      );
+    }
+
+    let name: string;
+    let prefix: string | undefined;
+
+    if (typeof option.env === "string") {
+      name = option.env;
+    } else {
+      const hasLongFlag = option.flags.some((flag) =>
+        flag.trim().startsWith("--")
+      );
+      if (!hasLongFlag) {
+        throw new UnsupportedOptionEnvVarError(
+          flag,
+          "options without a long flag require an explicit environment " +
+            'variable name, e.g. `{ env: "MY_VAR" }`.',
+        );
+      }
+      prefix = typeof option.env === "object" ? option.env.prefix : undefined;
+      name = (prefix ?? "") + optionNameToEnvVarName(option.name);
+    }
+
+    const propertyName = typeof option.env === "string"
+      ? underscoreToCamelCase(
+        (negatable ? option.name.replace(/^no-/, "") : option.name)
+          .replace(/-/g, "_"),
+      )
+      : undefined;
+
+    this.addEnvVar([name], option.description, {
+      details,
+      source: flag,
+      hidden: option.hidden,
+      global: option.global,
+      prefix,
+      negatable,
+      propertyName,
+      value: option.value,
+    });
+
+    option.envVar = name;
   }
 
   /**
@@ -2159,22 +2235,12 @@ export class Command<
       result.typeDefinition = "<value:boolean>";
     }
 
-    if (
-      result.flags.some((envName) => this.cmd.getBaseEnvVar(envName, true))
-    ) {
-      throw new DuplicateEnvVarError(name);
-    }
-
     const details: Argument[] = parseArgumentsDefinition(
       result.typeDefinition,
     );
 
-    if (details.length > 1) {
-      throw new TooManyEnvVarValuesError(name);
-    } else if (details.length && details[0].optional) {
+    if (details.length && details[0].optional) {
       throw new UnexpectedOptionalEnvVarValueError(name);
-    } else if (details.length && details[0].variadic) {
-      throw new UnexpectedVariadicEnvVarValueError(name);
     }
 
     if (options?.negatable) {
@@ -2195,16 +2261,39 @@ export class Command<
       }
     }
 
-    this.cmd.builder.envVars.push({
-      name: result.flags[0],
-      names: result.flags,
-      description,
-      type: details[0].type,
-      details: details.shift() as Argument,
+    this.addEnvVar(result.flags, description, {
       ...options,
+      details,
+      source: name,
     });
 
     return this;
+  }
+
+  private addEnvVar(
+    names: Array<string>,
+    description: string,
+    { details, source, ...options }: AddEnvVarOptions,
+  ): void {
+    const duplicate = names.find((name) => this.cmd.getBaseEnvVar(name, true));
+    if (duplicate) {
+      throw new DuplicateEnvVarError(duplicate);
+    }
+
+    if (details.length > 1) {
+      throw new TooManyEnvVarValuesError(source);
+    } else if (details.length && details[0].variadic) {
+      throw new UnexpectedVariadicEnvVarValueError(source);
+    }
+
+    this.cmd.builder.envVars.push({
+      name: names[0],
+      names,
+      description,
+      type: details[0].type,
+      details: details[0],
+      ...options,
+    });
   }
 
   /*****************************************************************************
@@ -2638,7 +2727,7 @@ export class Command<
       };
 
       const trimmedName = trimEnvVarPrefix(envVar.names[0], envVar.prefix);
-      const propertyName = underscoreToCamelCase(
+      const propertyName = envVar.propertyName ?? underscoreToCamelCase(
         envVar.negatable ? trimmedName.replace(/^NO_/, "") : trimmedName,
       );
 
