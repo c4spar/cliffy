@@ -394,6 +394,8 @@ export class HelpGenerator {
         italic(option.conflicts.map(getFlag).join(", ")),
     );
 
+    option.envVar && hints.push(dim(`env: ${option.envVar}`));
+
     return this.generateHints(type, hints);
   }
 

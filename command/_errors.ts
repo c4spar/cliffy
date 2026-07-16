@@ -128,6 +128,17 @@ export class DuplicateEnvVarError extends CommandError {
   }
 }
 
+export class UnsupportedOptionEnvVarError extends CommandError {
+  constructor(flag: string, reason: string) {
+    super(
+      `Cannot link an environment variable to option "${
+        bold(flag)
+      }": ${reason}`,
+    );
+    Object.setPrototypeOf(this, UnsupportedOptionEnvVarError.prototype);
+  }
+}
+
 export class MissingRequiredEnvVarError extends ValidationError {
   constructor(envVar: EnvVar) {
     super(`Missing required environment variable "${envVar.names[0]}".`);

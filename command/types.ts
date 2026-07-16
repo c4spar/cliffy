@@ -288,6 +288,18 @@ export interface GlobalOptionOptions<
   value?: OptionValueHandler;
   default?: DefaultValue<TDefaultValue>;
   defaultText?: DefaultText<TDefaultValue>;
+  /**
+   * Register a linked environment variable for this option. The value is read
+   * into the same property the option writes, with precedence
+   * `flag > env var > default`.
+   *
+   * - `true` derives the name from the option name (`--install-root` ->
+   *   `INSTALL_ROOT`).
+   * - A string sets the name explicitly (`{ env: "DENO_INSTALL_ROOT" }`).
+   * - `{ prefix }` prepends a prefix to the derived name
+   *   (`{ prefix: "DENO_" }` -> `DENO_INSTALL_ROOT`).
+   */
+  env?: boolean | string | { prefix: string };
 }
 
 export interface OptionOptions<
@@ -362,6 +374,8 @@ export interface Option<
   typeDefinition?: string;
   args: Argument[];
   groupName?: string;
+  /** Name of the linked environment variable, if `env` was set. */
+  envVar?: string;
 }
 
 /* ENV VARS TYPES */
@@ -405,6 +419,11 @@ export interface EnvVar extends EnvVarOptions {
   description: string;
   type: string;
   details: Argument;
+  /**
+   * Target property name, overriding the name derived from the env var name.
+   * Set when the env var is linked to an option via the option's `env` option.
+   */
+  propertyName?: string;
 }
 
 /* TYPE TYPES */
