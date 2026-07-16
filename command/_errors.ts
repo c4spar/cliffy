@@ -153,6 +153,15 @@ export class UnexpectedOptionalEnvVarValueError extends CommandError {
   }
 }
 
+export class InvalidNegatableEnvVarError extends CommandError {
+  constructor(name: string, reason: string) {
+    super(
+      `A negatable environment variable ${reason}, but "${name}" does not.`,
+    );
+    Object.setPrototypeOf(this, InvalidNegatableEnvVarError.prototype);
+  }
+}
+
 export class UnexpectedVariadicEnvVarValueError extends CommandError {
   constructor(name: string) {
     super(

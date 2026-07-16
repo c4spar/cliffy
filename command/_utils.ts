@@ -204,6 +204,14 @@ export function getDescription(
     : dedent(description);
 }
 
+/** Strip the configured prefix from an environment variable name. */
+export function trimEnvVarPrefix(
+  name: string,
+  prefix: string | undefined,
+): string {
+  return prefix ? name.replace(new RegExp(`^${prefix}`), "") : name;
+}
+
 /** Convert underscore case string to camel case. */
 export function underscoreToCamelCase(str: string): string {
   return str

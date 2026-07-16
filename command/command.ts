@@ -10,6 +10,7 @@ import type {
   IsRequired,
   MapTypes,
   MapValue,
+  MergeEnvVar,
   MergeOptions,
   TypedArgument,
   TypedArguments,
@@ -29,6 +30,7 @@ import {
   DuplicateExampleError,
   DuplicateOptionNameError,
   DuplicateTypeError,
+  InvalidNegatableEnvVarError,
   MissingCommandNameError,
   MissingRequiredEnvVarError,
   NoArgumentsAllowedError,
@@ -53,6 +55,7 @@ import {
   getDescription,
   parseArgumentsDefinition,
   splitArguments,
+  trimEnvVarPrefix,
   underscoreToCamelCase,
 } from "./_utils.ts";
 import { HelpGenerator, type HelpOptions } from "./help/_help_generator.ts";
@@ -2013,11 +2016,14 @@ export class Command<
       TPrefix,
       TCommandOptions,
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
-      TRequired
+      TRequired,
+      undefined,
+      TNegatable
     >,
     TMappedGlobalEnvVars extends MapValue<TGlobalEnvVars, TMappedValue>,
     TRequired extends EnvVarOptions["required"] = undefined,
     TPrefix extends EnvVarOptions["prefix"] = undefined,
+    TNegatable extends EnvVarOptions["negatable"] = undefined,
     TMappedValue = undefined,
   >(
     name: TNameAndValue,
@@ -2025,6 +2031,7 @@ export class Command<
     options?: Omit<GlobalEnvVarOptions, "value"> & {
       required?: TRequired;
       prefix?: TPrefix;
+      negatable?: TNegatable;
       value?: EnvVarValueHandler<
         MapTypes<ValueOf<TGlobalEnvVars>>,
         TMappedValue
@@ -2035,7 +2042,7 @@ export class Command<
     TParentCommandTypes,
     TCommandOptions,
     TCommandArguments,
-    Merge<TCommandGlobals, TMappedGlobalEnvVars>,
+    MergeEnvVar<TCommandGlobals, TMappedGlobalEnvVars, TNegatable>,
     TCommandTypes,
     TCommandGlobalTypes,
     TParentCommand
@@ -2061,11 +2068,14 @@ export class Command<
       P,
       TCommandOptions,
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
-      R
+      R,
+      undefined,
+      NG
     >,
     MG extends MapValue<G, V>,
     R extends EnvVarOptions["required"] = undefined,
     P extends EnvVarOptions["prefix"] = undefined,
+    NG extends EnvVarOptions["negatable"] = undefined,
     V = undefined,
   >(
     name: N,
@@ -2074,6 +2084,7 @@ export class Command<
       global: true;
       required?: R;
       prefix?: P;
+      negatable?: NG;
       value?: EnvVarValueHandler<MapTypes<ValueOf<G>>, V>;
     },
   ): Command<
@@ -2081,7 +2092,7 @@ export class Command<
     TParentCommandTypes,
     TCommandOptions,
     TCommandArguments,
-    Merge<TCommandGlobals, MG>,
+    MergeEnvVar<TCommandGlobals, MG, NG>,
     TCommandTypes,
     TCommandGlobalTypes,
     TParentCommand
@@ -2101,11 +2112,14 @@ export class Command<
       TPrefix,
       TCommandOptions,
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
-      TRequired
+      TRequired,
+      undefined,
+      TNegatable
     >,
     TMappedEnvVar extends MapValue<TEnvVar, TMappedValue>,
     TRequired extends EnvVarOptions["required"] = undefined,
     TPrefix extends EnvVarOptions["prefix"] = undefined,
+    TNegatable extends EnvVarOptions["negatable"] = undefined,
     TMappedValue = undefined,
   >(
     name: TNameAndValue,
@@ -2113,12 +2127,13 @@ export class Command<
     options?: Omit<EnvVarOptions, "value"> & {
       required?: TRequired;
       prefix?: TPrefix;
+      negatable?: TNegatable;
       value?: EnvVarValueHandler<MapTypes<ValueOf<TEnvVar>>, TMappedValue>;
     },
   ): Command<
     TParentCommandGlobals,
     TParentCommandTypes,
-    Merge<TCommandOptions, TMappedEnvVar>,
+    MergeEnvVar<TCommandOptions, TMappedEnvVar, TNegatable>,
     TCommandArguments,
     TCommandGlobals,
     TCommandTypes,
@@ -2153,6 +2168,24 @@ export class Command<
       throw new UnexpectedOptionalEnvVarValueError(name);
     } else if (details.length && details[0].variadic) {
       throw new UnexpectedVariadicEnvVarValueError(name);
+    }
+
+    if (options?.negatable) {
+      if (details[0].type !== "boolean") {
+        throw new InvalidNegatableEnvVarError(
+          name,
+          `must have a value of type "boolean"`,
+        );
+      }
+      const notNegated = result.flags.find((envName) =>
+        !trimEnvVarPrefix(envName, options.prefix).startsWith("NO_")
+      );
+      if (notNegated) {
+        throw new InvalidNegatableEnvVarError(
+          notNegated,
+          `must start with "NO_"`,
+        );
+      }
     }
 
     this.cmd.builder.envVars.push({
@@ -2567,40 +2600,57 @@ export class Command<
     envVars: Array<EnvVar>,
     validate = true,
   ): Promise<void> {
-    await Promise.all(envVars.map(async (envVar: EnvVar) => {
-      const env = await this.findEnvVar(envVar.names);
+    // Sort so a negatable env var wins over its positive counterpart (NO_COLOR / COLOR).
+    const orderedEnvVars: Array<EnvVar> = [
+      ...envVars.filter((envVar) => !envVar.negatable),
+      ...envVars.filter((envVar) => envVar.negatable),
+    ];
 
-      if (env) {
-        const parseType = (value: string) => {
-          return this.parseType({
-            label: "Environment variable",
-            type: envVar.type,
-            name: env.name,
-            value,
-          });
-        };
+    const envVarResults = await Promise.all(
+      orderedEnvVars.map(async (envVar: EnvVar) => ({
+        envVar,
+        env: await this.findEnvVar(envVar.names),
+      })),
+    );
 
-        const propertyName = underscoreToCamelCase(
-          envVar.prefix
-            ? envVar.names[0].replace(new RegExp(`^${envVar.prefix}`), "")
-            : envVar.names[0],
-        );
-
-        if (envVar.details.list) {
-          ctx.env[propertyName] = env.value
-            .split(envVar.details.separator ?? ",")
-            .map(parseType);
-        } else {
-          ctx.env[propertyName] = parseType(env.value);
+    for (const { envVar, env } of envVarResults) {
+      if (!env) {
+        if (envVar.required && validate) {
+          throw new MissingRequiredEnvVarError(envVar);
         }
-
-        if (envVar.value && typeof ctx.env[propertyName] !== "undefined") {
-          ctx.env[propertyName] = envVar.value(ctx.env[propertyName]);
-        }
-      } else if (envVar.required && validate) {
-        throw new MissingRequiredEnvVarError(envVar);
+        continue;
       }
-    }));
+
+      const parseType = (value: string) => {
+        return this.parseType({
+          label: "Environment variable",
+          type: envVar.type,
+          name: env.name,
+          value,
+        });
+      };
+
+      const trimmedName = trimEnvVarPrefix(envVar.names[0], envVar.prefix);
+      const propertyName = underscoreToCamelCase(
+        envVar.negatable ? trimmedName.replace(/^NO_/, "") : trimmedName,
+      );
+
+      if (envVar.details.list) {
+        ctx.env[propertyName] = env.value
+          .split(envVar.details.separator ?? ",")
+          .map(parseType);
+      } else {
+        ctx.env[propertyName] = parseType(env.value);
+      }
+
+      if (envVar.negatable && typeof ctx.env[propertyName] === "boolean") {
+        ctx.env[propertyName] = !ctx.env[propertyName];
+      }
+
+      if (envVar.value && typeof ctx.env[propertyName] !== "undefined") {
+        ctx.env[propertyName] = envVar.value(ctx.env[propertyName]);
+      }
+    }
   }
 
   protected async findEnvVar(

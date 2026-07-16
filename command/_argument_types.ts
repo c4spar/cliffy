@@ -268,9 +268,15 @@ export type TypedEnv<
   TTypes,
   TRequired extends boolean | undefined = undefined,
   TDefault = undefined,
+  TNegatable extends boolean | undefined = undefined,
 > = number extends TTypes ? any
-  : TrimLeft<TNameAndValue, TPrefix> extends infer TrimmedNameAndValue
-    ? TrimmedNameAndValue extends `${infer Name}=${infer Rest}`
+  : TrimLeft<
+    TrimLeft<TNameAndValue, TPrefix>,
+    TNegatable extends true ? "NO_" : undefined
+  > extends infer TrimmedNameAndValue extends string
+    ? [TNegatable] extends [true]
+      ? NegatableEnvVar<EnvVarName<TrimmedNameAndValue>, TOptions, TRequired>
+    : TrimmedNameAndValue extends `${infer Name}=${infer Rest}`
       ? ValueOption<Name, Rest, TTypes, TRequired, TDefault>
     : TrimmedNameAndValue extends `${infer Name} ${infer Rest}`
       ? ValueOption<Name, Rest, TTypes, TRequired, TDefault>
@@ -278,6 +284,27 @@ export type TypedEnv<
       ? BooleanOption<Name, TOptions, TRequired, TDefault>
     : never
   : Record<string, unknown>;
+
+/** Extract the name from an env var name and value definition. */
+type EnvVarName<TNameAndValue extends string> = TNameAndValue extends
+  `${infer Name}=${string}` ? Name
+  : TNameAndValue extends `${infer Name} ${string}` ? Name
+  : TNameAndValue;
+
+/** Property of a negatable env var. */
+type NegatableEnvVar<
+  TName extends string,
+  TOptions,
+  TRequired extends boolean | undefined,
+> = OptionName<TName> extends infer Name extends string
+  ? [TRequired] extends [true]
+    ? { [Key in Name]: Name extends keyof TOptions ? false : boolean }
+  : { [Key in Name]?: Name extends keyof TOptions ? false : boolean }
+  : never;
+
+export type MergeEnvVar<TOptions, TMappedEnvVar, TNegatable> =
+  [TNegatable] extends [true] ? Spread<TOptions, TMappedEnvVar>
+    : Merge<TOptions, TMappedEnvVar>;
 
 export type TypedType<
   TName extends string,
