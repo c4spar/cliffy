@@ -377,6 +377,20 @@ export interface GlobalEnvVarOptions {
   prefix?: string | undefined;
   value?: EnvVarValueHandler;
   exitCode?: number;
+  /**
+   * Treat the environment variable as the negation of a boolean value, the same
+   * way a `--no-*` option is treated. The `NO_` prefix is stripped from the
+   * property name and the value is inverted, so `NO_COLOR=true` results in
+   * `{ color: false }`.
+   *
+   * The name must start with `NO_` (after the `prefix`, if set) and the value
+   * must be of type boolean.
+   *
+   * Opt-in for backwards compatibility: without it, `NO_COLOR` results in
+   * `{ noColor: true }`. In v2 this becomes the default for boolean `NO_*`
+   * environment variables and this option is removed.
+   */
+  negatable?: boolean;
 }
 
 /** Environment variable options */
