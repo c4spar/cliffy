@@ -1971,6 +1971,13 @@ export class Command<
       }
     }
 
+    if (!option.name) {
+      const name = option.aliases?.shift();
+      if (name) {
+        option.name = name;
+      }
+    }
+
     if (option.prepend) {
       this.cmd.builder.options.unshift(option);
     } else {
