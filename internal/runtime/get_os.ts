@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 /**
- * Get operating system name.
+ * Get operating system name, normalized to the Deno convention.
  *
  * @internal
  */
@@ -16,15 +16,14 @@ export function getOs():
   | "solaris"
   | "illumos"
   | "openbsd"
-  | "sunos"
-  | "win32" {
+  | "sunos" {
   // dnt-shim-ignore
   const { Deno, process } = globalThis as any;
 
   if (Deno) {
     return Deno.build.os;
   } else if (process) {
-    return process.platform;
+    return process.platform === "win32" ? "windows" : process.platform;
   } else {
     throw new Error("unsupported runtime");
   }
