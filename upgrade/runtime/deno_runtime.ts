@@ -4,6 +4,7 @@ import type { Logger } from "../logger.ts";
 
 /** Deno specific upgrade options. */
 export interface DenoRuntimeOptions {
+  /** Import map to resolve the package against, passed as `--import-map`. */
   importMap?: string;
 }
 

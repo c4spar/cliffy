@@ -3,9 +3,9 @@
 import { Command } from "@cliffy/command";
 import { CompletionsCommand } from "@cliffy/command/completions";
 import { UpgradeCommand } from "@cliffy/command/upgrade";
-import { DenoLandProvider } from "@cliffy/command/upgrade/provider/deno-land";
-import { GithubProvider } from "@cliffy/command/upgrade/provider/github";
-import { NestLandProvider } from "@cliffy/command/upgrade/provider/nest-land";
+import { DenoLandProvider } from "@cliffy/upgrade/provider/deno-land";
+import { GithubProvider } from "@cliffy/upgrade/provider/github";
+import { NestLandProvider } from "@cliffy/upgrade/provider/nest-land";
 
 await new Command()
   .name("codeview")

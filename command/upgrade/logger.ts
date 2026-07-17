@@ -1,11 +1,7 @@
 import type { Spinner } from "./spinner.ts";
+import type { Logger } from "@cliffy/upgrade";
 
-export interface Logger {
-  log(...data: Array<unknown>): void;
-  info(...data: Array<unknown>): void;
-  warn(...data: Array<unknown>): void;
-  error(...data: Array<unknown>): void;
-}
+export type { Logger };
 
 export interface LoggerOptions {
   spinner?: Spinner;
