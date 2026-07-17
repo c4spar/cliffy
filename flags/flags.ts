@@ -810,6 +810,20 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
   if (!opts.args?.length) {
     return;
   }
+
+  // When parsing stops early, every argument starting from the first non
+  // option argument is collected as an unknown argument, so that none of them
+  // are parsed as options. They are still the expected positional arguments,
+  // so they are moved over before they are validated. Arguments that exceed
+  // the expected arguments stay where they are and are reported as too many
+  // arguments below.
+  if (ctx.stopEarly || ctx.stopOnUnknown) {
+    const isVariadic = opts.args.some((expectedArg) => expectedArg.variadic);
+    const count = isVariadic ? ctx.unknown.length : opts.args.length;
+    ctx.args = ctx.unknown.slice(0, count);
+    ctx.unknown = ctx.unknown.slice(count);
+  }
+
   const hasDefaults = opts.args.some((arg) => arg.default !== undefined);
 
   if (!ctx.args?.length && !hasDefaults) {
