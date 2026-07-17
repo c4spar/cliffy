@@ -4,13 +4,14 @@ import { exit } from "@cliffy/internal/runtime/exit";
 import { Command } from "../command.ts";
 import { EnumType } from "../types/enum.ts";
 import { createLogger } from "./logger.ts";
-import type { Provider, Versions } from "./provider.ts";
 import { Spinner } from "./spinner.ts";
 import {
+  type Provider,
   type RuntimeOptions,
   type RuntimeOptionsMap,
   upgrade,
-} from "./upgrade.ts";
+  type Versions,
+} from "@cliffy/upgrade";
 
 export interface UpgradeCommandOptions<
   TProvider extends Provider = Provider,
@@ -31,11 +32,11 @@ export interface UpgradeCommandOptions<
  * ```
  * import { Command } from "@cliffy/command";
  * import { UpgradeCommand } from "@cliffy/command/upgrade";
- * import { DenoLandProvider } from "@cliffy/command/upgrade/provider/deno-land";
- * import { GithubProvider } from "@cliffy/command/upgrade/provider/github";
- * import { JsrProvider } from "@cliffy/command/upgrade/provider/jsr";
- * import { NestLandProvider } from "@cliffy/command/upgrade/provider/nest-land";
- * import { NpmProvider } from "@cliffy/command/upgrade/provider/npm";
+ * import { DenoLandProvider } from "@cliffy/upgrade/provider/deno-land";
+ * import { GithubProvider } from "@cliffy/upgrade/provider/github";
+ * import { JsrProvider } from "@cliffy/upgrade/provider/jsr";
+ * import { NestLandProvider } from "@cliffy/upgrade/provider/nest-land";
+ * import { NpmProvider } from "@cliffy/upgrade/provider/npm";
  *
  * await new Command()
  *   .name("my-cli")
@@ -138,7 +139,6 @@ export class UpgradeCommand extends Command {
             : undefined;
           const logger = createLogger({ spinner, verbose });
           spinner?.start();
-          provider.setLogger(logger);
 
           try {
             await upgrade({

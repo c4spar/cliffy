@@ -1,8 +1,8 @@
 import { compare, parse } from "@std/semver";
 import { bold, brightBlue, cyan, green, red, yellow } from "@std/fmt/colors";
-import { ValidationError } from "../_errors.ts";
 import { Table } from "@cliffy/table";
 import type { Logger } from "./logger.ts";
+import { VersionNotFoundError } from "./version-not-found-error.ts";
 
 export interface Versions {
   latest: string;
@@ -11,18 +11,30 @@ export interface Versions {
 
 /** Shared provider options. */
 export interface ProviderOptions {
+  /** Main entrypoint module of the package, appended to the registry url. */
   main?: string;
+  /**
+   * Logger used to report the provider's output. Overridden by the logger
+   * passed to `upgrade()`, if set. Silent when not set.
+   */
   logger?: Logger;
 }
 
 /** Provider upgrade options. */
 export interface ProviderUpgradeOptions {
+  /** Name of the cli to upgrade. */
   name: string;
+  /** Target version to upgrade to. */
   to: string;
+  /** Main entrypoint module of the package, appended to the registry url. */
   main?: string;
+  /** Additional arguments passed to the runtime's install command. */
   args?: Array<string>;
+  /** Currently installed version, used to skip the upgrade if up-to-date. */
   from?: string;
+  /** Upgrade even if the current version is not out-of-date. */
   force?: boolean;
+  /** Log verbose output. */
   verbose?: boolean;
 }
 
@@ -37,11 +49,11 @@ export interface ProviderUpgradeOptions {
  * ```
  * import { Command } from "@cliffy/command";
  * import { UpgradeCommand } from "@cliffy/command/upgrade";
- * import { DenoLandProvider } from "@cliffy/command/upgrade/provider/deno-land";
- * import { GithubProvider } from "@cliffy/command/upgrade/provider/github";
- * import { JsrProvider } from "@cliffy/command/upgrade/provider/jsr";
- * import { NestLandProvider } from "@cliffy/command/upgrade/provider/nest-land";
- * import { NpmProvider } from "@cliffy/command/upgrade/provider/npm";
+ * import { DenoLandProvider } from "@cliffy/upgrade/provider/deno-land";
+ * import { GithubProvider } from "@cliffy/upgrade/provider/github";
+ * import { JsrProvider } from "@cliffy/upgrade/provider/jsr";
+ * import { NestLandProvider } from "@cliffy/upgrade/provider/nest-land";
+ * import { NpmProvider } from "@cliffy/upgrade/provider/npm";
  *
  * const upgradeCommand = new UpgradeCommand({
  *   provider: [
@@ -54,7 +66,7 @@ export abstract class Provider {
   abstract readonly name: string;
   protected readonly main?: string;
   protected readonly maxListSize: number = 25;
-  protected logger: Logger;
+  protected logger?: Logger;
   private maxCols = 8;
 
   /**
@@ -66,7 +78,7 @@ export abstract class Provider {
    */
   protected readonly delegateLatestResolution: boolean = false;
 
-  protected constructor({ main, logger = console }: ProviderOptions = {}) {
+  protected constructor({ main, logger }: ProviderOptions = {}) {
     this.main = main;
     this.logger = logger;
   }
@@ -134,7 +146,7 @@ export abstract class Provider {
 
     // Check if requested version exists.
     if (targetVersion && !versions.includes(targetVersion)) {
-      throw new ValidationError(
+      throw new VersionNotFoundError(
         `The provided version ${
           bold(red(targetVersion))
         } is not found.\n\n    ${
@@ -151,7 +163,7 @@ export abstract class Provider {
 
     // Check if requested version is already the latest available version.
     if (latest && latest === currentVersion && latest === targetVersion) {
-      this.logger.warn(
+      this.logger?.warn(
         yellow(
           `You're already using the latest available version ${currentVersion} of ${name}.`,
         ),
@@ -161,7 +173,7 @@ export abstract class Provider {
 
     // Check if requested version is already installed.
     if (targetVersion && currentVersion === targetVersion) {
-      this.logger.warn(
+      this.logger?.warn(
         yellow(`You're already using version ${currentVersion} of ${name}.`),
       );
       return false;

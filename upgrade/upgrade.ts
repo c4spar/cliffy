@@ -5,14 +5,19 @@ import type { DenoRuntimeOptions } from "./runtime/deno_runtime.ts";
 
 /** Shared runtime options. */
 export interface RuntimeOptions {
+  /** Additional arguments passed to the runtime's install command. */
   args?: Array<string>;
+  /** Main entrypoint module of the package, appended to the registry url. */
   main?: string;
 }
 
 /** Runtime options map for supported runtimes. */
 export interface RuntimeOptionsMap {
+  /** Options applied when upgrading on the Deno runtime. */
   deno?: RuntimeOptions & DenoRuntimeOptions;
+  /** Options applied when upgrading on the Node runtime. */
   node?: RuntimeOptions;
+  /** Options applied when upgrading on the Bun runtime. */
   bun?: RuntimeOptions;
 }
 
@@ -22,6 +27,7 @@ export interface RuntimeOptionsMap {
  * Currently supported runtimes are: `deno`, `node` and `bun`.
  */
 export interface UpgradeOptions extends RuntimeUpgradeOptions {
+  /** Per-runtime overrides applied when the matching runtime is detected. */
   runtime?: RuntimeOptionsMap;
 }
 
@@ -36,6 +42,10 @@ export async function upgrade(
     ...options
   }: UpgradeOptions,
 ): Promise<void> {
+  if (options.logger) {
+    provider.setLogger(options.logger);
+  }
+
   if (
     options.force ||
     !options.from ||

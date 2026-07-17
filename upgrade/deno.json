@@ -1,0 +1,12 @@
+{
+  "name": "@cliffy/upgrade",
+  "version": "1.2.1",
+  "exports": {
+    ".": "./mod.ts",
+    "./provider/deno-land": "./provider/deno_land.ts",
+    "./provider/github": "./provider/github.ts",
+    "./provider/jsr": "./provider/jsr.ts",
+    "./provider/nest-land": "./provider/nest_land.ts",
+    "./provider/npm": "./provider/npm.ts"
+  }
+}

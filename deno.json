@@ -9,6 +9,7 @@
     "prompt",
     "table",
     "testing",
+    "upgrade",
     "examples"
   ],
   "lock": false,
@@ -85,6 +86,7 @@
     "@cliffy/prompt": "jsr:@cliffy/prompt@1.2.1",
     "@cliffy/table": "jsr:@cliffy/table@1.2.1",
     "@cliffy/testing": "jsr:@cliffy/testing@1.2.1",
+    "@cliffy/upgrade": "jsr:@cliffy/upgrade@1.2.1",
     "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/async": "jsr:@std/async@^1.4.0",
     "@std/cli": "jsr:@std/cli@^1.0.30",
