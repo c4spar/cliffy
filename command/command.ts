@@ -1394,8 +1394,9 @@ export class Command<
 
   /**
    * Enable stop early. If enabled, all arguments starting from the first non
-   * option argument will be passed as arguments with type string to the command
-   * action handler.
+   * option argument are passed as arguments to the command action handler.
+   * Arguments that match a declared argument are parsed with its type; use a
+   * variadic argument to collect the remaining arguments as strings.
    *
    * For example:
    *     `command --debug-level warning server --port 80`

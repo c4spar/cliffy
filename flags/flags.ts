@@ -282,7 +282,9 @@ function parseArgs<TFlagOptions extends FlagOptions>(
       inLiteral = true;
       continue;
     } else if (ctx.stopEarly || ctx.stopOnUnknown) {
-      ctx.unknown.push(current);
+      if (!consumeArgument(current)) {
+        ctx.unknown.push(current);
+      }
       continue;
     }
 
@@ -291,8 +293,12 @@ function parseArgs<TFlagOptions extends FlagOptions>(
     if (!maybeIsFlag) {
       if (opts.stopEarly) {
         ctx.stopEarly = true;
+        if (!consumeArgument(current)) {
+          ctx.unknown.push(current);
+        }
+        continue;
       }
-      if (opts.stopEarly || !opts.args?.length) {
+      if (!opts.args?.length) {
         ctx.unknown.push(current);
         continue;
       }
@@ -333,7 +339,9 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         if (!option) {
           if (opts.stopOnUnknown) {
             ctx.stopOnUnknown = true;
-            ctx.unknown.push(args[argsIndex]);
+            if (!consumeArgument(currentRaw)) {
+              ctx.unknown.push(currentRaw);
+            }
             continue;
           }
 

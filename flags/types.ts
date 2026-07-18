@@ -10,8 +10,11 @@ export interface ParseFlagsOptions<
   /** Option callback function. Will be called for all parsed options. */
   option?: (option: TFlagOptions, value?: unknown) => void;
   /**
-   * Enable stop early. If enabled, all arguments starting from the first non
-   * option argument will be added to the unknown array.
+   * If enabled, all arguments starting from the first none option argument are
+   * no longer parsed as options. Arguments matching an expected argument from
+   * the `args` option are parsed with their type and added to the `args` array,
+   * any remaining arguments are added to the unknown array. Without expected
+   * arguments, all of them are added to the unknown array.
    *
    * For example:
    *     `command --debug-level warning server --port 80`
@@ -21,7 +24,7 @@ export interface ParseFlagsOptions<
    *     - unknown: `['server', '--port', '80']`
    */
   stopEarly?: boolean;
-  /** Works similar to `stopEarly`, bit stops on first unknown option or argument. */
+  /** Works similar to `stopEarly`, but stops on the first unknown option or argument. */
   stopOnUnknown?: boolean;
   /**
    * Don't throw an error when no arguments are passed to the `parseFlags`
