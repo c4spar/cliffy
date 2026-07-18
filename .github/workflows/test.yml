@@ -6,6 +6,9 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -75,10 +78,10 @@ jobs:
         run: deno task coverage:${{ matrix.runtime.name }}
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
+          use_oidc: true
           fail_ci_if_error: true
           name: ${{ matrix.runtime.name }}-${{ matrix.os }}
           files: dist/coverage/${{ matrix.runtime.name }}/cov.lcov
           flags: ${{ matrix.runtime.name }}
-          token: ${{ secrets.CODECOV_TOKEN }}
