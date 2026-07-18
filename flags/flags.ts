@@ -338,56 +338,12 @@ function parseArgs<TFlagOptions extends FlagOptions>(
           }
 
           // Check if value is a positional argument
-          if (opts.args?.length) {
-            const argDef = opts.args[argIndex];
-
-            if (argDef) {
-              const args = ctx.args ??= [];
-
-              if (argDef.optional && currentRaw === "") {
-                if (!argDef.variadic) {
-                  args.push(undefined);
-                  argIndex++;
-                }
-                continue;
-              }
-
-              // Parse argument value
-              if (argDef.list) {
-                args.push(
-                  parseListValue(opts, {
-                    label: "Argument",
-                    name: argDef.name || `arg[${argIndex}]`,
-                    type: argDef.type || "string",
-                    value: currentRaw,
-                    separator: argDef.separator,
-                  }),
-                );
-              } else {
-                args.push(
-                  parseValue(opts, {
-                    label: "Argument",
-                    name: argDef.name || `arg[${argIndex}]`,
-                    type: argDef.type || "string",
-                    value: currentRaw,
-                  }),
-                );
-              }
-
-              // Increase argsIndex by amount of normalized arguments.
-              if (splitCount > 1) {
-                argsIndex += splitCount - 1;
-              }
-
-              if (!argDef.variadic) {
-                argIndex++;
-              } else if (opts.args[argIndex + 1]) {
-                throw new UnexpectedArgumentAfterVariadicArgumentError(
-                  currentRaw,
-                );
-              }
-              continue;
+          if (opts.args?.length && consumeArgument(currentRaw)) {
+            // Increase argsIndex by amount of normalized arguments.
+            if (splitCount > 1) {
+              argsIndex += splitCount - 1;
             }
+            continue;
           }
 
           if (!maybeIsFlag) {
@@ -401,48 +357,8 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         }
       }
     } else {
-      if (opts.args?.length && !maybeIsFlag) {
-        const argDef = opts.args[argIndex];
-
-        if (argDef) {
-          const posArgs = ctx.args ??= [];
-
-          if (argDef.optional && currentRaw === "") {
-            if (!argDef.variadic) {
-              posArgs.push(undefined);
-              argIndex++;
-            }
-            continue;
-          }
-
-          if (argDef.list) {
-            posArgs.push(
-              parseListValue(opts, {
-                label: "Argument",
-                name: argDef.name || `arg[${argIndex}]`,
-                type: argDef.type || "string",
-                value: currentRaw,
-                separator: argDef.separator,
-              }),
-            );
-          } else {
-            posArgs.push(
-              parseValue(opts, {
-                label: "Argument",
-                name: argDef.name || `arg[${argIndex}]`,
-                type: argDef.type || "string",
-                value: currentRaw,
-              }),
-            );
-          }
-
-          if (!argDef.variadic) {
-            argIndex++;
-          } else if (opts.args[argIndex + 1]) {
-            throw new UnexpectedArgumentAfterVariadicArgumentError(currentRaw);
-          }
-          continue;
-        }
+      if (opts.args?.length && !maybeIsFlag && consumeArgument(currentRaw)) {
+        continue;
       }
       option = {
         name: current.replace(/^-+/, ""),
@@ -728,6 +644,33 @@ function parseArgs<TFlagOptions extends FlagOptions>(
   }
 
   return optionsMap;
+
+  function consumeArgument(value: string): boolean {
+    const argDef = opts.args?.[argIndex];
+    if (!argDef) {
+      return false;
+    }
+
+    const posArgs: Array<unknown> = ctx.args ??= [];
+
+    if (argDef.optional && value === "") {
+      if (!argDef.variadic) {
+        posArgs.push(undefined);
+        argIndex++;
+      }
+      return true;
+    }
+
+    posArgs.push(parseArgument(opts, argDef, argIndex, value));
+
+    if (!argDef.variadic) {
+      argIndex++;
+    } else if (opts.args?.[argIndex + 1]) {
+      throw new UnexpectedArgumentAfterVariadicArgumentError(value);
+    }
+
+    return true;
+  }
 }
 
 function parseDottedOptions(ctx: ParseFlagsContext): void {
@@ -818,6 +761,25 @@ function parseListValue<TFlagOptions extends FlagOptions>(
       }
       return value;
     });
+}
+
+function parseArgument<TFlagOptions extends FlagOptions>(
+  opts: ParseFlagsOptions<TFlagOptions>,
+  argDef: ArgumentOptions,
+  index: number,
+  value: string,
+): unknown {
+  const name = argDef.name || `arg[${index}]`;
+  const type = argDef.type || "string";
+  return argDef.list
+    ? parseListValue(opts, {
+      label: "Argument",
+      name,
+      type,
+      value,
+      separator: argDef.separator,
+    })
+    : parseValue(opts, { label: "Argument", name, type, value });
 }
 
 function parseDefaultType({
