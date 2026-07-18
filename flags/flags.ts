@@ -391,7 +391,11 @@ function parseArgs<TFlagOptions extends FlagOptions>(
           }
 
           if (!maybeIsFlag) {
-            throw new TooManyArgumentsError([currentRaw]);
+            // Collect the argument instead of throwing here, so that every
+            // surplus argument is reported and not only the first one. The
+            // error is thrown by `validateArguments` once parsing is done.
+            ctx.unknown.push(currentRaw);
+            continue;
           }
           throw new UnknownOptionError(current, opts.flags);
         }
