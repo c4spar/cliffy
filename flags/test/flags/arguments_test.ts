@@ -154,6 +154,24 @@ test("should not list option values as extra positional args", () => {
   );
 });
 
+test("should report a missing required option before too many arguments", () => {
+  assertThrows(
+    () => {
+      parseFlags(["foo", "bar"], {
+        flags: [{
+          name: "recursive",
+          aliases: ["r"],
+          type: "string",
+          required: true,
+        }],
+        args: [{ type: "string", name: "dir" }],
+      });
+    },
+    Error,
+    'Missing required option "--recursive".',
+  );
+});
+
 test("should suppress missing args error when standalone option is present", () => {
   const { flags, args } = parseFlags(["--help"], {
     flags: [{ name: "help", standalone: true }],
