@@ -117,6 +117,33 @@ test("command stopEarly too many arguments", async () => {
   );
 });
 
+test("command stopEarly parses typed argument", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .stopEarly()
+    .arguments("<port:number> [args...:string]")
+    .action(() => {})
+    .parse(["8080", "--verbose", "extra"]);
+
+  assertEquals(args, [8080, "--verbose", "extra"]);
+});
+
+test("command stopEarly throws for an invalid typed argument", async () => {
+  const cmd = new Command()
+    .throwErrors()
+    .stopEarly()
+    .arguments("<port:number> [args...:string]")
+    .action(() => {});
+
+  await assertRejects(
+    async () => {
+      await cmd.parse(["not-a-number", "--verbose"]);
+    },
+    Error,
+    'Argument "port" must be of type "number", but got "not-a-number".',
+  );
+});
+
 test("command stopEarly unknown option", async () => {
   const cmd = new Command()
     .throwErrors()

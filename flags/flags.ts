@@ -282,7 +282,9 @@ function parseArgs<TFlagOptions extends FlagOptions>(
       inLiteral = true;
       continue;
     } else if (ctx.stopEarly || ctx.stopOnUnknown) {
-      ctx.unknown.push(current);
+      if (!consumeArgument(current)) {
+        ctx.unknown.push(current);
+      }
       continue;
     }
 
@@ -291,8 +293,12 @@ function parseArgs<TFlagOptions extends FlagOptions>(
     if (!maybeIsFlag) {
       if (opts.stopEarly) {
         ctx.stopEarly = true;
+        if (!consumeArgument(current)) {
+          ctx.unknown.push(current);
+        }
+        continue;
       }
-      if (opts.stopEarly || !opts.args?.length) {
+      if (!opts.args?.length) {
         ctx.unknown.push(current);
         continue;
       }
@@ -333,7 +339,9 @@ function parseArgs<TFlagOptions extends FlagOptions>(
         if (!option) {
           if (opts.stopOnUnknown) {
             ctx.stopOnUnknown = true;
-            ctx.unknown.push(args[argsIndex]);
+            if (!consumeArgument(currentRaw)) {
+              ctx.unknown.push(currentRaw);
+            }
             continue;
           }
 
@@ -810,20 +818,6 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
   if (!opts.args?.length) {
     return;
   }
-
-  // When parsing stops early, every argument starting from the first non
-  // option argument is collected as an unknown argument, so that none of them
-  // are parsed as options. They are still the expected positional arguments,
-  // so they are moved over before they are validated. Arguments that exceed
-  // the expected arguments stay where they are and are reported as too many
-  // arguments below.
-  if (ctx.stopEarly || ctx.stopOnUnknown) {
-    const isVariadic = opts.args.some((expectedArg) => expectedArg.variadic);
-    const count = isVariadic ? ctx.unknown.length : opts.args.length;
-    ctx.args = ctx.unknown.slice(0, count);
-    ctx.unknown = ctx.unknown.slice(count);
-  }
-
   const hasDefaults = opts.args.some((arg) => arg.default !== undefined);
 
   if (!ctx.args?.length && !hasDefaults) {
