@@ -274,6 +274,16 @@ export interface GlobalOptionOptions<
 > extends Omit<FlagOptions, ExcludedCommandOptions> {
   override?: boolean;
   hidden?: boolean;
+  /**
+   * Conditionally register the option. Defaults to `true`.
+   *
+   * - `false` skips registration, so the flag is unknown at parse time and its
+   *   key is dropped from the parsed options type.
+   * - A non-literal `boolean` (a runtime variable) registers the option only
+   *   when truthy. The parsed value widens to `T | undefined`, since the option
+   *   may not have been registered.
+   */
+  enabled?: boolean;
   action?: ActionHandler<
     TOptions,
     TArguments,

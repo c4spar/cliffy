@@ -1731,8 +1731,10 @@ export class Command<
       TFlags,
       TCommandOptions,
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
-      undefined extends TConflicts ? TRequired : false,
-      TDefaultValue
+      TRequired,
+      TDefaultValue,
+      TConflicts,
+      TEnabled
     >,
     TMappedGlobalOptions extends MapValue<
       TGlobalOptions,
@@ -1742,6 +1744,7 @@ export class Command<
     TRequired extends OptionOptions["required"] = undefined,
     TCollect extends OptionOptions["collect"] = undefined,
     TConflicts extends OptionOptions["conflicts"] = undefined,
+    TEnabled extends OptionOptions["enabled"] = undefined,
     const TDefaultValue = undefined,
     TMappedValue = undefined,
   >(
@@ -1767,6 +1770,7 @@ export class Command<
           defaultText?: DefaultText<TDefaultValue>;
           required?: TRequired;
           collect?: TCollect;
+          enabled?: TEnabled;
           value?: OptionValueHandler<
             MapTypes<ValueOf<TGlobalOptions>>,
             TMappedValue
@@ -1810,8 +1814,10 @@ export class Command<
       TFlags,
       TCommandOptions,
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
-      undefined extends TConflicts ? TRequired : false,
-      TDefaultValue
+      TRequired,
+      TDefaultValue,
+      TConflicts,
+      TEnabled
     >,
     TMappedGlobalOptions extends MapValue<
       TGlobalOptions,
@@ -1821,6 +1827,7 @@ export class Command<
     TRequired extends OptionOptions["required"] = undefined,
     TCollect extends OptionOptions["collect"] = undefined,
     TConflicts extends OptionOptions["conflicts"] = undefined,
+    TEnabled extends OptionOptions["enabled"] = undefined,
     const TDefaultValue = undefined,
     TMappedValue = undefined,
   >(
@@ -1847,6 +1854,7 @@ export class Command<
           defaultText?: DefaultText<TDefaultValue>;
           required?: TRequired;
           collect?: TCollect;
+          enabled?: TEnabled;
           value?: OptionValueHandler<
             MapTypes<ValueOf<TGlobalOptions>>,
             TMappedValue
@@ -1877,13 +1885,16 @@ export class Command<
       TFlags,
       TCommandOptions,
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
-      undefined extends TConflicts ? TRequired : false,
-      TDefaultValue
+      TRequired,
+      TDefaultValue,
+      TConflicts,
+      TEnabled
     >,
     TMappedOptions extends MapValue<TOptions, TMappedValue, TCollect>,
     TRequired extends OptionOptions["required"] = undefined,
     TCollect extends OptionOptions["collect"] = undefined,
     TConflicts extends OptionOptions["conflicts"] = undefined,
+    TEnabled extends OptionOptions["enabled"] = undefined,
     const TDefaultValue = undefined,
     TMappedValue = undefined,
   >(
@@ -1910,6 +1921,7 @@ export class Command<
           required?: TRequired;
           collect?: TCollect;
           conflicts?: TConflicts;
+          enabled?: TEnabled;
           value?: OptionValueHandler<MapTypes<ValueOf<TOptions>>, TMappedValue>;
         }
       | OptionValueHandler<MapTypes<ValueOf<TOptions>>, TMappedValue>,
@@ -1933,14 +1945,20 @@ export class Command<
       opts = { value: opts };
     }
 
+    if (opts?.enabled === false) {
+      return this;
+    }
+
     const result = splitArguments(flags);
 
     const args: Argument[] = result.typeDefinition
       ? parseArgumentsDefinition(result.typeDefinition)
       : [];
 
+    const { enabled: _enabled, ...restOpts } = opts ?? {};
+
     const option: Option = {
-      ...opts,
+      ...restOpts,
       name: "",
       description: desc,
       args,

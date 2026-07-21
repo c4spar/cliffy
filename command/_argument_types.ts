@@ -224,42 +224,49 @@ export type TypedOption<
   TTypes,
   TRequired extends boolean | undefined = undefined,
   TDefault = undefined,
-> = number extends TTypes ? any
-  : TFlags extends `${string}--${infer Name}=${infer TRestFlags}`
-    ? ValuesOption<
-      Name,
-      TRestFlags,
-      TTypes,
-      IsRequired<TRequired, TDefault>,
-      TDefault
-    >
-  : TFlags extends `${string}--${infer Name} ${infer TRestFlags}`
-    ? ValuesOption<
-      Name,
-      TRestFlags,
-      TTypes,
-      IsRequired<TRequired, TDefault>,
-      TDefault
-    >
-  : TFlags extends `${string}--${infer Name}`
-    ? BooleanOption<Name, TOptions, IsRequired<TRequired, TDefault>, TDefault>
-  : TFlags extends `-${infer Name}=${infer TRestFlags}` ? ValuesOption<
-      Name,
-      TRestFlags,
-      TTypes,
-      IsRequired<TRequired, TDefault>,
-      TDefault
-    >
-  : TFlags extends `-${infer Name} ${infer TRestFlags}` ? ValuesOption<
-      Name,
-      TRestFlags,
-      TTypes,
-      IsRequired<TRequired, TDefault>,
-      TDefault
-    >
-  : TFlags extends `-${infer Name}`
-    ? BooleanOption<Name, TOptions, IsRequired<TRequired, TDefault>, TDefault>
-  : Record<string, unknown>;
+  TConflicts = undefined,
+  TEnabled extends boolean | undefined = undefined,
+> = [TEnabled] extends [false] ? Record<never, never>
+  : (boolean extends TEnabled ? false
+    : undefined extends TConflicts ? TRequired
+    : false) extends infer TRequired extends boolean | undefined
+    ? number extends TTypes ? any
+    : TFlags extends `${string}--${infer Name}=${infer TRestFlags}`
+      ? ValuesOption<
+        Name,
+        TRestFlags,
+        TTypes,
+        IsRequired<TRequired, TDefault>,
+        TDefault
+      >
+    : TFlags extends `${string}--${infer Name} ${infer TRestFlags}`
+      ? ValuesOption<
+        Name,
+        TRestFlags,
+        TTypes,
+        IsRequired<TRequired, TDefault>,
+        TDefault
+      >
+    : TFlags extends `${string}--${infer Name}`
+      ? BooleanOption<Name, TOptions, IsRequired<TRequired, TDefault>, TDefault>
+    : TFlags extends `-${infer Name}=${infer TRestFlags}` ? ValuesOption<
+        Name,
+        TRestFlags,
+        TTypes,
+        IsRequired<TRequired, TDefault>,
+        TDefault
+      >
+    : TFlags extends `-${infer Name} ${infer TRestFlags}` ? ValuesOption<
+        Name,
+        TRestFlags,
+        TTypes,
+        IsRequired<TRequired, TDefault>,
+        TDefault
+      >
+    : TFlags extends `-${infer Name}`
+      ? BooleanOption<Name, TOptions, IsRequired<TRequired, TDefault>, TDefault>
+    : Record<string, unknown>
+  : never;
 
 export type TypedEnv<
   TNameAndValue extends string,
