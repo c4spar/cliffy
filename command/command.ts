@@ -1816,7 +1816,7 @@ export class Command<
       Merge<TParentCommandTypes, Merge<TCommandGlobalTypes, TCommandTypes>>,
       TRequired,
       TDefaultValue,
-  TConflicts,
+      TConflicts,
       TEnabled
     >,
     TMappedGlobalOptions extends MapValue<
