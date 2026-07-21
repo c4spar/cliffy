@@ -565,7 +565,8 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
   });
 
   test({
-    name: "[command] - generic types - single enabled option should widen to a single optional type, not distribute into a `{} | { ... }` union",
+    name:
+      "[command] - generic types - single enabled option should widen to a single optional type, not distribute into a `{} | { ... }` union",
     fn() {
       const maybeEnabled = Math.random() > 0.5;
 

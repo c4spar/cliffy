@@ -275,13 +275,13 @@ export interface GlobalOptionOptions<
   override?: boolean;
   hidden?: boolean;
   /**
-   * Conditionally register the option at build time. Defaults to `true`.
+   * Conditionally register the option. Defaults to `true`.
    *
-   * - `false` skips registration entirely, so the flag is unknown at parse time
-   *   and its key is dropped from the parsed options type.
+   * - `false` skips registration, so the flag is unknown at parse time and its
+   *   key is dropped from the parsed options type.
    * - A non-literal `boolean` (a runtime variable) registers the option only
-   *   when truthy; the parsed value widens to `T | undefined` to reflect that
-   *   it may not have been registered.
+   *   when truthy. The parsed value widens to `T | undefined`, since the option
+   *   may not have been registered.
    */
   enabled?: boolean;
   action?: ActionHandler<
