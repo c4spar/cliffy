@@ -226,7 +226,7 @@ export type TypedOption<
   TDefault = undefined,
   TConflicts = undefined,
   TEnabled extends boolean | undefined = undefined,
-> = TEnabled extends false ? Record<never, never>
+> = [TEnabled] extends [false] ? Record<never, never>
   : (boolean extends TEnabled ? false
     : undefined extends TConflicts ? TRequired
     : false) extends infer TRequired extends boolean | undefined

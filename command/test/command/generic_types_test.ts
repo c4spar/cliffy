@@ -546,7 +546,7 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
   test({
     name: "[command] - generic types - enabled option",
     fn() {
-      const maybeEnabled: boolean = true;
+      const maybeEnabled = Math.random() > 0.5;
 
       new Command()
         .option("--kept <val:string>", "", { enabled: true })
@@ -560,6 +560,20 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
               maybe?: string;
             }>
           >(true);
+        });
+    },
+  });
+
+  test({
+    name: "[command] - generic types - single enabled option should widen to a single optional type, not distribute into a `{} | { ... }` union",
+    fn() {
+      const maybeEnabled = Math.random() > 0.5;
+
+      new Command()
+        .option("--maybe <val:string>", "", { enabled: maybeEnabled })
+        .action((options, ...args) => {
+          assertType<IsExact<typeof args, []>>(true);
+          assertType<IsExact<typeof options, { maybe?: string }>>(true);
         });
     },
   });
