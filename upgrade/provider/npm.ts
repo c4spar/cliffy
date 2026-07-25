@@ -1,4 +1,5 @@
 import { Provider, type ProviderOptions, type Versions } from "../provider.ts";
+import { hasPermission } from "@cliffy/internal/runtime/has-permission";
 
 export type NpmProviderOptions =
   & ProviderOptions
@@ -32,13 +33,8 @@ export class NpmProvider extends Provider {
     }
   }
 
-  async hasRequiredPermissions(): Promise<boolean> {
-    const apiUrl = new URL(this.apiUrl);
-    const permissionStatus = await Deno.permissions.query({
-      name: "net",
-      host: apiUrl.host,
-    });
-    return permissionStatus.state === "granted";
+  hasRequiredPermissions(): Promise<boolean> {
+    return hasPermission({ name: "net", host: new URL(this.apiUrl).host });
   }
 
   async getVersions(

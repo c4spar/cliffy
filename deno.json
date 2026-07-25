@@ -98,8 +98,10 @@
     "@std/io": "jsr:@std/io@~0.225.3",
     "@std/path": "jsr:@std/path@^1.1.5",
     "@std/semver": "jsr:@std/semver@^1.0.8",
+    "@std/tar": "jsr:@std/tar@~0.1.10",
     "@std/testing": "jsr:@std/testing@1.0.19",
     "@std/text": "jsr:@std/text@^1.0.19",
+    "@zip-js/zip-js": "jsr:@zip-js/zip-js@^2.8.31",
     "sinon": "npm:sinon@^22.0.0"
   }
 }

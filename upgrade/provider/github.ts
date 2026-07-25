@@ -1,10 +1,51 @@
-import { Provider, type ProviderOptions, type Versions } from "../provider.ts";
+import {
+  type BinaryAsset,
+  type BinaryUpgradeContext,
+  type Extract,
+  Provider,
+  type ProviderOptions,
+  type Versions,
+} from "../provider.ts";
+import { AssetNotFoundError } from "../asset-not-found-error.ts";
+import { getEnv } from "@cliffy/internal/runtime/get-env";
+import { hasPermission } from "@cliffy/internal/runtime/has-permission";
 import { bold, brightBlue } from "@std/fmt/colors";
+
+/** Resolves the token used to authenticate github api requests. */
+export type GithubTokenResolver = () =>
+  | string
+  | undefined
+  | Promise<
+    string | undefined
+  >;
+
+/**
+ * Resolves the release asset filename for a build target, either as a
+ * `os-arch` -> filename map or a function.
+ */
+export type GithubAssetResolver =
+  | Record<`${string}-${string}`, string>
+  | ((context: BinaryUpgradeContext) => string);
 
 export interface GithubProviderOptions extends ProviderOptions {
   repository: string;
   branches?: boolean;
-  token?: string;
+  /**
+   * Github token, or a resolver returning one. Falls back to the `GITHUB_TOKEN`
+   * and `GH_TOKEN` environment variables.
+   */
+  token?: string | GithubTokenResolver;
+  /**
+   * Release asset to download per build target. Enables binary upgrades for
+   * clis compiled with `deno compile` and friends.
+   */
+  asset?: GithubAssetResolver;
+  /** Binary to extract from an archive asset. Defaults to the cli name. */
+  binaryName?: string | ((context: BinaryUpgradeContext) => string);
+  /** Custom extractor(s) for archive formats that aren't handled built-in. */
+  extract?: Extract;
+  /** Default install location for the downloaded binary. */
+  location?: string;
 }
 
 export interface GithubVersions extends Versions {
@@ -19,24 +60,47 @@ export class GithubProvider extends Provider {
   private readonly apiUrl = "https://api.github.com/repos/";
   private readonly repositoryName: string;
   private readonly listBranches?: boolean;
-  private readonly githubToken?: string;
+  private readonly githubToken?: string | GithubTokenResolver;
+  private readonly asset?: GithubAssetResolver;
+  private readonly binaryName?:
+    | string
+    | ((context: BinaryUpgradeContext) => string);
+  private readonly extract?: Extract;
+  private readonly binaryLocation?: string;
 
   constructor(
-    { repository, branches = true, token, main, logger }: GithubProviderOptions,
+    {
+      repository,
+      branches = true,
+      token,
+      asset,
+      binaryName,
+      extract,
+      location,
+      main,
+      logger,
+    }: GithubProviderOptions,
   ) {
     super({ main, logger });
     this.repositoryName = repository;
     this.listBranches = branches;
     this.githubToken = token;
+    this.asset = asset;
+    this.binaryName = binaryName;
+    this.extract = extract;
+    this.binaryLocation = location;
   }
 
-  async hasRequiredPermissions(): Promise<boolean> {
-    const apiUrl = new URL(this.apiUrl);
-    const permissionStatus = await Deno.permissions.query({
-      name: "net",
-      host: apiUrl.host,
-    });
-    return permissionStatus.state === "granted";
+  override get supportsBinaryUpgrade(): boolean {
+    return !!this.asset;
+  }
+
+  override get location(): string | undefined {
+    return this.binaryLocation;
+  }
+
+  hasRequiredPermissions(): Promise<boolean> {
+    return hasPermission({ name: "net", host: new URL(this.apiUrl).host });
   }
 
   async getVersions(
@@ -100,17 +164,84 @@ export class GithubProvider extends Provider {
     }
   }
 
+  override async getBinaryAsset(
+    context: BinaryUpgradeContext,
+  ): Promise<BinaryAsset> {
+    const assetName = this.resolveAssetName(context);
+    const release = await this.gitFetch<GithubRelease>(
+      `releases/tags/${context.version}`,
+    );
+    const releaseAsset = release.assets
+      ?.find((asset) => asset.name === assetName);
+
+    if (!releaseAsset) {
+      throw new AssetNotFoundError(
+        `No asset "${assetName}" found in release "${context.version}" of ${this.repositoryName}.` +
+          (release.assets?.length
+            ? ` Available assets: ${
+              release.assets.map((asset) => asset.name).join(", ")
+            }`
+            : " The release has no assets."),
+      );
+    }
+
+    const token = await this.getToken();
+    const headers: Record<string, string> = {
+      Accept: "application/octet-stream",
+    };
+    if (token) {
+      headers.Authorization = `token ${token}`;
+    }
+
+    return {
+      url: releaseAsset.url,
+      name: assetName,
+      headers,
+      binaryName: this.resolveBinaryName(context),
+      extract: this.extract,
+    };
+  }
+
+  private resolveAssetName(context: BinaryUpgradeContext): string {
+    if (typeof this.asset === "function") {
+      return this.asset(context);
+    }
+    const key = `${context.os}-${context.arch}` as const;
+    const assetName = this.asset?.[key];
+    if (!assetName) {
+      throw new AssetNotFoundError(
+        `No release asset configured for target "${key}".` +
+          (this.asset
+            ? ` Configured targets: ${Object.keys(this.asset).join(", ")}`
+            : ""),
+      );
+    }
+    return assetName;
+  }
+
+  private resolveBinaryName(context: BinaryUpgradeContext): string {
+    const binaryName = typeof this.binaryName === "function"
+      ? this.binaryName(context)
+      : this.binaryName;
+    return binaryName ?? context.name;
+  }
+
+  private async getToken(): Promise<string | undefined> {
+    const explicit = typeof this.githubToken === "function"
+      ? await this.githubToken()
+      : this.githubToken;
+    return explicit ?? safeGetEnv("GITHUB_TOKEN") ?? safeGetEnv("GH_TOKEN");
+  }
+
   private getApiUrl(endpoint: string): string {
     return new URL(`${this.repositoryName}/${endpoint}`, this.apiUrl).href;
   }
 
   private async gitFetch<T>(endpoint: string): Promise<T> {
     const headers = new Headers({ "Content-Type": "application/json" });
-    if (this.githubToken) {
-      headers.set(
-        "Authorization",
-        this.githubToken ? `token ${this.githubToken}` : "",
-      );
+    const token = await this.getToken();
+    if (token) {
+      headers.set("Authorization", `token ${token}`);
     }
     const response = await fetch(
       this.getApiUrl(endpoint),
@@ -144,4 +275,19 @@ interface GithubResponse {
   message: string;
   // deno-lint-ignore camelcase
   documentation_url: string;
+}
+
+interface GithubRelease {
+  assets: Array<{
+    name: string;
+    url: string;
+  }>;
+}
+
+function safeGetEnv(name: string): string | undefined {
+  try {
+    return getEnv(name);
+  } catch {
+    return undefined;
+  }
 }

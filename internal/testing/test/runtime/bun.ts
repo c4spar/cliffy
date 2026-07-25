@@ -36,15 +36,23 @@ function createBunTestInnerFunction(
 }
 
 function createBunTestFn(name: string, fn: TestFn): BunTestFn {
-  return () => {
-    fn({
-      name,
-      origin: "bun",
-      step: createTestFunction((opts: TestOptions): Promise<boolean> =>
-        Promise.resolve(createBunTestInnerFunction(opts))
-      ),
-    });
-  };
+  return () => runTestFn(name, fn);
+}
+
+function runTestFn(name: string, fn: TestFn): void | Promise<void> {
+  return fn({
+    name,
+    origin: "bun",
+    step: createTestFunction(
+      async ({ name, ignore, fn: stepFn }: TestOptions): Promise<boolean> => {
+        const skip = Array.isArray(ignore) ? ignore.includes("bun") : !!ignore;
+        if (!skip) {
+          await runTestFn(name, stepFn);
+        }
+        return skip;
+      },
+    ),
+  });
 }
 
 interface BunTest {
