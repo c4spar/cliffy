@@ -226,6 +226,8 @@ test({
 
     await ctx.step({
       name: "should extract the binary from a tar.gz archive",
+      // bun on Windows corrupts gzip decompression.
+      ignore: "Bun" in globalThis && getOs() === "windows",
       async fn() {
         const dir = await makeTempDir();
         try {
