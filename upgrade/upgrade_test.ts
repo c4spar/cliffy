@@ -9,6 +9,10 @@ import { Provider, type Versions } from "./provider.ts";
 class BinaryOnlyProvider extends Provider {
   name = "binary-only";
 
+  constructor() {
+    super();
+  }
+
   override get supportsScriptUpgrade(): boolean {
     return false;
   }
