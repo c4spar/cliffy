@@ -332,7 +332,13 @@ async function streamToUint8Array(stream: ReadableStream<Uint8Array>) {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-function gzip(bytes: Uint8Array) {
+async function gzip(bytes: Uint8Array) {
+  // deno-lint-ignore no-explicit-any
+  const { Deno } = globalThis as any;
+  if (!Deno) {
+    const { gzipSync } = await import("node:zlib");
+    return new Uint8Array(gzipSync(bytes));
+  }
   return streamToUint8Array(
     toStream(bytes).pipeThrough(
       new CompressionStream("gzip") as unknown as ReadableWritablePair<

@@ -127,6 +127,13 @@ export function extractTarBytes(tar: Uint8Array, binaryName: string): TarMatch {
 }
 
 async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
+  // deno-lint-ignore no-explicit-any
+  const { Deno } = globalThis as any;
+  if (!Deno) {
+    const { gunzip } = await import("node:zlib");
+    const { promisify } = await import("node:util");
+    return new Uint8Array(await promisify(gunzip)(bytes));
+  }
   return new Uint8Array(
     await new Response(
       toStream(bytes).pipeThrough(
