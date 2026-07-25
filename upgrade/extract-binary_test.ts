@@ -170,9 +170,7 @@ async function tar(
 
 async function gzip(text: string): Promise<Uint8Array> {
   const bytes = new TextEncoder().encode(text);
-  // deno-lint-ignore no-explicit-any
-  const { Deno } = globalThis as any;
-  if (!Deno) {
+  if ("Bun" in globalThis) {
     const { gzipSync } = await import("node:zlib");
     return new Uint8Array(gzipSync(bytes));
   }

@@ -333,9 +333,7 @@ async function streamToUint8Array(stream: ReadableStream<Uint8Array>) {
 }
 
 async function gzip(bytes: Uint8Array) {
-  // deno-lint-ignore no-explicit-any
-  const { Deno } = globalThis as any;
-  if (!Deno) {
+  if ("Bun" in globalThis) {
     const { gzipSync } = await import("node:zlib");
     return new Uint8Array(gzipSync(bytes));
   }
