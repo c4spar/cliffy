@@ -81,7 +81,7 @@ export function parse(data: Uint8Array | string): KeyCode[] {
     ? new TextDecoder().decode(data)
     : data;
 
-  const hasNext = () => input.length - 1 >= index + 1;
+  const hasNext = (offset = 1) => input.length - 1 >= index + offset;
   const next = () => input[++index];
 
   parseNext();
@@ -103,7 +103,10 @@ export function parse(data: Uint8Array | string): KeyCode[] {
       shift: false,
     };
 
-    if (ch === kEscape && hasNext()) {
+    if (
+      ch === kEscape && hasNext() &&
+      (input[index + 1] !== "[" || hasNext(2))
+    ) {
       escaped = true;
       s += ch = next();
 
