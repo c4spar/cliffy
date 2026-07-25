@@ -1,12 +1,13 @@
 import { test } from "@cliffy/internal/testing/test";
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { assertSpyCalls, spy } from "@std/testing/mock";
-import { extractBinary, toStream } from "./extract-binary.ts";
+import { TarStream, type TarStreamInput } from "@std/tar";
+import { extractBinary, extractTarBytes, toStream } from "./extract-binary.ts";
 import type { BinaryAsset } from "./provider.ts";
 
 const options = { name: "cli" };
 
-const empty = new Uint8Array(0) as Uint8Array<ArrayBuffer>;
+const empty = new Uint8Array(0);
 
 test({
   name: "extractBinary",
@@ -70,9 +71,7 @@ test({
           },
         };
         const result = await extractBinary(
-          encode("not-an-archive") as Uint8Array<
-            ArrayBuffer
-          >,
+          encode("not-an-archive") as Uint8Array,
           asset,
           options,
         );
@@ -108,9 +107,7 @@ test({
           extract: { ".zip": () => encode("zip") },
         };
         const result = await extractBinary(
-          encode("raw") as Uint8Array<
-            ArrayBuffer
-          >,
+          encode("raw") as Uint8Array,
           asset,
           options,
         );
@@ -120,11 +117,67 @@ test({
   },
 });
 
-async function gzip(text: string): Promise<Uint8Array<ArrayBuffer>> {
-  const bytes = new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>;
+test({
+  name: "extractTarBytes",
+  fn: async (ctx) => {
+    await ctx.step({
+      name: "should extract a file entry by its base name",
+      async fn() {
+        const bytes = await tar([
+          { path: "readme.md", data: encode("docs") },
+          { path: "dir/cli", data: encode("tar-binary") },
+        ]);
+        const { binary } = extractTarBytes(bytes, "cli");
+        assertEquals(binary && decode(binary), "tar-binary");
+      },
+    });
+
+    await ctx.step({
+      name: "should report available entries when the binary is missing",
+      async fn() {
+        const bytes = await tar([{ path: "other", data: encode("nope") }]);
+        const { binary, entries } = extractTarBytes(bytes, "cli");
+        assertEquals(binary, undefined);
+        assert(entries.includes("other"));
+      },
+    });
+  },
+});
+
+async function tar(
+  files: Array<{ path: string; data: Uint8Array }>,
+): Promise<Uint8Array> {
+  const inputs: Array<TarStreamInput> = files.map(({ path, data }) => ({
+    type: "file",
+    path,
+    size: data.byteLength,
+    readable: toStream(data),
+  }));
+  const source = new ReadableStream<TarStreamInput>({
+    start(controller) {
+      for (const input of inputs) {
+        controller.enqueue(input);
+      }
+      controller.close();
+    },
+  });
   return new Uint8Array(
     await new Response(
-      toStream(bytes).pipeThrough(new CompressionStream("gzip")),
+      source.pipeThrough(new TarStream()) as ReadableStream<Uint8Array>,
+    ).arrayBuffer(),
+  );
+}
+
+async function gzip(text: string): Promise<Uint8Array> {
+  const bytes = new TextEncoder().encode(text);
+  return new Uint8Array(
+    await new Response(
+      toStream(bytes).pipeThrough(
+        new CompressionStream("gzip") as unknown as ReadableWritablePair<
+          Uint8Array,
+          Uint8Array
+        >,
+      ),
     ).arrayBuffer(),
   );
 }

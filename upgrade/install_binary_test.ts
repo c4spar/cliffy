@@ -312,8 +312,9 @@ test({
             { url: "https://example.com/cli", name: "cli" },
             { name: "mycli", location: dir },
           );
+          const fileName = getOs() === "windows" ? "mycli.exe" : "mycli";
           assertEquals(
-            await readTextFile(join(dir, "mycli")),
+            await readTextFile(join(dir, fileName)),
             "raw-binary",
           );
         } finally {
@@ -327,33 +328,39 @@ test({
   },
 });
 
-async function streamToUint8Array(
-  stream: ReadableStream<Uint8Array>,
-): Promise<Uint8Array<ArrayBuffer>> {
+async function streamToUint8Array(stream: ReadableStream<Uint8Array>) {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-function gzip(
-  bytes: Uint8Array<ArrayBuffer>,
-): Promise<Uint8Array<ArrayBuffer>> {
+function gzip(bytes: Uint8Array) {
   return streamToUint8Array(
-    toStream(bytes).pipeThrough(new CompressionStream("gzip")),
+    toStream(bytes).pipeThrough(
+      new CompressionStream("gzip") as unknown as ReadableWritablePair<
+        Uint8Array,
+        Uint8Array
+      >,
+    ),
   );
 }
 
-async function tarGz(
-  files: Array<{ path: string; data: Uint8Array<ArrayBuffer> }>,
-): Promise<Uint8Array<ArrayBuffer>> {
+async function tarGz(files: Array<{ path: string; data: Uint8Array }>) {
   const inputs: Array<TarStreamInput> = files.map(({ path, data }) => ({
     type: "file",
     path,
     size: data.byteLength,
     readable: toStream(data),
   }));
+  // `ReadableStream.from(inputs)` isn't available on bun.
+  const source = new ReadableStream<TarStreamInput>({
+    start(controller) {
+      for (const input of inputs) {
+        controller.enqueue(input);
+      }
+      controller.close();
+    },
+  });
   const tar = await streamToUint8Array(
-    ReadableStream.from(inputs).pipeThrough(new TarStream()) as ReadableStream<
-      Uint8Array
-    >,
+    source.pipeThrough(new TarStream()) as ReadableStream<Uint8Array>,
   );
   return gzip(tar);
 }
