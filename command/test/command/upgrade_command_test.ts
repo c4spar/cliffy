@@ -11,10 +11,13 @@ import {
   type BinaryAsset,
   type BinaryUpgradeContext,
   Provider,
+  UnsupportedVersionListingError,
   type Versions,
 } from "@cliffy/upgrade";
+import { UrlProvider } from "@cliffy/upgrade/provider/url";
 import { Command } from "../../command.ts";
 import { UpgradeCommand } from "../../upgrade/upgrade_command.ts";
+import { checkVersion } from "../../upgrade/_check_version.ts";
 
 class TestProvider extends Provider {
   readonly name: string;
@@ -208,6 +211,74 @@ test({
             ]),
           Error,
           'Unknown option "--output".',
+        );
+      },
+    });
+  },
+});
+
+test({
+  name:
+    "should skip automatic version checks when the provider cannot list versions",
+  async fn() {
+    await checkVersion(
+      createCli(
+        undefined,
+        new UrlProvider({ url: "https://example.com/cli" }),
+      ),
+    );
+  },
+});
+
+test({
+  name: "should register version-listing features only when supported",
+  fn: async (ctx) => {
+    await ctx.step({
+      name: "should omit the option and completion without a version resolver",
+      fn() {
+        const command = new UpgradeCommand({
+          provider: new UrlProvider({ url: "https://example.com/cli" }),
+          spinner: false,
+        });
+
+        assertEquals(command.getOption("list-versions"), undefined);
+        assertEquals(command.getCompletion("version"), undefined);
+      },
+    });
+
+    await ctx.step({
+      name: "should register the option when any provider lists versions",
+      async fn() {
+        const command = new UpgradeCommand({
+          provider: [
+            new UrlProvider({ url: "https://example.com/cli" }),
+            new TestProvider(),
+          ],
+          spinner: false,
+        });
+
+        assertEquals(command.getOption("list-versions")?.name, "list-versions");
+        assertEquals(command.getCompletion("version")?.name, "version");
+        assertEquals(await command.getAllVersions(), ["1.0.0"]);
+      },
+    });
+
+    await ctx.step({
+      name: "should reject listing from an unsupported selected provider",
+      async fn() {
+        await assertRejects(
+          () =>
+            createCli(undefined, [
+              new UrlProvider({ url: "https://example.com/cli" }),
+              new TestProvider(),
+            ]).parse([
+              "upgrade",
+              "--registry",
+              "url",
+              "--list-versions",
+            ]),
+          UnsupportedVersionListingError,
+          `The "url" provider has no version list.`,
         );
       },
     });

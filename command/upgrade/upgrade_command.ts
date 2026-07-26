@@ -91,6 +91,10 @@ export class UpgradeCommand extends Command {
       throw new Error(`No upgrade provider defined!`);
     }
 
+    const supportsVersionListing = this.providers.some((provider) =>
+      provider.supportsVersionListing
+    );
+
     this
       .description(() =>
         `Upgrade ${this.getMainCommand().getName()} executable to latest or given version.`
@@ -111,6 +115,7 @@ export class UpgradeCommand extends Command {
         "-l, --list-versions",
         "Show available versions.",
         {
+          enabled: supportsVersionListing,
           action: async ({ registry }) => {
             await registry.listVersions(
               this.getMainCommand().getName(),
@@ -144,7 +149,6 @@ export class UpgradeCommand extends Command {
       .option("--no-spinner", "Disable spinner.", {
         hidden: !withSpinner,
       })
-      .complete("version", () => this.getAllVersions())
       .action(
         async (
           {
@@ -196,15 +200,31 @@ export class UpgradeCommand extends Command {
           }
         },
       );
+
+    if (supportsVersionListing) {
+      this.complete("version", () => this.getAllVersions());
+    }
   }
 
   public async getAllVersions(): Promise<Array<string>> {
-    const { versions } = await this.getVersions();
+    const provider = this.providers.find((provider) =>
+      provider.supportsVersionListing
+    );
+    if (!provider) {
+      return [];
+    }
+    const { versions } = await provider.getVersions(
+      this.getMainCommand().getName(),
+    );
     return versions;
   }
 
   public async hasRequiredPermissions(): Promise<boolean> {
     return await this.getProvider().hasRequiredPermissions();
+  }
+
+  public supportsVersionListing(): boolean {
+    return this.getProvider().supportsVersionListing;
   }
 
   public async getLatestVersion(): Promise<string> {

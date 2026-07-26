@@ -21,3 +21,6 @@ export { UpgradeError } from "./upgrade-error.ts";
 export { VersionNotFoundError } from "./version-not-found-error.ts";
 export { AssetNotFoundError } from "./asset-not-found-error.ts";
 export { UnsupportedUpgradeError } from "./unsupported-upgrade-error.ts";
+export {
+  UnsupportedVersionListingError,
+} from "./unsupported-version-listing-error.ts";

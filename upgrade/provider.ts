@@ -145,6 +145,11 @@ export abstract class Provider {
     return false;
   }
 
+  /** Whether the provider can list versions. */
+  get supportsVersionListing(): boolean {
+    return true;
+  }
+
   /**
    * Default install location for a binary upgrade. Overridden by the upgrade
    * command's `--output` flag or env var. Defaults to the running executable.
