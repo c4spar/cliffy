@@ -117,14 +117,22 @@ export async function upgrade(
       throw error;
     }
 
-    options.logger?.info(
-      brightBlue(
+    if (options.logger) {
+      const message = brightBlue(
         `Successfully upgraded ${bold(options.name)} from version ${
           bold(options.from ?? "")
         } to ${bold(options.to)}!`,
-      ),
-      dim(`(${provider.getRepositoryUrl(options.name, options.to)})`),
-    );
+      );
+      const repositoryUrl = provider.getRepositoryUrl(
+        options.name,
+        options.to,
+      );
+      if (repositoryUrl) {
+        options.logger.info(message, dim(`(${repositoryUrl})`));
+      } else {
+        options.logger.info(message);
+      }
+    }
   }
 }
 

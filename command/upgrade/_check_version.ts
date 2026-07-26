@@ -11,6 +11,10 @@ export async function checkVersion(cmd: Command<any>): Promise<void> {
     return;
   }
 
+  if (!upgradeCommand.supportsVersionListing()) {
+    return;
+  }
+
   if (!await upgradeCommand.hasRequiredPermissions()) {
     // If not all required permissions were pre-granted, skip the version check to prevent prompting user
     return;
@@ -29,10 +33,12 @@ export async function checkVersion(cmd: Command<any>): Promise<void> {
 
 function isUpgradeCommand(command: unknown): command is UpgradeCommandImpl {
   return command instanceof Command && "getLatestVersion" in command &&
-    "hasRequiredPermissions" in command;
+    "hasRequiredPermissions" in command &&
+    "supportsVersionListing" in command;
 }
 
 interface UpgradeCommandImpl {
   hasRequiredPermissions(): Promise<boolean>;
   getLatestVersion(): Promise<string>;
+  supportsVersionListing(): boolean;
 }

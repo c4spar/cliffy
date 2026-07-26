@@ -8,6 +8,7 @@
     "./provider/gitlab": "./provider/gitlab.ts",
     "./provider/jsr": "./provider/jsr.ts",
     "./provider/nest-land": "./provider/nest_land.ts",
-    "./provider/npm": "./provider/npm.ts"
+    "./provider/npm": "./provider/npm.ts",
+    "./provider/url": "./provider/url.ts"
   }
 }
