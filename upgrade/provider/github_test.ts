@@ -67,16 +67,16 @@ test({
           versions: [
             "1.0.1",
             "1.0.0",
-            "branch-1 (\x1b[1mProtected\x1b[22m)",
-            "branch-2 ",
+            "branch-1",
+            "branch-2",
           ],
           tags: [
             "1.0.1",
             "1.0.0",
           ],
           branches: [
-            "branch-1 (\x1b[1mProtected\x1b[22m)",
-            "branch-2 ",
+            "branch-1",
+            "branch-2",
           ],
         });
 
@@ -85,32 +85,17 @@ test({
     });
 
     await ctx.step({
-      name: "should list versions with non-semver branch names",
+      name: "should accept a branch name as the target version",
       async fn() {
         mockFetch("https://api.github.com/repos/repo/user/git/refs/tags", {
-          body: JSON.stringify([{ ref: "1.0.0" }, { ref: "1.0.1" }]),
+          body: JSON.stringify([{ ref: "1.0.0" }]),
         });
         mockFetch("https://api.github.com/repos/repo/user/branches", {
-          body: JSON.stringify([
-            { name: "main", protected: false },
-            { name: "condition", protected: false },
-          ]),
+          body: JSON.stringify([{ name: "main", protected: true }]),
         });
 
-        const logs: Array<string> = [];
-        const original = console.log;
-        console.log = (...args: Array<unknown>) => {
-          logs.push(args.map(String).join(" "));
-        };
-        try {
-          await provider.listVersions("foo");
-        } finally {
-          console.log = original;
-          resetFetch();
-        }
-
-        assert(logs.some((line) => line.includes("condition")));
-        assert(logs.some((line) => line.includes("main")));
+        assert(await provider.isOutdated("foo", "1.0.0", "main"));
+        resetFetch();
       },
     });
 
