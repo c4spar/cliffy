@@ -28,9 +28,18 @@ export type ScriptUrlResolver =
   | ((context: ScriptUpgradeContext) => string);
 
 /** Resolves the binary asset url for a build target. */
+export interface AssetUrl {
+  /** Binary asset url. */
+  url: string;
+  /** Asset filename. */
+  name: string;
+}
+
+/** Resolves the binary asset for a build target. */
 export type AssetUrlResolver =
   | string
-  | ((context: BinaryUpgradeContext) => string);
+  | AssetUrl
+  | ((context: BinaryUpgradeContext) => string | AssetUrl);
 
 /** Resolves the available versions. */
 export type VersionsResolver = Versions | (() => Versions | Promise<Versions>);
@@ -113,6 +122,18 @@ export class UrlProvider extends Provider {
         `The "url" provider requires a \`url\` or \`asset\` option.`,
       );
     }
+    if (typeof url === "string") {
+      parseUrl(url, "url");
+    }
+    if (typeof asset === "string") {
+      parseUrl(asset, "asset");
+    } else if (asset && typeof asset !== "function") {
+      parseUrl(asset.url, "asset");
+      validateAssetName(asset.name);
+    }
+    if (homepage !== undefined) {
+      parseUrl(homepage, "homepage");
+    }
     super({ logger });
     this.scriptUrl = url;
     this.assetUrl = asset;
@@ -186,7 +207,7 @@ export class UrlProvider extends Provider {
   }
 
   getRegistryUrl(name: string, version: string): string {
-    if (!this.scriptUrl) {
+    if (this.scriptUrl === undefined) {
       throw new UnsupportedUpgradeError(
         `The "${this.name}" provider has no script url. Set the \`url\` option.`,
       );
@@ -200,7 +221,7 @@ export class UrlProvider extends Provider {
       ? this.scriptUrl({ name, version })
       : this.scriptUrl;
 
-    return new URL(url).href;
+    return parseUrl(url, "url").href;
   }
 
   override getSpecifier(
@@ -219,17 +240,21 @@ export class UrlProvider extends Provider {
   override async getBinaryAsset(
     context: BinaryUpgradeContext,
   ): Promise<BinaryAsset> {
-    if (!this.assetUrl) {
+    if (this.assetUrl === undefined) {
       throw new UnsupportedUpgradeError(
         `The "${this.name}" provider has no binary asset. Set the \`asset\` option.`,
       );
     }
-    const url = typeof this.assetUrl === "function"
+    const asset = typeof this.assetUrl === "function"
       ? this.assetUrl(context)
       : this.assetUrl;
-    const assetUrl = new URL(url);
-    const pathname = assetUrl.pathname;
-    const name = pathname.split("/").filter(Boolean).pop() ?? context.name;
+    const assetUrl = parseUrl(
+      typeof asset === "string" ? asset : asset.url,
+      "asset",
+    );
+    const name = typeof asset === "string"
+      ? assetUrl.pathname.split("/").filter(Boolean).pop() ?? context.name
+      : validateAssetName(asset.name);
     const headers = typeof this.assetHeaders === "function"
       ? await this.assetHeaders(context)
       : this.assetHeaders;
@@ -242,4 +267,26 @@ export class UrlProvider extends Provider {
       extract: this.extract,
     };
   }
+}
+
+function parseUrl(
+  value: string,
+  option: "url" | "asset" | "homepage",
+): URL {
+  try {
+    return new URL(value);
+  } catch {
+    throw new TypeError(
+      `The "${option}" option must be an absolute URL.`,
+    );
+  }
+}
+
+function validateAssetName(name: string): string {
+  if (!name.trim()) {
+    throw new TypeError(
+      `The "asset" option must provide a non-empty asset name.`,
+    );
+  }
+  return name;
 }

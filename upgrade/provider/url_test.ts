@@ -1,6 +1,11 @@
 import { test } from "@cliffy/internal/testing/test";
 import { getRuntimeName } from "@cliffy/internal/runtime/runtime-name";
-import { assertEquals, assertRejects, assertThrows } from "@std/assert";
+import {
+  assertEquals,
+  assertRejects,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
 import {
   mockCommand,
   mockGlobalCommand,
@@ -22,7 +27,7 @@ const context = {
 };
 
 test({
-  name: "UrlProvider",
+  name: "should provide URL-based upgrades",
   fn: async (t) => {
     await t.step({
       name: "should expose the configured upgrade capabilities",
@@ -81,6 +86,7 @@ test({
       name: "should upgrade a deno script from the exact url",
       ignore: ["node", "bun"],
       async fn() {
+        const infoCalls: Array<Array<unknown>> = [];
         mockGlobalCommand();
         mockCommand({
           command: Deno.execPath(),
@@ -110,7 +116,21 @@ test({
                 versions: ["1.1.0", "1.0.0"],
               },
             }),
+            logger: {
+              log() {},
+              info(...data) {
+                infoCalls.push(data);
+              },
+              warn() {},
+              error() {},
+            },
           });
+          const infoCall = infoCalls.at(-1);
+          assertEquals(infoCall?.length, 1);
+          assertStringIncludes(
+            String(infoCall?.[0]),
+            "Successfully upgraded",
+          );
         } finally {
           resetCommand();
           resetGlobalCommand();
@@ -143,6 +163,25 @@ test({
         });
         const asset = await provider.getBinaryAsset(context);
         assertEquals(asset.name, "cli.gz");
+      },
+    });
+
+    await t.step({
+      name: "should use an explicit asset name returned by a resolver",
+      async fn() {
+        const provider = new UrlProvider({
+          asset: ({ name, version }) => ({
+            url:
+              `https://cdn.example.com/download?name=${name}&version=${version}`,
+            name: `${name}.tar.gz`,
+          }),
+        });
+        const asset = await provider.getBinaryAsset(context);
+        assertEquals(
+          asset.url,
+          "https://cdn.example.com/download?name=cli&version=1.0.0",
+        );
+        assertEquals(asset.name, "cli.tar.gz");
       },
     });
 
@@ -258,19 +297,57 @@ test({
     });
 
     await t.step({
-      name: "should require absolute urls",
+      name: "should reject invalid static urls",
+      fn() {
+        assertThrows(
+          () => new UrlProvider({ asset: "./cli.tar.gz" }),
+          TypeError,
+          `The "asset" option must be an absolute URL.`,
+        );
+        assertThrows(
+          () => new UrlProvider({ url: "" }),
+          TypeError,
+          `The "url" option must be an absolute URL.`,
+        );
+        assertThrows(
+          () =>
+            new UrlProvider({
+              asset: "https://example.com/cli",
+              homepage: "./releases",
+            }),
+          TypeError,
+          `The "homepage" option must be an absolute URL.`,
+        );
+        assertThrows(
+          () =>
+            new UrlProvider({
+              asset: {
+                url: "https://example.com/download",
+                name: " ",
+              },
+            }),
+          TypeError,
+          `The "asset" option must provide a non-empty asset name.`,
+        );
+      },
+    });
+
+    await t.step({
+      name: "should reject invalid urls returned by resolvers",
       async fn() {
-        const binaryProvider = new UrlProvider({ asset: "./cli.tar.gz" });
+        const binaryProvider = new UrlProvider({ asset: () => "./cli.tar.gz" });
         await assertRejects(
           () => binaryProvider.getBinaryAsset(context),
           TypeError,
+          `The "asset" option must be an absolute URL.`,
         );
 
         if (getRuntimeName() === "deno") {
-          const scriptProvider = new UrlProvider({ url: "./cli.ts" });
+          const scriptProvider = new UrlProvider({ url: () => "./cli.ts" });
           assertThrows(
             () => scriptProvider.getSpecifier("cli", "1.0.0"),
             TypeError,
+            `The "url" option must be an absolute URL.`,
           );
         }
       },
