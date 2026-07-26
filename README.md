@@ -3,7 +3,7 @@
 [![JSR Scope](https://jsr.io/badges/@cliffy)](https://jsr.io/@cliffy)
 [![popularity](https://deno.land/badge/cliffy/popularity)](https://deno.land/x/cliffy)
 [![Build status](https://github.com/c4spar/deno-cliffy/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/c4spar/deno-cliffy/actions/workflows/test.yml)
-[![Code coverage](https://codecov.io/gh/c4spar/deno-cliffy/branch/main/graph/badge.svg)](https://codecov.io/gh/c4spar/deno-cliffy)
+[![Code coverage](https://codecov.io/gh/c4spar/cliffy/branch/main/graph/badge.svg)](https://codecov.io/gh/c4spar/cliffy)
 [![Discord](https://img.shields.io/badge/join-chat-blue?logo=discord&logoColor=white)](https://discord.gg/ghFYyP53jb)
 
 **Cliffy** is a TypeScript-first, runtime-agnostic command-line toolkit for
