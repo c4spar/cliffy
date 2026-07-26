@@ -158,9 +158,9 @@ export class GitlabProvider extends Provider {
       const available = release.assets?.links?.map((l) => l.name) ?? [];
       throw new AssetNotFoundError(
         `No asset "${assetName}" found in release "${context.version}" of ${this.repositoryName}.` +
-          available.length
-          ? ` Available assets: ${available.join(", ")}`
-          : " The release has no asset links.",
+          (available.length
+            ? ` Available assets: ${available.join(", ")}`
+            : " The release has no asset links."),
       );
     }
 
