@@ -224,7 +224,7 @@ test({
     await checkVersion(
       createCli(
         undefined,
-        new UrlProvider({ url: "https://example.com/cli" }),
+        new UrlProvider({ asset: "https://example.com/cli" }),
       ),
     );
   },
@@ -237,7 +237,7 @@ test({
       name: "should omit the option and completion without a version resolver",
       fn() {
         const command = new UpgradeCommand({
-          provider: new UrlProvider({ url: "https://example.com/cli" }),
+          provider: new UrlProvider({ asset: "https://example.com/cli" }),
           spinner: false,
         });
 
@@ -251,7 +251,7 @@ test({
       async fn() {
         const command = new UpgradeCommand({
           provider: [
-            new UrlProvider({ url: "https://example.com/cli" }),
+            new UrlProvider({ asset: "https://example.com/cli" }),
             new TestProvider(),
           ],
           spinner: false,
@@ -269,7 +269,7 @@ test({
         await assertRejects(
           () =>
             createCli(undefined, [
-              new UrlProvider({ url: "https://example.com/cli" }),
+              new UrlProvider({ asset: "https://example.com/cli" }),
               new TestProvider(),
             ]).parse([
               "upgrade",

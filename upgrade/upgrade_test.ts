@@ -40,7 +40,7 @@ test({
               from: "0.9.0",
               force: true,
               standalone: false,
-              provider: new UrlProvider({ url: "https://example.com/cli" }),
+              provider: new UrlProvider({ asset: "https://example.com/cli" }),
             }),
           UnsupportedUpgradeError,
           `Upgrading via a script is not supported by the "url" registry.`,

@@ -22,7 +22,7 @@ await new Command()
     new UpgradeCommand({
       standalone: true,
       provider: new UrlProvider({
-        url: ({ version, os, arch }) => {
+        asset: ({ version, os, arch }) => {
           const asset = assets[`${os}-${arch}`];
           if (!asset) {
             throw new Error(`Unsupported target: ${os}-${arch}`);
