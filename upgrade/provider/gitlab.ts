@@ -17,28 +17,30 @@ import { resolveToken, type TokenResolver } from "../token.ts";
 import { hasPermission } from "@cliffy/internal/runtime/has-permission";
 import { bold, brightBlue } from "@std/fmt/colors";
 
-/** Resolves the token used to authenticate github api requests. */
-export type GithubTokenResolver = TokenResolver;
+/** Resolves the token used to authenticate gitlab api requests. */
+export type GitlabTokenResolver = TokenResolver;
 
 /**
  * Resolves the release asset filename for a build target, either as a
  * `os-arch` -> filename map or a function.
  */
-export type GithubAssetResolver = AssetResolver;
+export type GitlabAssetResolver = AssetResolver;
 
-export interface GithubProviderOptions extends ProviderOptions {
+export interface GitlabProviderOptions extends ProviderOptions {
   repository: string;
+  /** Gitlab instance url. Defaults to `https://gitlab.com` for self-hosting. */
+  host?: string;
   branches?: boolean;
   /**
-   * Github token, or a resolver returning one. Falls back to the `GITHUB_TOKEN`
-   * and `GH_TOKEN` environment variables.
+   * Gitlab token, or a resolver returning one. Falls back to the
+   * `GITLAB_TOKEN` environment variable. Sent as the `PRIVATE-TOKEN` header.
    */
-  token?: string | GithubTokenResolver;
+  token?: string | GitlabTokenResolver;
   /**
    * Release asset to download per build target. Enables binary upgrades for
    * clis compiled with `deno compile` and friends.
    */
-  asset?: GithubAssetResolver;
+  asset?: GitlabAssetResolver;
   /** Binary to extract from an archive asset. Defaults to the cli name. */
   binaryName?: BinaryNameResolver;
   /** Custom extractor(s) for archive formats that aren't handled built-in. */
@@ -47,20 +49,18 @@ export interface GithubProviderOptions extends ProviderOptions {
   location?: string;
 }
 
-export interface GithubVersions extends Versions {
+export interface GitlabVersions extends Versions {
   tags: Array<string>;
   branches: Array<string>;
 }
 
-export class GithubProvider extends Provider {
-  name = "github";
-  private readonly repositoryUrl = "https://github.com/";
-  private readonly registryUrl = "https://raw.githubusercontent.com/";
-  private readonly apiUrl = "https://api.github.com/repos/";
+export class GitlabProvider extends Provider {
+  name = "gitlab";
+  private readonly host: string;
   private readonly repositoryName: string;
   private readonly listBranches?: boolean;
-  private readonly githubToken?: string | GithubTokenResolver;
-  private readonly asset?: GithubAssetResolver;
+  private readonly gitlabToken?: string | GitlabTokenResolver;
+  private readonly asset?: GitlabAssetResolver;
   private readonly binaryName?: BinaryNameResolver;
   private readonly extract?: Extract;
   private readonly binaryLocation?: string;
@@ -68,6 +68,7 @@ export class GithubProvider extends Provider {
   constructor(
     {
       repository,
+      host = "https://gitlab.com",
       branches = true,
       token,
       asset,
@@ -76,12 +77,13 @@ export class GithubProvider extends Provider {
       location,
       main,
       logger,
-    }: GithubProviderOptions,
+    }: GitlabProviderOptions,
   ) {
     super({ main, logger });
+    this.host = host.replace(/\/+$/, "");
     this.repositoryName = repository;
     this.listBranches = branches;
-    this.githubToken = token;
+    this.gitlabToken = token;
     this.asset = asset;
     this.binaryName = binaryName;
     this.extract = extract;
@@ -97,20 +99,15 @@ export class GithubProvider extends Provider {
   }
 
   hasRequiredPermissions(): Promise<boolean> {
-    return hasPermission({ name: "net", host: new URL(this.apiUrl).host });
+    return hasPermission({ name: "net", host: new URL(this.host).host });
   }
 
-  async getVersions(
-    _name: string,
-  ): Promise<GithubVersions> {
+  async getVersions(_name: string): Promise<GitlabVersions> {
     const { tags, branches } = await this.getRefs();
     const branchNames = branches.map((branch) => branch.name);
 
     return {
-      versions: [
-        ...tags,
-        ...branchNames,
-      ],
+      versions: [...tags, ...branchNames],
       latest: tags[0],
       tags,
       branches: branchNames,
@@ -118,14 +115,13 @@ export class GithubProvider extends Provider {
   }
 
   getRepositoryUrl(_name: string, version?: string): string {
-    return new URL(
-      `${this.repositoryName}${version ? `/releases/tag/${version}` : ""}`,
-      this.repositoryUrl,
-    ).href;
+    return `${this.host}/${this.repositoryName}${
+      version ? `/-/releases/${version}` : ""
+    }`;
   }
 
   getRegistryUrl(_name: string, version: string): string {
-    return new URL(`${this.repositoryName}/${version}`, this.registryUrl).href;
+    return `${this.host}/${this.repositoryName}/-/raw/${version}`;
   }
 
   override async listVersions(
@@ -153,33 +149,30 @@ export class GithubProvider extends Provider {
     context: BinaryUpgradeContext,
   ): Promise<BinaryAsset> {
     const assetName = resolveAssetName(this.asset, context);
-    const release = await this.gitFetch<GithubRelease>(
-      `releases/tags/${context.version}`,
+    const release = await this.gitFetch<GitlabRelease>(
+      `releases/${context.version}`,
     );
-    const releaseAsset = release.assets
-      ?.find((asset) => asset.name === assetName);
+    const link = release.assets?.links?.find((l) => l.name === assetName);
 
-    if (!releaseAsset) {
+    if (!link) {
+      const available = release.assets?.links?.map((l) => l.name) ?? [];
       throw new AssetNotFoundError(
         `No asset "${assetName}" found in release "${context.version}" of ${this.repositoryName}.` +
-          (release.assets?.length
-            ? ` Available assets: ${
-              release.assets.map((asset) => asset.name).join(", ")
-            }`
-            : " The release has no assets."),
+          available.length
+          ? ` Available assets: ${available.join(", ")}`
+          : " The release has no asset links.",
       );
     }
 
+    const url = new URL(link.url, `${this.host}/`);
     const token = await this.getToken();
-    const headers: Record<string, string> = {
-      Accept: "application/octet-stream",
-    };
-    if (token) {
-      headers.Authorization = `token ${token}`;
+    const headers: Record<string, string> = {};
+    if (token && url.origin === new URL(this.host).origin) {
+      headers["PRIVATE-TOKEN"] = token;
     }
 
     return {
-      url: releaseAsset.url,
+      url: url.href,
       name: assetName,
       headers,
       binaryName: resolveBinaryName(this.binaryName, context),
@@ -188,82 +181,74 @@ export class GithubProvider extends Provider {
   }
 
   private getToken(): Promise<string | undefined> {
-    return resolveToken(this.githubToken, ["GITHUB_TOKEN", "GH_TOKEN"]);
+    return resolveToken(this.gitlabToken, ["GITLAB_TOKEN"]);
   }
 
   private async getRefs(): Promise<{
     tags: Array<string>;
-    branches: Array<GithubBranch>;
+    branches: Array<GitlabBranch>;
   }> {
     const [tags, branches] = await Promise.all([
-      this.gitFetch<Array<{ ref: string }>>("git/refs/tags"),
-      this.gitFetch<Array<GithubBranch>>("branches"),
+      this.gitFetch<Array<{ name: string }>>("repository/tags"),
+      this.gitFetch<Array<GitlabBranch>>("repository/branches"),
     ]);
 
     return {
-      tags: tags
-        .map((tag) => tag.ref.replace(/^refs\/tags\//, ""))
-        .reverse(),
-      branches: branches
-        .sort((a, b) =>
-          (a.protected === b.protected) ? 0 : (a.protected ? 1 : -1)
-        )
-        .reverse(),
+      tags: tags.map((tag) => tag.name),
+      branches: branches.sort((a, b) =>
+        a.protected === b.protected ? 0 : a.protected ? 1 : -1
+      ),
     };
   }
 
   private getApiUrl(endpoint: string): string {
-    return new URL(`${this.repositoryName}/${endpoint}`, this.apiUrl).href;
+    return `${this.host}/api/v4/projects/${
+      encodeURIComponent(this.repositoryName)
+    }/${endpoint}`;
   }
 
   private async gitFetch<T>(endpoint: string): Promise<T> {
     const headers = new Headers({ "Content-Type": "application/json" });
     const token = await this.getToken();
     if (token) {
-      headers.set("Authorization", `token ${token}`);
+      headers.set("PRIVATE-TOKEN", token);
     }
-    const response = await fetch(
-      this.getApiUrl(endpoint),
-      {
-        method: "GET",
-        cache: "default",
-        headers,
-      },
-    );
+    const response = await fetch(this.getApiUrl(endpoint), {
+      method: "GET",
+      cache: "default",
+      headers,
+    });
 
-    if (!response.status) {
-      throw new Error(
-        "couldn't fetch versions - try again after sometime",
-      );
-    }
+    const data: GitlabError & T | GitlabError = await response.json();
 
-    const data: GithubResponse & T = await response.json();
-
-    if (
-      typeof data === "object" && "message" in data &&
-      "documentation_url" in data
-    ) {
-      throw new Error(data.message + " " + data.documentation_url);
+    if (!response.ok) {
+      const message = isGitlabError(data)
+        ? (data.message ?? data.error)
+        : response.statusText;
+      throw new Error(String(message));
     }
 
-    return data;
+    return data as T;
   }
 }
 
-interface GithubResponse {
-  message: string;
-  // deno-lint-ignore camelcase
-  documentation_url: string;
+interface GitlabError {
+  message?: string;
+  error?: string;
 }
 
-interface GithubRelease {
-  assets: Array<{
-    name: string;
-    url: string;
-  }>;
+interface GitlabRelease {
+  assets?: {
+    links?: Array<{ name: string; url: string }>;
+  };
 }
 
-interface GithubBranch {
+interface GitlabBranch {
   name: string;
   protected: boolean;
+}
+
+function isGitlabError(data: unknown): data is GitlabError {
+  return typeof data === "object" && data !== null &&
+    ("message" in data || "error" in data);
 }
