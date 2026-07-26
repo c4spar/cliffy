@@ -106,31 +106,16 @@ export class GithubProvider extends Provider {
   async getVersions(
     _name: string,
   ): Promise<GithubVersions> {
-    const [tags, branches] = await Promise.all([
-      this.gitFetch<Array<{ ref: string }>>("git/refs/tags"),
-      this.gitFetch<Array<{ name: string; protected: boolean }>>("branches"),
-    ]);
-
-    const tagNames = tags
-      .map((tag) => tag.ref.replace(/^refs\/tags\//, ""))
-      .reverse();
-
-    const branchNames = branches
-      .sort((a, b) =>
-        (a.protected === b.protected) ? 0 : (a.protected ? 1 : -1)
-      )
-      .map((tag) =>
-        `${tag.name} ${tag.protected ? `(${bold("Protected")})` : ""}`
-      )
-      .reverse();
+    const { tags, branches } = await this.getRefs();
+    const branchNames = branches.map((branch) => branch.name);
 
     return {
       versions: [
-        ...tagNames,
+        ...tags,
         ...branchNames,
       ],
-      latest: tagNames[0],
-      tags: tagNames,
+      latest: tags[0],
+      tags,
       branches: branchNames,
     };
   }
@@ -147,19 +132,22 @@ export class GithubProvider extends Provider {
   }
 
   override async listVersions(
-    name: string,
+    _name: string,
     currentVersion?: string,
   ): Promise<void> {
-    const { tags, branches } = await this.getVersions(name);
-    const showBranches: boolean = !!this.listBranches && branches.length > 0;
+    const { tags, branches } = await this.getRefs();
+    const showBranches = !!this.listBranches && branches.length > 0;
     const indent = showBranches ? 2 : 0;
     if (showBranches) {
       console.log("\n" + " ".repeat(indent) + bold(brightBlue("Tags:\n")));
     }
     super.printVersions(tags, currentVersion, { indent });
     if (showBranches) {
+      const branchNames = branches.map((branch) =>
+        branch.protected ? `${branch.name} (${bold("Protected")})` : branch.name
+      );
       console.log("\n" + " ".repeat(indent) + bold(brightBlue("Branches:\n")));
-      super.printVersions(branches, currentVersion, { maxCols: 5, indent });
+      super.printVersions(branchNames, currentVersion, { maxCols: 5, indent });
       console.log();
     }
   }
@@ -233,6 +221,27 @@ export class GithubProvider extends Provider {
     return explicit ?? safeGetEnv("GITHUB_TOKEN") ?? safeGetEnv("GH_TOKEN");
   }
 
+  private async getRefs(): Promise<{
+    tags: Array<string>;
+    branches: Array<GithubBranch>;
+  }> {
+    const [tags, branches] = await Promise.all([
+      this.gitFetch<Array<{ ref: string }>>("git/refs/tags"),
+      this.gitFetch<Array<GithubBranch>>("branches"),
+    ]);
+
+    return {
+      tags: tags
+        .map((tag) => tag.ref.replace(/^refs\/tags\//, ""))
+        .reverse(),
+      branches: branches
+        .sort((a, b) =>
+          (a.protected === b.protected) ? 0 : (a.protected ? 1 : -1)
+        )
+        .reverse(),
+    };
+  }
+
   private getApiUrl(endpoint: string): string {
     return new URL(`${this.repositoryName}/${endpoint}`, this.apiUrl).href;
   }
@@ -282,6 +291,11 @@ interface GithubRelease {
     name: string;
     url: string;
   }>;
+}
+
+interface GithubBranch {
+  name: string;
+  protected: boolean;
 }
 
 function safeGetEnv(name: string): string | undefined {
