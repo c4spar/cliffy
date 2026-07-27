@@ -169,6 +169,24 @@ test(`keycode - parse string - abc`, function () {
   );
 });
 
+test("keycode - parse incomplete escape sequence", function () {
+  const keys: KeyCode[] = parse(`${ESC}[`);
+
+  assertEquals(
+    keys,
+    [{
+      ...defaults,
+      name: "escape",
+      sequence: ESC,
+    }, {
+      ...defaults,
+      name: "[",
+      char: "[",
+      sequence: "[",
+    }],
+  );
+});
+
 test("keycode - xterm/gnome ESC [ letter (with modifiers)", function () {
   const keys = parse(
     "\x1b[2P\x1b[3P\x1b[4P\x1b[5P\x1b[6P\x1b[7P\x1b[8P\x1b[3Q\x1b[8Q\x1b[3R\x1b[8R\x1b[3S\x1b[8S",
