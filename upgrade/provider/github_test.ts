@@ -1,5 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertRejects } from "@std/assert";
 import {
   mockFetch,
   mockGlobalFetch,
@@ -7,6 +7,7 @@ import {
   resetGlobalFetch,
 } from "@c4spar/mock-fetch";
 import { upgrade } from "../upgrade.ts";
+import { AssetNotFoundError } from "../asset-not-found-error.ts";
 import { GithubProvider } from "./github.ts";
 import {
   mockCommand,
@@ -66,19 +67,34 @@ test({
           versions: [
             "1.0.1",
             "1.0.0",
-            "branch-1 (\x1b[1mProtected\x1b[22m)",
-            "branch-2 ",
+            "branch-1",
+            "branch-2",
           ],
           tags: [
             "1.0.1",
             "1.0.0",
           ],
           branches: [
-            "branch-1 (\x1b[1mProtected\x1b[22m)",
-            "branch-2 ",
+            "branch-1",
+            "branch-2",
           ],
         });
 
+        resetFetch();
+      },
+    });
+
+    await ctx.step({
+      name: "should accept a branch name as the target version",
+      async fn() {
+        mockFetch("https://api.github.com/repos/repo/user/git/refs/tags", {
+          body: JSON.stringify([{ ref: "1.0.0" }]),
+        });
+        mockFetch("https://api.github.com/repos/repo/user/branches", {
+          body: JSON.stringify([{ name: "main", protected: true }]),
+        });
+
+        assert(await provider.isOutdated("foo", "1.0.0", "main"));
         resetFetch();
       },
     });
@@ -191,5 +207,268 @@ test({
 
     resetGlobalFetch();
     resetGlobalCommand();
+  },
+});
+
+test({
+  name: "GithubProvider binary mode",
+  ignore: ["node", "bun"],
+  fn: async (ctx) => {
+    mockGlobalFetch();
+
+    await ctx.step({
+      name: "should not support binary upgrades without an asset config",
+      fn() {
+        const provider = new GithubProvider({ repository: "user/repo" });
+        assertEquals(provider.supportsBinaryUpgrade, false);
+      },
+    });
+
+    await ctx.step({
+      name: "should support binary upgrades with an asset config",
+      fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: { "darwin-x86_64": "cli-macos-amd64.tar.gz" },
+        });
+        assertEquals(provider.supportsBinaryUpgrade, true);
+      },
+    });
+
+    await ctx.step({
+      name: "should resolve the asset from an os-arch map",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: { "darwin-aarch64": "cli-macos-arm64.tar.gz" },
+        });
+        mockFetch(
+          "https://api.github.com/repos/user/repo/releases/tags/1.0.0",
+          {
+            body: JSON.stringify({
+              assets: [
+                {
+                  name: "cli-macos-arm64.tar.gz",
+                  url:
+                    "https://api.github.com/repos/user/repo/releases/assets/1",
+                },
+              ],
+            }),
+          },
+        );
+        const asset = await provider.getBinaryAsset({
+          name: "cli",
+          version: "1.0.0",
+          os: "darwin",
+          arch: "aarch64",
+        });
+        assertEquals(asset.name, "cli-macos-arm64.tar.gz");
+        assertEquals(
+          asset.url,
+          "https://api.github.com/repos/user/repo/releases/assets/1",
+        );
+        resetFetch();
+      },
+    });
+
+    await ctx.step({
+      name: "should default the binary name to the cli name",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: { "darwin-aarch64": "cli-macos-arm64.tar.gz" },
+        });
+        mockFetch(
+          "https://api.github.com/repos/user/repo/releases/tags/1.0.0",
+          {
+            body: JSON.stringify({
+              assets: [
+                {
+                  name: "cli-macos-arm64.tar.gz",
+                  url:
+                    "https://api.github.com/repos/user/repo/releases/assets/1",
+                },
+              ],
+            }),
+          },
+        );
+        const asset = await provider.getBinaryAsset({
+          name: "mycli",
+          version: "1.0.0",
+          os: "darwin",
+          arch: "aarch64",
+        });
+        assertEquals(asset.binaryName, "mycli");
+        resetFetch();
+      },
+    });
+
+    await ctx.step({
+      name: "should use the configured binary name",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          binaryName: "deno",
+          asset: { "darwin-aarch64": "cli-macos-arm64.tar.gz" },
+        });
+        mockFetch(
+          "https://api.github.com/repos/user/repo/releases/tags/1.0.0",
+          {
+            body: JSON.stringify({
+              assets: [
+                {
+                  name: "cli-macos-arm64.tar.gz",
+                  url:
+                    "https://api.github.com/repos/user/repo/releases/assets/1",
+                },
+              ],
+            }),
+          },
+        );
+        const asset = await provider.getBinaryAsset({
+          name: "mycli",
+          version: "1.0.0",
+          os: "darwin",
+          arch: "aarch64",
+        });
+        assertEquals(asset.binaryName, "deno");
+        resetFetch();
+      },
+    });
+
+    await ctx.step({
+      name: "should resolve the asset from a function",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: (ctx) => `cli-${ctx.os}-${ctx.arch}-${ctx.version}.gz`,
+        });
+        mockFetch(
+          "https://api.github.com/repos/user/repo/releases/tags/2.1.0",
+          {
+            body: JSON.stringify({
+              assets: [
+                {
+                  name: "cli-linux-x86_64-2.1.0.gz",
+                  url:
+                    "https://api.github.com/repos/user/repo/releases/assets/9",
+                },
+              ],
+            }),
+          },
+        );
+        const asset = await provider.getBinaryAsset({
+          name: "cli",
+          version: "2.1.0",
+          os: "linux",
+          arch: "x86_64",
+        });
+        assertEquals(asset.name, "cli-linux-x86_64-2.1.0.gz");
+        resetFetch();
+      },
+    });
+
+    await ctx.step({
+      name: "should throw when no asset is configured for the target",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: { "darwin-x86_64": "cli.tar.gz" },
+        });
+        await assertRejects(
+          () =>
+            provider.getBinaryAsset({
+              name: "cli",
+              version: "1.0.0",
+              os: "linux",
+              arch: "aarch64",
+            }),
+          AssetNotFoundError,
+          "linux-aarch64",
+        );
+      },
+    });
+
+    await ctx.step({
+      name: "should throw when the asset is missing from the release",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: { "darwin-x86_64": "cli-macos-amd64.tar.gz" },
+        });
+        mockFetch(
+          "https://api.github.com/repos/user/repo/releases/tags/1.0.0",
+          {
+            body: JSON.stringify({
+              assets: [
+                {
+                  name: "cli-linux-amd64.tar.gz",
+                  url:
+                    "https://api.github.com/repos/user/repo/releases/assets/2",
+                },
+              ],
+            }),
+          },
+        );
+        await assertRejects(
+          () =>
+            provider.getBinaryAsset({
+              name: "cli",
+              version: "1.0.0",
+              os: "darwin",
+              arch: "x86_64",
+            }),
+          AssetNotFoundError,
+          "cli-macos-amd64.tar.gz",
+        );
+        resetFetch();
+      },
+    });
+
+    await ctx.step({
+      name: "should send an auth header resolved from a token function",
+      async fn() {
+        const provider = new GithubProvider({
+          repository: "user/repo",
+          asset: { "darwin-x86_64": "cli.tar.gz" },
+          token: () => "secret-token",
+        });
+        mockFetch(
+          "https://api.github.com/repos/user/repo/releases/tags/1.0.0",
+          {
+            body: JSON.stringify({
+              assets: [
+                {
+                  name: "cli.tar.gz",
+                  url:
+                    "https://api.github.com/repos/user/repo/releases/assets/3",
+                },
+              ],
+            }),
+          },
+        );
+        const asset = await provider.getBinaryAsset({
+          name: "cli",
+          version: "1.0.0",
+          os: "darwin",
+          arch: "x86_64",
+        });
+        assertEquals(
+          new Headers(asset.headers).get("Authorization"),
+          "token secret-token",
+        );
+        resetFetch();
+      },
+    });
+
+    resetGlobalFetch();
+  },
+});
+
+test({
+  name: "GithubProvider.hasRequiredPermissions (cross-runtime)",
+  fn: async () => {
+    const provider = new GithubProvider({ repository: "user/repo" });
+    assertEquals(typeof await provider.hasRequiredPermissions(), "boolean");
   },
 });

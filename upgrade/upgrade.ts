@@ -1,5 +1,11 @@
 import { bold, brightBlue, dim, red } from "@std/fmt/colors";
+import { getArch } from "@cliffy/internal/runtime/get-arch";
+import { getOs } from "@cliffy/internal/runtime/get-os";
+import { isStandalone } from "@cliffy/internal/runtime/is-standalone";
 import { getRuntime } from "./get_runtime.ts";
+import { UnsupportedUpgradeError } from "./unsupported-upgrade-error.ts";
+import { installBinary } from "./install_binary.ts";
+import type { Provider } from "./provider.ts";
 import type { RuntimeUpgradeOptions } from "./runtime.ts";
 import type { DenoRuntimeOptions } from "./runtime/deno_runtime.ts";
 
@@ -29,6 +35,16 @@ export interface RuntimeOptionsMap {
 export interface UpgradeOptions extends RuntimeUpgradeOptions {
   /** Per-runtime overrides applied when the matching runtime is detected. */
   runtime?: RuntimeOptionsMap;
+  /**
+   * Force the install kind instead of auto-detecting it. Set to `true` when
+   * the cli is a compiled standalone binary.
+   */
+  standalone?: boolean;
+  /**
+   * Target install path for a binary upgrade. Defaults to the running
+   * executable (self-replace).
+   */
+  location?: string;
 }
 
 /**
@@ -70,7 +86,15 @@ export async function upgrade(
     options.logger?.log(dim("  - target version: %s"), options.to);
 
     try {
-      if (provider.upgrade) {
+      const standalone = options.standalone ?? isStandalone();
+
+      if (standalone) {
+        await upgradeBinary(provider, options);
+      } else if (!provider.supportsScriptUpgrade) {
+        throw new UnsupportedUpgradeError(
+          `Upgrading via a script is not supported by the "${provider.name}" registry.`,
+        );
+      } else if (provider.upgrade) {
         await provider.upgrade(options);
       } else {
         const { runtimeName, runtime } = await getRuntime();
@@ -93,13 +117,50 @@ export async function upgrade(
       throw error;
     }
 
-    options.logger?.info(
-      brightBlue(
+    if (options.logger) {
+      const message = brightBlue(
         `Successfully upgraded ${bold(options.name)} from version ${
           bold(options.from ?? "")
         } to ${bold(options.to)}!`,
-      ),
-      dim(`(${provider.getRepositoryUrl(options.name, options.to)})`),
+      );
+      const repositoryUrl = provider.getRepositoryUrl(
+        options.name,
+        options.to,
+      );
+      if (repositoryUrl) {
+        options.logger.info(message, dim(`(${repositoryUrl})`));
+      } else {
+        options.logger.info(message);
+      }
+    }
+  }
+}
+
+async function upgradeBinary(
+  provider: Provider,
+  options: Omit<UpgradeOptions, "provider">,
+): Promise<void> {
+  if (!provider.supportsBinaryUpgrade || !provider.getBinaryAsset) {
+    throw new UnsupportedUpgradeError(
+      `Upgrading a standalone executable is not supported by the "${provider.name}" registry.`,
     );
   }
+
+  const os = getOs();
+  const arch = getArch();
+  options.logger?.log(dim("  - target: %s-%s"), os, arch);
+
+  const asset = await provider.getBinaryAsset({
+    name: options.name,
+    version: options.to,
+    os,
+    arch,
+  });
+  options.logger?.log(dim("  - asset: %s"), asset.name);
+
+  await installBinary(asset, {
+    name: options.name,
+    location: options.location ?? provider.location,
+    logger: options.logger,
+  });
 }

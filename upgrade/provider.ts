@@ -1,4 +1,4 @@
-import { compare, parse } from "@std/semver";
+import { compare, tryParse } from "@std/semver";
 import { bold, brightBlue, cyan, green, red, yellow } from "@std/fmt/colors";
 import { Table } from "@cliffy/table";
 import type { Logger } from "./logger.ts";
@@ -36,6 +36,54 @@ export interface ProviderUpgradeOptions {
   force?: boolean;
   /** Log verbose output. */
   verbose?: boolean;
+}
+
+/** Build target a binary upgrade is resolved for. */
+export interface BinaryUpgradeContext {
+  /** Cli name. */
+  name: string;
+  /** Resolved target version (a concrete tag, never `latest`). */
+  version: string;
+  /** Normalized os, e.g. `darwin`, `linux`, `windows`. */
+  os: string;
+  /** Normalized arch, e.g. `x86_64`, `aarch64`. */
+  arch: string;
+}
+
+/** Extracts the binary bytes from a downloaded asset. */
+export type ExtractFn = (
+  bytes: Uint8Array,
+  asset: BinaryAsset,
+) => Uint8Array | Promise<Uint8Array>;
+
+/** A dot-prefixed filename extension, e.g. `.zip` or `.tar.gz`. */
+export type Extension = `.${string}`;
+
+/**
+ * Custom extractor(s), taking precedence over the built-in `.tar.gz`/`.tgz`/
+ * `.gz` handling.
+ *
+ * A single function overrides extraction for every asset. A record maps a
+ * filename extension (e.g. `.zip`) to its extractor, matched by longest suffix.
+ * Extensions it doesn't cover fall through to the built-ins.
+ */
+export type Extract = ExtractFn | Record<Extension, ExtractFn>;
+
+/** A downloadable release asset for the current build target. */
+export interface BinaryAsset {
+  /** Download url of the asset. */
+  url: string;
+  /** Asset filename. Its extension selects how the asset is unpacked. */
+  name: string;
+  /** Auth headers sent with the download request (e.g. for private repos). */
+  headers?: HeadersInit;
+  /**
+   * Name of the binary to extract when the asset is an archive. Defaults to
+   * the cli name.
+   */
+  binaryName?: string;
+  /** Custom extractor(s) for archive formats that aren't handled built-in. */
+  extract?: Extract;
 }
 
 /**
@@ -83,6 +131,33 @@ export abstract class Provider {
     this.logger = logger;
   }
 
+  /** Whether the provider can reinstall the cli as a script. */
+  get supportsScriptUpgrade(): boolean {
+    return true;
+  }
+
+  /**
+   * Whether the provider can upgrade a standalone binary by downloading a
+   * release asset. Providers opt in by overriding this getter and implementing
+   * {@link getBinaryAsset}.
+   */
+  get supportsBinaryUpgrade(): boolean {
+    return false;
+  }
+
+  /** Whether the provider can list versions. */
+  get supportsVersionListing(): boolean {
+    return true;
+  }
+
+  /**
+   * Default install location for a binary upgrade. Overridden by the upgrade
+   * command's `--output` flag or env var. Defaults to the running executable.
+   */
+  get location(): string | undefined {
+    return undefined;
+  }
+
   abstract hasRequiredPermissions(): Promise<boolean>;
 
   abstract getVersions(name: string): Promise<Versions>;
@@ -92,6 +167,9 @@ export abstract class Provider {
   abstract getRegistryUrl(name: string, version: string): string;
 
   upgrade?(options: ProviderUpgradeOptions): Promise<void>;
+
+  /** Resolve the release asset to download for the given build target. */
+  getBinaryAsset?(context: BinaryUpgradeContext): Promise<BinaryAsset>;
 
   getSpecifier(name: string, version: string, defaultMain?: string): string {
     return `${this.getRegistryUrl(name, version)}${this.getMain(defaultMain)}`;
@@ -199,13 +277,22 @@ export abstract class Provider {
     } = {},
   ): void {
     versions = versions
+      .slice()
       .sort((versionA, versionB) => {
-        const semverA = parse(versionA);
-        const semverB = parse(versionB);
+        const semverA = tryParse(versionA);
+        const semverB = tryParse(versionB);
 
-        return compare(semverB, semverA);
-      })
-      .slice();
+        if (semverA && semverB) {
+          return compare(semverB, semverA);
+        }
+        if (semverA) {
+          return -1;
+        }
+        if (semverB) {
+          return 1;
+        }
+        return versionA.localeCompare(versionB);
+      });
 
     if (versions?.length) {
       versions = versions.map((version: string) =>

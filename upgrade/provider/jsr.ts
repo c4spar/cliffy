@@ -1,4 +1,5 @@
 import { Provider, type ProviderOptions, type Versions } from "../provider.ts";
+import { hasPermission } from "@cliffy/internal/runtime/has-permission";
 
 type Semver =
   | `${number}.${number}.${number}`
@@ -41,13 +42,11 @@ export class JsrProvider extends Provider {
       : options.name;
   }
 
-  async hasRequiredPermissions(): Promise<boolean> {
-    const apiUrl = new URL(this.repositoryUrl);
-    const permissionStatus = await Deno.permissions.query({
+  hasRequiredPermissions(): Promise<boolean> {
+    return hasPermission({
       name: "net",
-      host: apiUrl.host,
+      host: new URL(this.repositoryUrl).host,
     });
-    return permissionStatus.state === "granted";
   }
 
   async getVersions(

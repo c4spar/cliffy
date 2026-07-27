@@ -1,0 +1,19 @@
+export const snapshot = {};
+
+snapshot[`should render GithubProvider listVersions output with branch metadata 1`] = `
+stdout:
+"
+  \\x1b[1m\\x1b[94mTags:
+\\x1b[39m\\x1b[22m
+    1.0.1
+    1.0.0
+
+  \\x1b[1m\\x1b[94mBranches:
+\\x1b[39m\\x1b[22m
+    condition
+    main (\\x1b[1mProtected\\x1b[22m)
+
+"
+stderr:
+""
+`;
