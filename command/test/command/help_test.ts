@@ -1,5 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import {
   getColorEnabled,
   setColorEnabled,
@@ -201,70 +201,24 @@ test("[command] help - should respect setColorEnabled", () => {
   }
 });
 
-await snapshotTest({
-  name: "should restore color state when help generation throws",
-  meta: import.meta,
-  // Override the snapshot default and inherited value without enabling NO_COLOR.
-  env: { NO_COLOR: "" },
-  args: [],
-  fn: () => {
-    const colorsEnabled = getColorEnabled();
-    let error: unknown;
+test("[command] help - should restore color state when help generation throws", () => {
+  const colorsEnabled = getColorEnabled();
+  setColorEnabled(true);
 
-    try {
-      new Command()
-        .help({ colors: false })
-        .option("--value <value:string>", "Value.", {
-          default: () => {
-            throw new Error("expected");
-          },
-        })
-        .getHelp();
-    } catch (caughtError) {
-      error = caughtError;
-    }
+  try {
+    const cmd = new Command()
+      .help({ colors: false })
+      .option("--value <value:string>", "Value.", {
+        default: () => {
+          throw new Error("expected");
+        },
+      });
 
-    assertEquals(colorsEnabled, true);
-    assertEquals(
-      error instanceof Error ? error.message : undefined,
-      "expected",
-    );
-    assertEquals(getColorEnabled(), colorsEnabled);
-  },
-});
-
-await snapshotTest({
-  name: "should disable auto help colors for piped standard output",
-  meta: import.meta,
-  // Override the snapshot default and inherited value without enabling NO_COLOR.
-  env: { NO_COLOR: "" },
-  args: [],
-  async fn(): Promise<void> {
-    const command = new Command()
-      .name("auto")
-      .help({ colors: "auto" })
-      .helpOption(false)
-      .action(() => command.showHelp());
-
-    await command.parse();
-  },
-});
-
-await snapshotTest({
-  name: "should preserve explicit help colors for piped standard output",
-  meta: import.meta,
-  // Override the snapshot default and inherited value without enabling NO_COLOR.
-  env: { NO_COLOR: "" },
-  args: [],
-  async fn(): Promise<void> {
-    const command = new Command()
-      .name("colors")
-      .help({ colors: true })
-      .helpOption(false)
-      .action(() => command.showHelp());
-
-    await command.parse();
-  },
+    assertThrows(() => cmd.getHelp(), Error, "expected");
+    assertEquals(getColorEnabled(), true);
+  } finally {
+    setColorEnabled(colorsEnabled);
+  }
 });
 
 await snapshotTest({

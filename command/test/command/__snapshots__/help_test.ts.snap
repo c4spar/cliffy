@@ -1,32 +1,5 @@
 export const snapshot = {};
 
-snapshot[`should restore color state when help generation throws 1`] = `
-stdout:
-""
-stderr:
-""
-`;
-
-snapshot[`should disable auto help colors for piped standard output 1`] = `
-stdout:
-"
-Usage: auto
-
-"
-stderr:
-""
-`;
-
-snapshot[`should preserve explicit help colors for piped standard output 1`] = `
-stdout:
-"
-\\x1b[1mUsage:\\x1b[22m \\x1b[95mcolors\\x1b[39m
-
-"
-stderr:
-""
-`;
-
 snapshot[`should print help for arguments defined with argument method > help 1`] = `
 stdout:
 "

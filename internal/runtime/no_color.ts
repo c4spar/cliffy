@@ -13,7 +13,7 @@ export function getNoColor(): boolean {
     return Deno.noColor;
   } else if (process) {
     return Boolean(process?.env.NO_COLOR) ||
-      process?.env.NODE_DISABLE_COLORS === "1";
+      Boolean(process?.env.NODE_DISABLE_COLORS);
   }
 
   throw new Error("unsupported runtime");

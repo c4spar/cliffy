@@ -40,8 +40,12 @@ export interface HelpOptions {
   /**
    * Configure colored output.
    *
-   * Use `"auto"` to enable colors only when colors are globally enabled,
-   * `NO_COLOR` is not set, and standard output is a TTY.
+   * Colors are always disabled when the `NO_COLOR` or `NODE_DISABLE_COLORS`
+   * environment variable is set to a non-empty value, regardless of this
+   * option.
+   *
+   * Use `"auto"` to enable colors only when colors are globally enabled and
+   * standard output is a TTY.
    *
    * `"auto"` will become the default in 2.0.
    */
