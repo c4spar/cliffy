@@ -30,6 +30,7 @@
     "./runtime/stat": "./runtime/stat.ts",
     "./runtime/write-file": "./runtime/write_file.ts",
     "./runtime/write-sync": "./runtime/write_sync.ts",
-    "./testing/test": "./testing/test/mod.ts"
+    "./testing/test": "./testing/test/mod.ts",
+    "./testing/with-env": "./testing/with_env.ts"
   }
 }

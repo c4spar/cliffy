@@ -2,7 +2,7 @@ import { test } from "@cliffy/internal/testing/test";
 import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { assertType, type IsExact } from "@std/testing/types";
 import { Command } from "../../command.ts";
-import { withEnv } from "../_utils.ts";
+import { withEnv } from "@cliffy/internal/testing/with-env";
 
 function command() {
   return new Command().noExit();

@@ -8,7 +8,7 @@ import {
 } from "@std/assert";
 import { stripAnsiCode } from "@std/fmt/colors";
 import { Command } from "../../command.ts";
-import { withEnv } from "../_utils.ts";
+import { withEnv } from "@cliffy/internal/testing/with-env";
 
 function command() {
   return new Command().noExit();
