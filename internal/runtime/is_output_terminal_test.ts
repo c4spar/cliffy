@@ -4,7 +4,7 @@ import { fakeOutputTerminal } from "../testing/fake_output_terminal.ts";
 import { isOutputTerminal } from "./is_output_terminal.ts";
 
 test("should detect a terminal standard output", () => {
-  const restore = fakeOutputTerminal(true);
+  const restore = fakeOutputTerminal({ isTerminal: true });
 
   try {
     assertEquals(isOutputTerminal(), true);
@@ -14,7 +14,7 @@ test("should detect a terminal standard output", () => {
 });
 
 test("should detect a non-terminal standard output", () => {
-  const restore = fakeOutputTerminal(false);
+  const restore = fakeOutputTerminal({ isTerminal: false });
 
   try {
     assertEquals(isOutputTerminal(), false);

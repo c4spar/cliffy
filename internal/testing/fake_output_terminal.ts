@@ -17,14 +17,26 @@ const terminalProperties: Record<RuntimeName, keyof Output> = {
 };
 
 /**
+ * Options for the faked standard output.
+ *
+ * @internal
+ */
+export interface FakeOutputTerminalOptions {
+  /** Whether the standard output should be treated as a TTY. */
+  isTerminal: boolean;
+}
+
+/**
  * Overrides the runtime's terminal check for the standard output.
  *
- * @param isTerminal Whether the standard output should be treated as a TTY.
+ * @param options Options for the faked standard output.
  * @returns A function that restores the original terminal check.
  *
  * @internal
  */
-export function fakeOutputTerminal(isTerminal: boolean): () => void {
+export function fakeOutputTerminal(
+  { isTerminal }: FakeOutputTerminalOptions,
+): () => void {
   const runtime = getRuntimeName();
   const output = runtime === "deno"
     ? runtimeGlobals.Deno.stdout

@@ -19,7 +19,7 @@ const commands: Record<string, Command> = {
 const [name, output] = getArgs();
 
 if (output === "terminal") {
-  fakeOutputTerminal(true);
+  fakeOutputTerminal({ isTerminal: true });
 }
 
 console.log(commands[name].getHelp());
