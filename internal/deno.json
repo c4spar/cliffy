@@ -14,6 +14,7 @@
     "./runtime/has-permission": "./runtime/has_permission.ts",
     "./runtime/inspect": "./runtime/inspect.ts",
     "./runtime/is-directory": "./runtime/is_directory.ts",
+    "./runtime/is-output-terminal": "./runtime/is_output_terminal.ts",
     "./runtime/is-standalone": "./runtime/is_standalone.ts",
     "./runtime/is-terminal": "./runtime/is_terminal.ts",
     "./runtime/mkdir": "./runtime/mkdir.ts",
@@ -29,6 +30,7 @@
     "./runtime/stat": "./runtime/stat.ts",
     "./runtime/write-file": "./runtime/write_file.ts",
     "./runtime/write-sync": "./runtime/write_sync.ts",
-    "./testing/test": "./testing/test/mod.ts"
+    "./testing/test": "./testing/test/mod.ts",
+    "./testing/with-env": "./testing/with_env.ts"
   }
 }

@@ -1,5 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import {
   getColorEnabled,
   setColorEnabled,
@@ -196,6 +196,26 @@ test("[command] help - should respect setColorEnabled", () => {
 
     const help = cmd.getHelp();
     assertEquals(help, stripAnsiCode(help));
+  } finally {
+    setColorEnabled(colorsEnabled);
+  }
+});
+
+test("[command] help - should restore color state when help generation throws", () => {
+  const colorsEnabled = getColorEnabled();
+  setColorEnabled(true);
+
+  try {
+    const cmd = new Command()
+      .help({ colors: false })
+      .option("--value <value:string>", "Value.", {
+        default: () => {
+          throw new Error("expected");
+        },
+      });
+
+    assertThrows(() => cmd.getHelp(), Error, "expected");
+    assertEquals(getColorEnabled(), true);
   } finally {
     setColorEnabled(colorsEnabled);
   }
