@@ -15,11 +15,11 @@ import { setEnv } from "../runtime/set_env.ts";
  *
  * @internal
  */
-export function withEnv(
+export function withEnv<TArgs extends Array<unknown>>(
   vars: Record<string, string>,
-  fn: () => Promise<void> | void,
-): () => Promise<void> {
-  return async () => {
+  fn: (...args: TArgs) => Promise<void> | void,
+): (...args: TArgs) => Promise<void> {
+  return async (...args: TArgs) => {
     const names = Object.keys(vars);
     const previousValues: Record<string, string | undefined> = Object
       .fromEntries(names.map((name) => [name, getEnv(name)]));
@@ -29,7 +29,7 @@ export function withEnv(
     }
 
     try {
-      await fn();
+      await fn(...args);
     } finally {
       for (const name of names) {
         const previousValue = previousValues[name];

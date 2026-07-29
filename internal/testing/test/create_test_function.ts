@@ -1,6 +1,7 @@
 import { yellow } from "@std/fmt/colors";
 import type { TestFn, TestOptions } from "./test_options.ts";
 import { getRuntimeName } from "../../runtime/runtime_name.ts";
+import { withEnv } from "../with_env.ts";
 
 export interface GenericTestFunction<T> {
   (testOptions: TestOptions): T;
@@ -20,15 +21,20 @@ export function createTestFunction<T>(
         fn: nameOrOptionsOrFn,
       });
     }
+    const options = nameOrOptionsOrFn;
 
     if (
-      Array.isArray(nameOrOptionsOrFn.ignore)
-        ? nameOrOptionsOrFn.ignore.includes(getRuntimeName())
-        : nameOrOptionsOrFn.ignore
+      Array.isArray(options.ignore)
+        ? options.ignore.includes(getRuntimeName())
+        : options.ignore
     ) {
-      console.warn(yellow("skip: %s"), nameOrOptionsOrFn);
+      console.warn(yellow("skip: %s"), options);
     }
 
-    return runTest(nameOrOptionsOrFn);
+    return runTest(
+      options.env
+        ? { ...options, fn: withEnv(options.env, options.fn) }
+        : options,
+    );
   };
 }

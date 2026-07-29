@@ -5,6 +5,8 @@ export interface TestOptions {
   fn: TestFn;
   ignore?: boolean | Array<RuntimeName>;
   only?: boolean;
+  /** Environment variables set for the duration of the test. */
+  env?: Record<string, string>;
 }
 
 export interface TestFn {
