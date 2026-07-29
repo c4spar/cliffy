@@ -1,19 +1,18 @@
 // deno-lint-ignore-file no-explicit-any
 
 /**
- * Checks if colors are disabled.
+ * Checks if the standard output is a TTY.
  *
  * @internal
  */
-export function getNoColor(): boolean {
+export function isOutputTerminal(): boolean {
   // dnt-shim-ignore
   const { Deno, process } = globalThis as any;
 
   if (Deno) {
-    return Deno.noColor;
+    return Deno.stdout.isTerminal();
   } else if (process) {
-    return Boolean(process?.env.NO_COLOR) ||
-      process?.env.NODE_DISABLE_COLORS === "1";
+    return process.stdout.isTTY === true;
   }
 
   throw new Error("unsupported runtime");

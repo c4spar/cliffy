@@ -13,6 +13,8 @@ import {
 } from "@std/fmt/colors";
 import { getColumns } from "@cliffy/internal/runtime/get-columns";
 import { inspect } from "@cliffy/internal/runtime/inspect";
+import { isOutputTerminal } from "@cliffy/internal/runtime/is-output-terminal";
+import { getNoColor } from "@cliffy/internal/runtime/no-color";
 import {
   dedent,
   getDescription,
@@ -29,14 +31,32 @@ import type {
   TypeHandler,
 } from "../types.ts";
 
+/** Options for generated command help. */
 export interface HelpOptions {
+  /** Show argument and option type names. */
   types?: boolean;
+  /** Show option and argument hints. */
   hints?: boolean;
-  colors?: boolean;
+  /**
+   * Configure colored output.
+   *
+   * Use `"auto"` to enable colors only when colors are globally enabled,
+   * `NO_COLOR` is not set, and standard output is a TTY.
+   *
+   * `"auto"` will become the default in 2.0.
+   */
+  colors?: boolean | "auto";
+  /** Show full descriptions. */
   long?: boolean;
+  /** Set the output width. */
   width?: number;
+  /** Limit the output width. */
   maxWidth?: number;
 }
+
+type ResolvedHelpOptions = Required<Omit<HelpOptions, "colors">> & {
+  colors: boolean;
+};
 
 interface OptionGroup {
   name?: string;
@@ -46,7 +66,7 @@ interface OptionGroup {
 /** Help text generator. */
 export class HelpGenerator {
   private indent = 2;
-  private options: Required<HelpOptions>;
+  private options: ResolvedHelpOptions;
 
   /** Generate help text for given command. */
   public static generate(cmd: Command, options?: HelpOptions): string {
@@ -55,37 +75,37 @@ export class HelpGenerator {
 
   private constructor(
     private cmd: Command,
-    options: HelpOptions = {},
+    { colors = getColorEnabled(), ...helpOptions }: HelpOptions = {},
   ) {
     this.options = {
       types: false,
       hints: true,
-      colors: getColorEnabled(),
+      colors: isColorsEnabled(colors),
       long: false,
       width: getColumns() ?? 150,
       maxWidth: Infinity,
-      ...options,
+      ...helpOptions,
     };
 
     this.options.width = Math.min(this.options.width, this.options.maxWidth);
   }
 
   private generate(): string {
-    const areColorsEnabled = getColorEnabled();
+    const colorsEnabled = getColorEnabled();
     setColorEnabled(this.options.colors);
 
-    const result = this.generateHeader() +
-      this.generateMeta() +
-      this.generateDescription() +
-      this.generateArguments() +
-      this.generateOptions() +
-      this.generateCommands() +
-      this.generateEnvironmentVariables() +
-      this.generateExamples();
-
-    setColorEnabled(areColorsEnabled);
-
-    return result;
+    try {
+      return this.generateHeader() +
+        this.generateMeta() +
+        this.generateDescription() +
+        this.generateArguments() +
+        this.generateOptions() +
+        this.generateCommands() +
+        this.generateEnvironmentVariables() +
+        this.generateExamples();
+    } finally {
+      setColorEnabled(colorsEnabled);
+    }
   }
 
   private generateHeader(): string {
@@ -438,6 +458,14 @@ export class HelpGenerator {
   private label(label: string): string {
     return "\n" + bold(`${label}:`) + "\n\n";
   }
+}
+
+function isColorsEnabled(colors: boolean | "auto"): boolean {
+  if (getNoColor()) {
+    return false;
+  }
+
+  return colors === "auto" ? getColorEnabled() && isOutputTerminal() : colors;
 }
 
 /**
