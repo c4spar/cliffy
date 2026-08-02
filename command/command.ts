@@ -1735,7 +1735,8 @@ export class Command<
       TRequired,
       TDefaultValue,
       TConflicts,
-      TEnabled
+      TEnabled,
+      TEnv
     >,
     TMappedGlobalOptions extends MapValue<
       TGlobalOptions,
@@ -1746,6 +1747,7 @@ export class Command<
     TCollect extends OptionOptions["collect"] = undefined,
     TConflicts extends OptionOptions["conflicts"] = undefined,
     TEnabled extends OptionOptions["enabled"] = undefined,
+    const TEnv extends OptionOptions["env"] = undefined,
     const TDefaultValue = undefined,
     TMappedValue = undefined,
   >(
@@ -1772,6 +1774,7 @@ export class Command<
           required?: TRequired;
           collect?: TCollect;
           enabled?: TEnabled;
+          env?: TEnv;
           value?: OptionValueHandler<
             MapTypes<ValueOf<TGlobalOptions>>,
             TMappedValue
@@ -1818,7 +1821,8 @@ export class Command<
       TRequired,
       TDefaultValue,
       TConflicts,
-      TEnabled
+      TEnabled,
+      TEnv
     >,
     TMappedGlobalOptions extends MapValue<
       TGlobalOptions,
@@ -1829,6 +1833,7 @@ export class Command<
     TCollect extends OptionOptions["collect"] = undefined,
     TConflicts extends OptionOptions["conflicts"] = undefined,
     TEnabled extends OptionOptions["enabled"] = undefined,
+    const TEnv extends OptionOptions["env"] = undefined,
     const TDefaultValue = undefined,
     TMappedValue = undefined,
   >(
@@ -1856,6 +1861,7 @@ export class Command<
           required?: TRequired;
           collect?: TCollect;
           enabled?: TEnabled;
+          env?: TEnv;
           value?: OptionValueHandler<
             MapTypes<ValueOf<TGlobalOptions>>,
             TMappedValue
@@ -1889,13 +1895,15 @@ export class Command<
       TRequired,
       TDefaultValue,
       TConflicts,
-      TEnabled
+      TEnabled,
+      TEnv
     >,
     TMappedOptions extends MapValue<TOptions, TMappedValue, TCollect>,
     TRequired extends OptionOptions["required"] = undefined,
     TCollect extends OptionOptions["collect"] = undefined,
     TConflicts extends OptionOptions["conflicts"] = undefined,
     TEnabled extends OptionOptions["enabled"] = undefined,
+    const TEnv extends OptionOptions["env"] = undefined,
     const TDefaultValue = undefined,
     TMappedValue = undefined,
   >(
@@ -1923,6 +1931,7 @@ export class Command<
           collect?: TCollect;
           conflicts?: TConflicts;
           enabled?: TEnabled;
+          env?: TEnv;
           value?: OptionValueHandler<MapTypes<ValueOf<TOptions>>, TMappedValue>;
         }
       | OptionValueHandler<MapTypes<ValueOf<TOptions>>, TMappedValue>,
@@ -2029,7 +2038,12 @@ export class Command<
           "separately with the `env` method.",
       );
     }
-    const details: Array<Argument> = option.args.length
+    const envType: string | undefined = typeof option.env === "object"
+      ? option.env.type
+      : undefined;
+    const details: Array<Argument> = envType
+      ? parseArgumentsDefinition(`<value:${envType}>`)
+      : option.args.length
       ? option.args
       : parseArgumentsDefinition("<value:boolean>");
 

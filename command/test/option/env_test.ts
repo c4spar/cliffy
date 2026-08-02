@@ -6,6 +6,7 @@ import {
   assertStringIncludes,
   assertThrows,
 } from "@std/assert";
+import { assertType, type IsExact } from "@std/testing/types";
 import { stripAnsiCode } from "@std/fmt/colors";
 import { Command } from "../../command.ts";
 import { withEnv } from "@cliffy/internal/testing/with-env";
@@ -328,4 +329,88 @@ test("should throw when the derived env var name is already registered", () => {
     Error,
     `Environment variable with name "FOO" already exists.`,
   );
+});
+
+test(
+  "should read the env var of an option as the type of the `type` option",
+  withEnv({ NO_COLOR: "whatever" }, async () => {
+    const { options } = await command()
+      .option("--no-color", "...", { env: { type: "presence" } })
+      .parse([]);
+
+    assertEquals(options, { color: false });
+  }),
+);
+
+test(
+  "should not parse the value of a presence typed env var",
+  withEnv({ NO_COLOR: "false" }, async () => {
+    const { options } = await command()
+      .option("--no-color", "...", { env: { type: "presence" } })
+      .parse([]);
+
+    assertEquals(options, { color: false });
+  }),
+);
+
+test("should keep the option itself valueless when the env type is set", async () => {
+  await assertRejects(
+    () =>
+      command()
+        .throwErrors()
+        .option("--no-color", "...", { env: { type: "presence" } })
+        .parse(["--no-color=true"]),
+    Error,
+    `Option "--no-color" doesn't take a value, but got "true".`,
+  );
+});
+
+test(
+  "should combine the `type` and `prefix` env options",
+  withEnv({ MYCLI_NO_CACHE: "1" }, async () => {
+    const { options } = await command()
+      .option("--no-cache", "...", {
+        env: { prefix: "MYCLI_", type: "presence" },
+      })
+      .parse([]);
+
+    assertEquals(options, { cache: false });
+  }),
+);
+
+test(
+  "should read the env var of an option with any type",
+  withEnv({ PORT: "80" }, async () => {
+    const { options } = await command()
+      .option("--port <port:string>", "...", { env: { type: "number" } })
+      .parse([]);
+
+    assertEquals(options, { port: 80 });
+  }),
+);
+
+test("should infer the value of the env type", async () => {
+  const { options } = await command()
+    .option("--port <port:string>", "...", { env: { type: "number" } })
+    .parse([]);
+
+  assertType<
+    IsExact<typeof options, { port?: string | number | undefined }>
+  >(true);
+});
+
+test("should not widen the option type for a matching env type", async () => {
+  const { options } = await command()
+    .option("--no-color", "...", { env: { type: "presence" } })
+    .parse([]);
+
+  assertType<IsExact<typeof options, { color: boolean }>>(true);
+});
+
+test("should not widen the option type without an env type", async () => {
+  const { options } = await command()
+    .option("--cache <dir:string>", "...", { env: true })
+    .parse([]);
+
+  assertType<IsExact<typeof options, { cache?: string | undefined }>>(true);
 });

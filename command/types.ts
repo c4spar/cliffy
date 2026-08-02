@@ -308,8 +308,11 @@ export interface GlobalOptionOptions<
    * - A string sets the name explicitly (`{ env: "DENO_INSTALL_ROOT" }`).
    * - `{ prefix }` prepends a prefix to the derived name
    *   (`{ prefix: "DENO_" }` -> `DENO_INSTALL_ROOT`).
+   * - `{ type }` reads the variable as the given type instead of the type of
+   *   the option, for example `{ type: "presence" }` for a variable that only
+   *   signals something by being set.
    */
-  env?: boolean | string | { prefix: string };
+  env?: boolean | string | { prefix?: string; type?: string };
 }
 
 export interface OptionOptions<
