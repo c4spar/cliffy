@@ -102,6 +102,7 @@ export { EnumType } from "./types/enum.ts";
 export { FileType } from "./types/file.ts";
 export { IntegerType } from "./types/integer.ts";
 export { NumberType } from "./types/number.ts";
+export { PresenceType } from "./types/presence.ts";
 export { SecretType } from "./types/secret.ts";
 export { StringType } from "./types/string.ts";
 export { type InferType, Type } from "./type.ts";

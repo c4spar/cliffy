@@ -12,6 +12,7 @@ import type { BooleanType } from "./types/boolean.ts";
 import type { FileType } from "./types/file.ts";
 import type { IntegerType } from "./types/integer.ts";
 import type { NumberType } from "./types/number.ts";
+import type { PresenceType } from "./types/presence.ts";
 import type { SecretType } from "./types/secret.ts";
 import type { StringType } from "./types/string.ts";
 
@@ -21,6 +22,7 @@ type DefaultTypes = {
   string: StringType;
   boolean: BooleanType;
   file: FileType;
+  presence: PresenceType;
   secret: SecretType;
 };
 
