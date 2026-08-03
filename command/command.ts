@@ -96,6 +96,7 @@ import { BooleanType } from "./types/boolean.ts";
 import { FileType } from "./types/file.ts";
 import { IntegerType } from "./types/integer.ts";
 import { NumberType } from "./types/number.ts";
+import { PresenceType } from "./types/presence.ts";
 import { SecretType } from "./types/secret.ts";
 import { StringType } from "./types/string.ts";
 import { checkVersion } from "./upgrade/_check_version.ts";
@@ -2034,7 +2035,7 @@ export class Command<
 
     const negatable = option.name.startsWith("no-");
 
-    if (negatable && details[0].type !== "boolean") {
+    if (negatable && !isBooleanType(details[0].type)) {
       throw new UnsupportedOptionEnvVarError(
         flag,
         "negatable options with a non-boolean value are not supported.",
@@ -2263,10 +2264,10 @@ export class Command<
     }
 
     if (options?.negatable) {
-      if (details[0].type !== "boolean") {
+      if (!isBooleanType(details[0].type)) {
         throw new InvalidNegatableEnvVarError(
           name,
-          `must have a value of type "boolean"`,
+          `must have a value of type "boolean" or "presence"`,
         );
       }
       const notNegated = result.flags.find((envName) =>
@@ -2551,6 +2552,8 @@ export class Command<
       this.type("boolean", new BooleanType(), { global: true });
     !this.builder.types.has("file") &&
       this.type("file", new FileType(), { global: true });
+    !this.builder.types.has("presence") &&
+      this.type("presence", new PresenceType(), { global: true });
     !this.builder.types.has("secret") &&
       this.type("secret", new SecretType(), { global: true });
 
@@ -3830,6 +3833,10 @@ export class Command<
   private isAutoHelpEnabled(): boolean {
     return this.settings.autoHelp ?? this.parent?.isAutoHelpEnabled() ?? true;
   }
+}
+
+function isBooleanType(type: string | undefined): boolean {
+  return type === "boolean" || type === "presence";
 }
 
 function findFlag(flags: Array<string>): string {

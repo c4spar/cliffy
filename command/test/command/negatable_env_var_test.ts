@@ -223,7 +223,7 @@ test("should throw when a negatable env var is not of type boolean", () => {
   assertThrows(
     () => command().env("NO_PROXY=<value:string>", "...", { negatable: true }),
     Error,
-    `A negatable environment variable must have a value of type "boolean", but "NO_PROXY=<value:string>" does not.`,
+    `A negatable environment variable must have a value of type "boolean" or "presence", but "NO_PROXY=<value:string>" does not.`,
   );
 });
 
