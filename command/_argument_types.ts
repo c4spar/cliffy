@@ -220,7 +220,43 @@ export type TypedCommandArguments<TNameAndArguments extends string, TTypes> =
       ? TypedArguments<TFlags, TTypes>
     : [];
 
+export type EnvValue<
+  TEnv,
+  TCustomTypes,
+  TTypes = Merge<DefaultTypes, TCustomTypes>,
+> = TEnv extends { type: infer TName extends string }
+  ? TTypes extends Record<TName, infer TValue> ? MapTypes<TValue> : unknown
+  : never;
+
+/** Add the value of a linked environment variable to an option. */
+export type WithEnvValue<TOption, TEnvValue> = [TEnvValue] extends [never]
+  ? TOption
+  : 0 extends (1 & TOption) ? TOption
+  : { [Key in keyof TOption]: TOption[Key] | TEnvValue };
+
 export type TypedOption<
+  TFlags extends string,
+  TOptions,
+  TTypes,
+  TRequired extends boolean | undefined = undefined,
+  TDefault = undefined,
+  TConflicts = undefined,
+  TEnabled extends boolean | undefined = undefined,
+  TEnv = undefined,
+> = WithEnvValue<
+  TypedOptionValue<
+    TFlags,
+    TOptions,
+    TTypes,
+    TRequired,
+    TDefault,
+    TConflicts,
+    TEnabled
+  >,
+  EnvValue<TEnv, TTypes>
+>;
+
+type TypedOptionValue<
   TFlags extends string,
   TOptions,
   TTypes,
