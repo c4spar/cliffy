@@ -184,7 +184,6 @@ test("should throw on missing required argument", async () => {
 
 test("should not throw on missing required argument if a standalone option is used", async () => {
   const command = new Command()
-    .throwErrors()
     .noExit()
     .version("1.0.0")
     .argument("<foo:string>", "...")
@@ -198,7 +197,6 @@ test("should not throw on missing required argument if a standalone option is us
 
 test("should not throw on missing required argument if the help option is used", async () => {
   const command = new Command()
-    .throwErrors()
     .noExit()
     .argument("<foo:string>", "...")
     .argument("[bar:string]", "...", { default: "baz" });
