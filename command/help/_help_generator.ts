@@ -12,7 +12,7 @@ import {
   yellow,
 } from "@std/fmt/colors";
 import { getColumns } from "@cliffy/internal/runtime/get-columns";
-import { inspect } from "@cliffy/internal/runtime/inspect";
+import { formatValue } from "./format_value.ts";
 import { isOutputTerminal } from "@cliffy/internal/runtime/is-output-terminal";
 import { getNoColor } from "@cliffy/internal/runtime/no-color";
 import {
@@ -403,7 +403,7 @@ export class HelpGenerator {
 
       if (typeof defaultText !== "undefined") {
         hints.push(
-          bold(`Default: `) + inspect(defaultText, this.options.colors),
+          bold(`Default: `) + formatValue(defaultText),
         );
       }
     }
@@ -445,9 +445,9 @@ export class HelpGenerator {
       if (possibleValues?.length) {
         hints.push(
           bold(`Values: `) +
-            possibleValues.map((value: unknown) =>
-              inspect(value, this.options.colors)
-            ).join(", "),
+            possibleValues.map((value: unknown) => formatValue(value)).join(
+              ", ",
+            ),
         );
       }
     }

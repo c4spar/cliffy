@@ -12,7 +12,6 @@
     "./runtime/get-exec-path": "./runtime/get_exec_path.ts",
     "./runtime/get-os": "./runtime/get_os.ts",
     "./runtime/has-permission": "./runtime/has_permission.ts",
-    "./runtime/inspect": "./runtime/inspect.ts",
     "./runtime/is-directory": "./runtime/is_directory.ts",
     "./runtime/is-output-terminal": "./runtime/is_output_terminal.ts",
     "./runtime/is-standalone": "./runtime/is_standalone.ts",
@@ -31,6 +30,7 @@
     "./runtime/write-file": "./runtime/write_file.ts",
     "./runtime/write-sync": "./runtime/write_sync.ts",
     "./testing/test": "./testing/test/mod.ts",
+    "./testing/with-colors": "./testing/with_colors.ts",
     "./testing/with-env": "./testing/with_env.ts"
   }
 }
