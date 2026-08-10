@@ -227,7 +227,7 @@ export function parseFlags<
   validateOptions(opts);
   const options = parseArgs(ctx, args, opts);
   validateFlags(ctx, opts, options);
-  validateArguments(ctx, opts, options);
+  validateArguments(ctx, opts);
 
   if (opts.dotted) {
     parseDottedOptions(ctx);
@@ -813,7 +813,6 @@ function parseDefaultType({
 function validateArguments<TOptions extends FlagOptions = FlagOptions>(
   ctx: ParseFlagsContext<Record<string, unknown>>,
   opts: ParseFlagsOptions<TOptions>,
-  options: Map<string, FlagOptions> = new Map(),
 ) {
   if (!opts.args?.length) {
     return;
@@ -827,14 +826,8 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
         expectedArg.name ?? `arg[${opts.args?.indexOf(expectedArg)}]`
       );
 
-    if (required.length) {
-      const hasStandaloneOption = [...options.keys()].some((name) =>
-        opts.flags && getOption(opts.flags, name)?.standalone
-      );
-
-      if (!hasStandaloneOption) {
-        throw new MissingArgumentsError(required);
-      }
+    if (required.length && !ctx.standalone) {
+      throw new MissingArgumentsError(required);
     }
   } else {
     ctx.args ??= [];
@@ -864,6 +857,11 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
         if (expectedArg.optional) {
           continue;
         }
+
+        if (ctx.standalone) {
+          return;
+        }
+
         throw new MissingArgumentError(expectedArg.name ?? `arg[${index}]`);
       }
 

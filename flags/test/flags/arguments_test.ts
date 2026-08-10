@@ -180,3 +180,15 @@ test("should suppress missing args error when standalone option is present", () 
   assertEquals(flags, { help: true });
   assertEquals(args, undefined);
 });
+
+test("should suppress missing args error when standalone option is present and an arg has a default value", () => {
+  const { flags, args } = parseFlags(["--help"], {
+    flags: [{ name: "help", standalone: true }],
+    args: [
+      { type: "string", name: "input" },
+      { type: "string", name: "output", optional: true, default: "out.txt" },
+    ],
+  });
+  assertEquals(flags, { help: true });
+  assertEquals(args, []);
+});
