@@ -182,6 +182,33 @@ test("should throw on missing required argument", async () => {
   );
 });
 
+test("should not throw on missing required argument if a standalone option is used", async () => {
+  const command = new Command()
+    .throwErrors()
+    .noExit()
+    .version("1.0.0")
+    .argument("<foo:string>", "...")
+    .argument("[bar:string]", "...", { default: "baz" });
+
+  const { options, args } = await command.parse(["--version"]);
+
+  assertEquals<unknown>(options, { version: true });
+  assertEquals<unknown>(args, []);
+});
+
+test("should not throw on missing required argument if the help option is used", async () => {
+  const command = new Command()
+    .throwErrors()
+    .noExit()
+    .argument("<foo:string>", "...")
+    .argument("[bar:string]", "...", { default: "baz" });
+
+  const { options, args } = await command.parse(["--help"]);
+
+  assertEquals<unknown>(options, { help: true });
+  assertEquals<unknown>(args, []);
+});
+
 test("should throw on invalid argument type", async () => {
   const command = new Command()
     .throwErrors()
