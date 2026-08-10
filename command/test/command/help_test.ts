@@ -183,6 +183,68 @@ test({
   },
 });
 
+test({
+  name: "[command] help - should show default value hints for arguments",
+  ignore: ["node"],
+  fn: () => {
+    const cmd = new Command()
+      .throwErrors()
+      .help({ colors: false })
+      .argument("<foo:string>", "Foo description.")
+      .argument("[bar:string]", "Bar description.", { default: "beep" })
+      .argument("[baz:number]", "Baz description.", {
+        default: 2,
+        defaultText: "two",
+      })
+      .argument("[...qux:string]", "Qux description.", { default: ["boop"] });
+
+    assertEquals(
+      cmd.getHelp(),
+      `
+Usage: COMMAND <foo> [bar] [baz] [qux...]
+
+Arguments:
+
+  <foo>     - Foo description.  (required)           
+  [bar]     - Bar description.  (Default: "beep")    
+  [baz]     - Baz description.  (Default: "two")     
+  [qux...]  - Qux description.  (Default: [ "boop" ])
+
+Options:
+
+  -h, --help  - Show this help.  
+`,
+    );
+  },
+});
+
+test({
+  name:
+    "[command] help - should use the default text of the argument type for arguments",
+  ignore: ["node"],
+  fn: () => {
+    const cmd = new Command()
+      .throwErrors()
+      .help({ colors: false })
+      .argument("[token:secret]", "Token description.", { default: "abc" });
+
+    assertEquals(
+      cmd.getHelp(),
+      `
+Usage: COMMAND [token]
+
+Arguments:
+
+  [token]  - Token description.  (Default: "******")
+
+Options:
+
+  -h, --help  - Show this help.  
+`,
+    );
+  },
+});
+
 test("[command] help - should respect setColorEnabled", () => {
   const colorsEnabled = getColorEnabled();
   setColorEnabled(false);
