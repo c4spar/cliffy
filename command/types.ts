@@ -147,6 +147,12 @@ export interface Argument extends ArgumentOptions {
   description?: string;
   /** Raw argument definition. */
   raw: string;
+  /**
+   * Default display text or a callback method that returns the default display
+   * text. The default display text is used in the help output instead of the
+   * stringified default value.
+   */
+  defaultText?: DefaultText;
 }
 
 /** Result of `cmd.parse()` method. */

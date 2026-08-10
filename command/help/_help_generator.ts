@@ -385,28 +385,7 @@ export class HelpGenerator {
 
     const type = this.cmd.getType(option.args[0]?.type)?.handler;
 
-    if (
-      typeof option.default !== "undefined" ||
-      typeof option.defaultText !== "undefined"
-    ) {
-      const defaultValue = typeof option.default === "function"
-        ? option.default()
-        : option.default;
-
-      const defaultText = typeof option.defaultText === "function"
-        ? option.defaultText(defaultValue)
-        : (typeof option.defaultText !== "undefined"
-          ? option.defaultText
-          : ((type instanceof Type && type.defaultText)
-            ? type.defaultText()
-            : defaultValue));
-
-      if (typeof defaultText !== "undefined") {
-        hints.push(
-          bold(`Default: `) + formatValue(defaultText),
-        );
-      }
-    }
+    this.addDefaultHint(hints, option, type);
 
     option.depends?.length && hints.push(
       yellow(bold(`Depends: `)) +
@@ -423,17 +402,53 @@ export class HelpGenerator {
     return this.generateHints(type, hints);
   }
 
-  private generateArgumentHints(option: Argument): string {
+  private generateArgumentHints(argument: Argument): string {
     if (!this.options.hints) {
       return "";
     }
     const hints: Array<string> = [];
 
-    !option.optional && hints.push(yellow(`required`));
+    !argument.optional && hints.push(yellow(`required`));
 
-    const type = this.cmd.getType(option.type)?.handler;
+    const type = this.cmd.getType(argument.type)?.handler;
+
+    this.addDefaultHint(hints, argument, type);
 
     return this.generateHints(type, hints);
+  }
+
+  private addDefaultHint(
+    hints: Array<string>,
+    { default: defaultValueOrHandler, defaultText: defaultTextOrHandler }: Pick<
+      Option | Argument,
+      "default" | "defaultText"
+    >,
+    type: Type<unknown> | TypeHandler<unknown> | undefined,
+  ): void {
+    if (
+      typeof defaultValueOrHandler === "undefined" &&
+      typeof defaultTextOrHandler === "undefined"
+    ) {
+      return;
+    }
+
+    const defaultValue = typeof defaultValueOrHandler === "function"
+      ? defaultValueOrHandler()
+      : defaultValueOrHandler;
+
+    const defaultText = typeof defaultTextOrHandler === "function"
+      ? defaultTextOrHandler(defaultValue)
+      : (typeof defaultTextOrHandler !== "undefined"
+        ? defaultTextOrHandler
+        : ((type instanceof Type && type.defaultText)
+          ? type.defaultText()
+          : defaultValue));
+
+    if (typeof defaultText !== "undefined") {
+      hints.push(
+        bold(`Default: `) + formatValue(defaultText),
+      );
+    }
   }
 
   private generateHints(

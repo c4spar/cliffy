@@ -142,6 +142,9 @@ export function parseArgumentsDefinition<T extends boolean>(
     if (argDef.default !== undefined) {
       details.default = argDef.default;
     }
+    if (argDef.defaultText !== undefined) {
+      details.defaultText = argDef.defaultText;
+    }
     if (argDef.separator !== undefined) {
       details.separator = argDef.separator;
     }
