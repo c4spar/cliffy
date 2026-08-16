@@ -69,6 +69,90 @@ test("should throw an error for missing arguments with name", () => {
   );
 });
 
+test("should throw an error for a required arg with an empty value", () => {
+  assertThrows(
+    () => {
+      parseFlags([""], {
+        args: [{ type: "string", name: "arg1" }],
+      });
+    },
+    Error,
+    "Missing argument: arg1",
+  );
+});
+
+test("should throw an error for a required arg with an empty value and a default value", () => {
+  assertThrows(
+    () => {
+      parseFlags([""], {
+        args: [{ type: "string", name: "arg1", default: "default" }],
+      });
+    },
+    Error,
+    "Missing argument: arg1",
+  );
+});
+
+test("should throw an error for the first required arg with an empty value", () => {
+  assertThrows(
+    () => {
+      parseFlags(["", "bar"], {
+        args: [
+          { type: "string", name: "arg1" },
+          { type: "string", name: "arg2" },
+        ],
+      });
+    },
+    Error,
+    "Missing argument: arg1",
+  );
+});
+
+test("should ignore an empty value for an optional arg", () => {
+  const { args } = parseFlags([""], {
+    args: [{ type: "string", name: "arg1", optional: true }],
+  });
+  assertEquals(args, [undefined]);
+});
+
+test("should use the default value for an optional arg with an empty value", () => {
+  const { args } = parseFlags([""], {
+    args: [{
+      type: "string",
+      name: "arg1",
+      optional: true,
+      default: "default",
+    }],
+  });
+  assertEquals(args, ["default"]);
+});
+
+test("should ignore empty values for a variadic arg", () => {
+  const { args } = parseFlags(["a", "", "b", ""], {
+    args: [{ type: "string", name: "arg1", variadic: true }],
+  });
+  assertEquals(args, ["a", "b"]);
+});
+
+test("should throw an error for a required variadic arg with only empty values", () => {
+  assertThrows(
+    () => {
+      parseFlags([""], {
+        args: [{ type: "string", name: "arg1", variadic: true }],
+      });
+    },
+    Error,
+    "Missing argument(s): arg1",
+  );
+});
+
+test("should ignore empty values for an optional variadic arg", () => {
+  const { args } = parseFlags([""], {
+    args: [{ type: "string", name: "arg1", variadic: true, optional: true }],
+  });
+  assertEquals(args, []);
+});
+
 test("should use falsy default value 0 for positional arg", () => {
   const { args } = parseFlags([], {
     args: [{ type: "number", default: 0 }],
