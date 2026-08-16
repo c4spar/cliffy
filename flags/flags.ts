@@ -667,8 +667,7 @@ function parseArgs<TFlagOptions extends FlagOptions>(
     if (value === "") {
       if (argDef.variadic) {
         return true;
-      }
-      if (!argDef.optional) {
+      } else if (!argDef.optional) {
         throw new MissingArgumentError(argDef.name ?? `arg[${argIndex}]`);
       }
       posArgs.push(undefined);
