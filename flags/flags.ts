@@ -520,7 +520,10 @@ function parseArgs<TFlagOptions extends FlagOptions>(
       let result: unknown;
       let increase = false;
 
-      if (hasNext(arg) && (!option.required || arg.optional) && next() === "") {
+      if (hasNext(arg) && next() === "") {
+        if (option.required && !arg.optional) {
+          throw new MissingOptionValueError(option.name);
+        }
         // if the value is empty and the argument is optional,
         // we can skip the argument.
         if (arg.variadic) {

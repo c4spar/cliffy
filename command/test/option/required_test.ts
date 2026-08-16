@@ -27,6 +27,37 @@ test("command optionRequired noArguments", async () => {
   );
 });
 
+test("should throw for a required option with an empty value", async () => {
+  await assertRejects(
+    async () => {
+      await new Command()
+        .throwErrors()
+        .option("-f, --flag <value:string>", "description ...", {
+          required: true,
+        })
+        .parse(["--flag", ""]);
+    },
+    Error,
+    `Missing value for option "--flag".`,
+  );
+});
+
+test("should throw for a required option with a default value and an empty value", async () => {
+  await assertRejects(
+    async () => {
+      await new Command()
+        .throwErrors()
+        .option("-f, --flag <value:string>", "description ...", {
+          required: true,
+          default: "default",
+        })
+        .parse(["--flag", ""]);
+    },
+    Error,
+    `Missing value for option "--flag".`,
+  );
+});
+
 test("should not throw for a missing required option if a matching env var is set", async () => {
   setEnv("FLAG", "env value");
   try {
