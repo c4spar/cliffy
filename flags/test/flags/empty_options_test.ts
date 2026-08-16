@@ -1,5 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { parseFlags } from "../../flags.ts";
 
 test("[flags] should skip optional arguments with an empty value", () => {
@@ -87,6 +87,97 @@ test("[flags] should skip optional arguments with an empty value", () => {
       "variadic-value-4",
     ],
   });
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
+
+test("[flags] should skip required arguments with an empty value", () => {
+  const { flags, unknown, literal } = parseFlags(["--foo", ""], {
+    flags: [{
+      name: "foo",
+      type: "string",
+    }],
+  });
+
+  assertEquals(flags, {});
+  assertEquals(unknown, []);
+  assertEquals(literal, []);
+});
+
+test("[flags] should throw if a required option has an empty value", () => {
+  assertThrows(
+    () =>
+      parseFlags(["--foo", ""], {
+        flags: [{
+          name: "foo",
+          type: "string",
+          required: true,
+        }],
+      }),
+    Error,
+    `Missing value for option "--foo".`,
+  );
+});
+
+test("[flags] should throw if a required option has an empty value with an equals sign", () => {
+  assertThrows(
+    () =>
+      parseFlags(["--foo="], {
+        flags: [{
+          name: "foo",
+          type: "string",
+          required: true,
+        }],
+      }),
+    Error,
+    `Missing value for option "--foo".`,
+  );
+});
+
+test("[flags] should throw if a required option with a default value has an empty value", () => {
+  assertThrows(
+    () =>
+      parseFlags(["--foo", ""], {
+        flags: [{
+          name: "foo",
+          type: "string",
+          required: true,
+          default: "default",
+        }],
+      }),
+    Error,
+    `Missing value for option "--foo".`,
+  );
+});
+
+test("[flags] should throw if a required variadic option has an empty value", () => {
+  assertThrows(
+    () =>
+      parseFlags(["--foo="], {
+        flags: [{
+          name: "foo",
+          type: "string",
+          variadic: true,
+          required: true,
+        }],
+      }),
+    Error,
+    `Missing value for option "--foo".`,
+  );
+});
+
+test("[flags] should apply the default value for an option with an optional argument and an empty value", () => {
+  const { flags, unknown, literal } = parseFlags(["--foo", ""], {
+    flags: [{
+      name: "foo",
+      type: "string",
+      optionalValue: true,
+      required: true,
+      default: "default",
+    }],
+  });
+
+  assertEquals(flags, { foo: "default" });
   assertEquals(unknown, []);
   assertEquals(literal, []);
 });
