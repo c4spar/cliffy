@@ -664,11 +664,15 @@ function parseArgs<TFlagOptions extends FlagOptions>(
 
     const posArgs: Array<unknown> = ctx.args ??= [];
 
-    if (argDef.optional && value === "") {
-      if (!argDef.variadic) {
-        posArgs.push(undefined);
-        argIndex++;
+    if (value === "") {
+      if (argDef.variadic) {
+        return true;
       }
+      if (!argDef.optional) {
+        throw new MissingArgumentError(argDef.name ?? `arg[${argIndex}]`);
+      }
+      posArgs.push(undefined);
+      argIndex++;
       return true;
     }
 

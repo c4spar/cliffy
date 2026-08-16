@@ -108,11 +108,47 @@ test("should ignore optional arguments with an empty string as value", async () 
   ]);
 });
 
-test("should throw an error for invalid number types", async () => {
+test("should throw an error for a required argument with an empty string as value", async () => {
+  await assertRejects(
+    () => cmd().parse([""]),
+    ValidationError,
+    "Missing argument: foo",
+  );
+});
+
+test("should ignore empty strings in a list of required argument", async () => {
+  await assertRejects(
+    () => cmd().parse(["", "123"]),
+    ValidationError,
+    "Missing argument: foo",
+  );
+});
+
+test("should ignore empty strings in a required variadic argument", async () => {
+  const { args } = await new Command()
+    .throwErrors()
+    .arguments("<beep...:string>")
+    .parse(["", "beep-value-2", "", "beep-value-4"]);
+
+  assertEquals(args, ["beep-value-2", "beep-value-4"]);
+});
+
+test("should throw an error for a required variadic argument with only empty strings as values", async () => {
   await assertRejects(
     async () => {
-      await cmd().parse(["abc", "xyz", "true", "red"]);
+      await new Command()
+        .throwErrors()
+        .arguments("<beep...:string>")
+        .parse(["", ""]);
     },
+    ValidationError,
+    "Missing argument(s): beep",
+  );
+});
+
+test("should throw an error for invalid number types", async () => {
+  await assertRejects(
+    () => cmd().parse(["abc", "xyz", "true", "red"]),
     ValidationError,
     `Argument "bar" must be of type "number", but got "xyz".`,
   );
@@ -120,9 +156,7 @@ test("should throw an error for invalid number types", async () => {
 
 test("should throw an error for invalid list types", async () => {
   await assertRejects(
-    async () => {
-      await cmd().parse(["abc", "123", "true", "red", "1,2,3,four"]);
-    },
+    () => cmd().parse(["abc", "123", "true", "red", "1,2,3,four"]),
     ValidationError,
     `Argument "list" must be of type "number", but got "four".`,
   );
@@ -130,9 +164,7 @@ test("should throw an error for invalid list types", async () => {
 
 test("should throw an error for invalid list types with sub command arguments", async () => {
   await assertRejects(
-    async () => {
-      await cmd2().parse(["foo", "abc", "123", "true", "red", "1,2,3,four"]);
-    },
+    () => cmd2().parse(["foo", "abc", "123", "true", "red", "1,2,3,four"]),
     ValidationError,
     `Argument "list" must be of type "number", but got "four".`,
   );
@@ -140,9 +172,7 @@ test("should throw an error for invalid list types with sub command arguments", 
 
 test("should throw an error for missing required arguments", async () => {
   await assertRejects(
-    async () => {
-      await cmd().parse([]);
-    },
+    () => cmd().parse([]),
     ValidationError,
     "Missing argument(s): foo",
   );
@@ -150,9 +180,7 @@ test("should throw an error for missing required arguments", async () => {
 
 test("should throw an error for invalid boolean types", async () => {
   await assertRejects(
-    async () => {
-      await cmd().parse(["abc", "123", "xyz", "red"]);
-    },
+    () => cmd().parse(["abc", "123", "xyz", "red"]),
     ValidationError,
     `Argument "baz" must be of type "boolean", but got "xyz".`,
   );
@@ -160,9 +188,7 @@ test("should throw an error for invalid boolean types", async () => {
 
 test("should throw an error for invalid custom type value", async () => {
   await assertRejects(
-    async () => {
-      await cmd().parse(["abc", "123", "true", "xyz"]);
-    },
+    () => cmd().parse(["abc", "123", "true", "xyz"]),
     ValidationError,
     `Argument "color" must be a valid "color", but got "xyz".`,
   );
