@@ -166,7 +166,7 @@ test("[flags] should throw if a required variadic option has an empty value", ()
   );
 });
 
-test("[flags] should skip apply the default value for an option with an optional argument and an empty value", () => {
+test("[flags] should apply the default value for an option with an optional argument and an empty value", () => {
   const { flags, unknown, literal } = parseFlags(["--foo", ""], {
     flags: [{
       name: "foo",
