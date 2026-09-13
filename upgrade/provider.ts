@@ -15,7 +15,7 @@ export interface ProviderOptions {
   main?: string;
   /**
    * Logger used to report the provider's output. Overridden by the logger
-   * passed to `upgrade()`, if set. Silent when not set.
+   * passed to `upgrade()`, if set. Defaults to `console`.
    */
   logger?: Logger;
 }
@@ -114,7 +114,7 @@ export abstract class Provider {
   abstract readonly name: string;
   protected readonly main?: string;
   protected readonly maxListSize: number = 25;
-  protected logger?: Logger;
+  protected logger: Logger;
   private maxCols = 8;
 
   /**
@@ -126,7 +126,7 @@ export abstract class Provider {
    */
   protected readonly delegateLatestResolution: boolean = false;
 
-  protected constructor({ main, logger }: ProviderOptions = {}) {
+  protected constructor({ main, logger = console }: ProviderOptions = {}) {
     this.main = main;
     this.logger = logger;
   }
@@ -241,7 +241,7 @@ export abstract class Provider {
 
     // Check if requested version is already the latest available version.
     if (latest && latest === currentVersion && latest === targetVersion) {
-      this.logger?.warn(
+      this.logger.warn(
         yellow(
           `You're already using the latest available version ${currentVersion} of ${name}.`,
         ),
@@ -251,7 +251,7 @@ export abstract class Provider {
 
     // Check if requested version is already installed.
     if (targetVersion && currentVersion === targetVersion) {
-      this.logger?.warn(
+      this.logger.warn(
         yellow(`You're already using version ${currentVersion} of ${name}.`),
       );
       return false;
