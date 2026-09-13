@@ -68,9 +68,9 @@
     "check": "deno task check:deno-v2",
     "check:deno-v1": "deno check .",
     "check:deno-v2": "deno check --doc .",
-    "setup:deno": "echo nothing todo",
-    "setup:node": "deno run -A ./tasks/setup_node.ts",
-    "setup:bun": "deno run -A ./tasks/setup_node.ts --bun",
+    "setup:deno": "deno task clean",
+    "setup:node": "deno task clean && deno run -A ./tasks/setup_node.ts",
+    "setup:bun": "deno task clean && deno run -A ./tasks/setup_node.ts --bun",
     "clean": "rm -rf dist node_modules .npmrc bun.lock bun.lockb package.json pnpm-lock.yaml tsconfig.json"
   },
   "imports": {
