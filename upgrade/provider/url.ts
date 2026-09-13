@@ -193,7 +193,7 @@ export class UrlProvider extends Provider {
     }
 
     if (currentVersion === targetVersion) {
-      this.logger?.warn(
+      this.logger.warn(
         yellow(`You're already using version ${currentVersion} of ${name}.`),
       );
       return Promise.resolve(false);
