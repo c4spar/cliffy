@@ -2,6 +2,7 @@
   "name": "@cliffy/internal",
   "version": "1.2.1",
   "exports": {
+    "./errors/usage-error": "./errors/usage_error.ts",
     "./runtime/chmod": "./runtime/chmod.ts",
     "./runtime/delete-env": "./runtime/delete_env.ts",
     "./runtime/exit": "./runtime/exit.ts",

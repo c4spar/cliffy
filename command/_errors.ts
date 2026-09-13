@@ -139,13 +139,6 @@ export class UnsupportedOptionEnvVarError extends CommandError {
   }
 }
 
-export class MissingRequiredEnvVarError extends ValidationError {
-  constructor(envVar: EnvVar) {
-    super(`Missing required environment variable "${envVar.names[0]}".`);
-    Object.setPrototypeOf(this, MissingRequiredEnvVarError.prototype);
-  }
-}
-
 export class TooManyEnvVarValuesError extends CommandError {
   constructor(name: string) {
     super(
@@ -205,6 +198,13 @@ export class UnknownCompletionCommandError extends CommandError {
 }
 
 /* Validation errors. */
+
+export class MissingRequiredEnvVarError extends ValidationError {
+  constructor(envVar: EnvVar) {
+    super(`Missing required environment variable "${envVar.names[0]}".`);
+    Object.setPrototypeOf(this, MissingRequiredEnvVarError.prototype);
+  }
+}
 
 export class UnknownCommandError extends ValidationError {
   constructor(

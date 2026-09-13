@@ -1,5 +1,5 @@
 import { test } from "@cliffy/internal/testing/test";
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
 import {
   mockFetch,
   mockGlobalFetch,
@@ -8,14 +8,18 @@ import {
 } from "@c4spar/mock-fetch";
 import { join } from "@std/path";
 import {
+  AssetNotFoundError,
   type BinaryAsset,
   type BinaryUpgradeContext,
   Provider,
+  UnsupportedUpgradeError,
   UnsupportedVersionListingError,
+  VersionNotFoundError,
   type Versions,
 } from "@cliffy/upgrade";
 import { UrlProvider } from "@cliffy/upgrade/provider/url";
 import { Command } from "../../command.ts";
+import { ValidationError } from "../../_errors.ts";
 import { UpgradeCommand } from "../../upgrade/upgrade_command.ts";
 import { checkVersion } from "../../upgrade/_check_version.ts";
 
@@ -266,7 +270,7 @@ test({
     await ctx.step({
       name: "should reject listing from an unsupported selected provider",
       async fn() {
-        await assertRejects(
+        const error = await assertRejects(
           () =>
             createCli(undefined, [
               new UrlProvider({ asset: "https://example.com/cli" }),
@@ -277,13 +281,81 @@ test({
               "url",
               "--list-versions",
             ]),
-          UnsupportedVersionListingError,
+          ValidationError,
           `The "url" provider has no version list.`,
         );
+
+        assertInstanceOf(error.cause, UnsupportedVersionListingError);
       },
     });
   },
 });
+
+test({
+  name: "upgrade errors thrown from an action",
+  fn: async (ctx) => {
+    await ctx.step({
+      name: "should report a version not found error as a validation error",
+      async fn() {
+        const error = await assertRejects(
+          () =>
+            new Command()
+              .throwErrors()
+              .action(async () => {
+                await new TestProvider().isOutdated("cli", "0.9.0", "9.9.9");
+              })
+              .parse([]),
+          ValidationError,
+          "is not found.",
+        );
+
+        assertInstanceOf(error.cause, VersionNotFoundError);
+        assertEquals(error.exitCode, 2);
+      },
+    });
+
+    await ctx.step(
+      "should report an unsupported upgrade error as a validation error",
+      () =>
+        assertReportedAsValidationError(
+          new UnsupportedUpgradeError("Cannot upgrade."),
+        ),
+    );
+
+    await ctx.step(
+      "should report an unsupported version listing error as a validation error",
+      () =>
+        assertReportedAsValidationError(
+          new UnsupportedVersionListingError("Cannot list versions."),
+        ),
+    );
+
+    await ctx.step(
+      "should report an asset not found error as a validation error",
+      () =>
+        assertReportedAsValidationError(
+          new AssetNotFoundError("No asset found."),
+        ),
+    );
+  },
+});
+
+async function assertReportedAsValidationError(error: Error): Promise<void> {
+  const validationError = await assertRejects(
+    () =>
+      new Command()
+        .throwErrors()
+        .action(() => {
+          throw error;
+        })
+        .parse([]),
+    ValidationError,
+    error.message,
+  );
+
+  assertEquals(validationError.cause, error);
+  assertEquals(validationError.exitCode, 2);
+}
 
 async function exists(path: string): Promise<boolean> {
   try {
