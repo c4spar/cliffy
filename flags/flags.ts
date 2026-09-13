@@ -227,7 +227,7 @@ export function parseFlags<
   validateOptions(opts);
   const options = parseArgs(ctx, args, opts);
   validateFlags(ctx, opts, options);
-  validateArguments(ctx, opts, options);
+  validateArguments(ctx, opts);
 
   if (opts.dotted) {
     parseDottedOptions(ctx);
@@ -520,7 +520,10 @@ function parseArgs<TFlagOptions extends FlagOptions>(
       let result: unknown;
       let increase = false;
 
-      if (hasNext(arg) && (!option.required || arg.optional) && next() === "") {
+      if (hasNext(arg) && next() === "") {
+        if (option.required && !arg.optional) {
+          throw new MissingOptionValueError(option.name);
+        }
         // if the value is empty and the argument is optional,
         // we can skip the argument.
         if (arg.variadic) {
@@ -661,11 +664,14 @@ function parseArgs<TFlagOptions extends FlagOptions>(
 
     const posArgs: Array<unknown> = ctx.args ??= [];
 
-    if (argDef.optional && value === "") {
-      if (!argDef.variadic) {
-        posArgs.push(undefined);
-        argIndex++;
+    if (value === "") {
+      if (argDef.variadic) {
+        return true;
+      } else if (!argDef.optional) {
+        throw new MissingArgumentError(argDef.name ?? `arg[${argIndex}]`);
       }
+      posArgs.push(undefined);
+      argIndex++;
       return true;
     }
 
@@ -813,7 +819,6 @@ function parseDefaultType({
 function validateArguments<TOptions extends FlagOptions = FlagOptions>(
   ctx: ParseFlagsContext<Record<string, unknown>>,
   opts: ParseFlagsOptions<TOptions>,
-  options: Map<string, FlagOptions> = new Map(),
 ) {
   if (!opts.args?.length) {
     return;
@@ -827,14 +832,8 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
         expectedArg.name ?? `arg[${opts.args?.indexOf(expectedArg)}]`
       );
 
-    if (required.length) {
-      const hasStandaloneOption = [...options.keys()].some((name) =>
-        opts.flags && getOption(opts.flags, name)?.standalone
-      );
-
-      if (!hasStandaloneOption) {
-        throw new MissingArgumentsError(required);
-      }
+    if (required.length && !ctx.standalone) {
+      throw new MissingArgumentsError(required);
     }
   } else {
     ctx.args ??= [];
@@ -864,6 +863,11 @@ function validateArguments<TOptions extends FlagOptions = FlagOptions>(
         if (expectedArg.optional) {
           continue;
         }
+
+        if (ctx.standalone) {
+          return;
+        }
+
         throw new MissingArgumentError(expectedArg.name ?? `arg[${index}]`);
       }
 

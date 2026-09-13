@@ -1047,7 +1047,7 @@ export class Command<
    * For example, following description:
    *
    * ```ts
-   * import { Command } from "https://deno.land/x/cliffy/command/mod.ts";
+   * import { Command } from "@cliffy/command";
    *
    * new Command()
    *   .description(`
@@ -1091,7 +1091,7 @@ export class Command<
    * @example Set custom usage
    *
    * ```ts
-   * import { Command } from "https://deno.land/x/cliffy/command/mod.ts";
+   * import { Command } from "@cliffy/command";
    *
    * await new Command()
    *   .name("script-runner")
@@ -1182,7 +1182,7 @@ export class Command<
    * rest args `[...args]` are completely optional.
    *
    * ```typescript
-   * import { Command } from "https://deno.land/x/cliffy/command/mod.ts";
+   * import { Command } from "@cliffy/command";
    *
    * await new Command()
    *   .description("Remove directories.")
