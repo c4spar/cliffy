@@ -42,6 +42,7 @@ import {
   UnsupportedOptionEnvVarError,
   ValidationError,
 } from "./_errors.ts";
+import { isUsageError } from "@cliffy/internal/errors/usage-error";
 import { exit } from "@cliffy/internal/runtime/exit";
 import { getArgs } from "@cliffy/internal/runtime/get-args";
 import { getEnv } from "@cliffy/internal/runtime/get-env";
@@ -2839,7 +2840,7 @@ export class Command<
 
   private handleError(error: unknown): never {
     this.throw(
-      error instanceof FlagsValidationError
+      error instanceof FlagsValidationError || isUsageError(error)
         ? new ValidationError(error.message, { cause: error })
         : error instanceof Error
         ? error

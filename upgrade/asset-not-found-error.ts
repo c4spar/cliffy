@@ -1,3 +1,4 @@
+import { usageError } from "@cliffy/internal/errors/usage-error";
 import { UpgradeError } from "./upgrade-error.ts";
 
 /**
@@ -5,8 +6,12 @@ import { UpgradeError } from "./upgrade-error.ts";
  * requested binary can't be located inside a downloaded archive.
  */
 export class AssetNotFoundError extends UpgradeError {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     Object.setPrototypeOf(this, AssetNotFoundError.prototype);
   }
 }
+
+Object.defineProperty(AssetNotFoundError.prototype, usageError, {
+  value: true,
+});

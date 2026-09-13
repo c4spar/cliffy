@@ -225,9 +225,9 @@ export abstract class Provider {
     // Check if requested version exists.
     if (targetVersion && !versions.includes(targetVersion)) {
       throw new VersionNotFoundError(
-        `The provided version ${
-          bold(red(targetVersion))
-        } is not found.\n\n    ${
+        `The provided version ${bold(red(targetVersion))} is not found.${
+          this.getVersionHint(targetVersion, versions, latest)
+        }\n\n    ${
           cyan(
             `Visit ${
               brightBlue(this.getRepositoryUrl(name))
@@ -258,6 +258,24 @@ export abstract class Provider {
     }
 
     return true;
+  }
+
+  private getVersionHint(
+    targetVersion: string,
+    versions: Array<string>,
+    latest?: string,
+  ): string {
+    const alternative: string = targetVersion.startsWith("v")
+      ? targetVersion.slice(1)
+      : `v${targetVersion}`;
+
+    if (versions.includes(alternative)) {
+      return ` Did you mean ${bold(alternative)}?`;
+    }
+
+    return latest && latest !== targetVersion
+      ? ` The latest version is ${bold(latest)}.`
+      : "";
   }
 
   public async listVersions(
