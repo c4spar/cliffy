@@ -1,3 +1,72 @@
+# [v1.3.0](https://github.com/c4spar/deno-cliffy/compare/v1.2.1...v1.3.0) (Sep 13, 2026)
+
+Read the [Cliffy v1.3.0 blog post](https://cliffy.io/blog/cliffy-v1-3-0) for
+release highlights.
+
+### 🖐️ Deprecations
+
+- **command:** deprecate re-exported upgrade providers
+
+### 🚀 Features
+
+- **command:** add `type` to the `env` option of the option method (#915)
+- **command:** add `presence` type for environment variables (#914)
+- **command:** add automatic help color detection (#913)
+- **command:** add `enabled` option for conditional option registration (#906)
+- **command:** add `env` option to the `option` method (#899)
+- **command:** add `negatable` option to env vars (#897)
+- **command:** add support for lazy loading sub commands (#890)
+- **upgrade:** extract `upgrade` api into new `@cliffy/upgrade` package
+- **upgrade:** add url provider (#911)
+- **upgrade:** add gitlab provider (#910)
+- **upgrade:** add standalone binary self-upgrade support (#907)
+
+### 🩹 Bug Fixes
+
+- **command:** report version not found errors as validation errors (#925)
+- **command:** throw an error for an empty string value in required arguments
+  (#923)
+- **command:** throw for empty values in required options (#922)
+- **command:** show default values of arguments in the help output (#919)
+- **command:** format help text values identically on all runtimes (#920)
+- **command:** name short only options after their first short flag (#898)
+- **command:** don't throw on missing required option when value is provided via
+  env var
+- **command:** respect setColorEnabled in help output (#896)
+- **flags:** throw an error for an empty string value in required arguments
+  (#923)
+- **flags:** throw for empty values in required options (#922)
+- **flags:** don't require arguments when a standalone option is used (#918)
+- **flags:** match and type expected arguments when parsing stops early (#901)
+- **flags:** report every surplus argument as too many arguments (#902)
+- **flags:** don't throw on missing required option when value is provided via
+  env var
+- **internal:** normalize win32 to windows in getOs (#900)
+- **internal:** remove top-level await from readSync (#894)
+- **internal:** bun hangs after reading from stdin (#895)
+- **keycode:** don't parse a trailing "ESC [" as shift + left (#908)
+- **upgrade:** default the provider logger to console (#926)
+- **upgrade:** report version not found errors as validation errors (#925)
+- **upgrade:** preserve raw github branch names (#909)
+
+### 💅 Code Refactoring
+
+- **flags:** extract positional argument parsing (#905)
+
+### 📖 Documentation Updates
+
+- fix coverage badge
+
+### 🚦 Testing
+
+- **testing:** fix type error in snapshot test (#893)
+
+### 🏡 Chore
+
+- **ci:** upgrade to codecov-action@v7 and use oidc for codecov uploads (#904)
+- **deno:** run deno task clean before setup
+- **deps:** upgrade deps (#916)
+
 # [v1.2.1](https://github.com/c4spar/deno-cliffy/compare/v1.2.0...v1.2.1) (Jun 4, 2026)
 
 ### 🩹 Bug Fixes
