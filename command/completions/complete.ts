@@ -24,6 +24,7 @@ export class CompleteCommand extends Command<
 
         for (const name of commandNames ?? []) {
           parent = completeCommand;
+          // deno-lint-ignore no-await-in-loop
           await completeCommand.loadCommands(false);
           const childCmd: Command | undefined = completeCommand.getCommand(
             name,
