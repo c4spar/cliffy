@@ -6,6 +6,12 @@ on:
     branches: [main]
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.3.0)"
+        required: true
+        type: string
 
 env:
   DENO_UNSTABLE_WORKSPACES: true
@@ -22,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -29,9 +37,9 @@ jobs:
           deno-version-file: ".deno-version"
 
       - name: Publish (dry run)
-        if: github.event_name != 'release'
+        if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         run: deno publish --dry-run
 
       - name: Publish
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         run: deno publish
