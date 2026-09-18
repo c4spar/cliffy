@@ -169,12 +169,9 @@ await snapshotTest({
             .option("-r, --recursive", "Clone recursive.")
             .option("-b, --branch <name:string:branch>", "Branch.")
             .option("-c, --color <val:color>", "Color option.")
-            .command("mirror", "Mirror a repository.")
-            .reset(),
+            .command("mirror", "Mirror a repository."),
       )
-      .reset()
       .command("completions", new CompletionsCommand())
-      .reset()
       .parse();
   },
 });
