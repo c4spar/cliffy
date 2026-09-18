@@ -1,0 +1,545 @@
+export const snapshot = {};
+
+snapshot[`lazy command help integration > should print the auto help of a container command 1`] = `
+stdout:
+"
+Usage: lazy-test
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  clone              - Clone a repository.                         
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help option output 1`] = `
+stdout:
+"
+Usage: lazy-test
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  clone              - Clone a repository.                         
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help of a lazy sub command 1`] = `
+stdout:
+"
+Usage: lazy-test clone
+
+Description:
+
+  Clone a repository.
+
+Options:
+
+  -h, --help       - Show this help.   
+  -r, --recursive  - Clone recursive.  
+
+Commands:
+
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+  mirror             - Mirror a repository.                        
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help command output 1`] = `
+stdout:
+"
+Usage: lazy-test
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  clone              - Clone a repository.                         
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help command output of a lazy sub command 1`] = `
+stdout:
+"
+Usage: lazy-test clone
+
+Description:
+
+  Clone a repository.
+
+Options:
+
+  -h, --help       - Show this help.   
+  -r, --recursive  - Clone recursive.  
+
+Commands:
+
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+  mirror             - Mirror a repository.                        
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command completions integration > should complete a custom type of a lazy command 1`] = `
+stdout:
+"blue
+yellow
+red"
+stderr:
+""
+`;
+
+snapshot[`lazy command completions integration > should complete a completion of a lazy command 1`] = `
+stdout:
+"main
+develop"
+stderr:
+""
+`;
+
+snapshot[`lazy command completions integration > should generate bash completions 1`] = `
+stdout:
+\`#!/usr/bin/env bash
+# bash completion support for lazy-test
+
+_lazy_test() {
+  local word cur prev listFiles
+  local -a opts
+  COMPREPLY=()
+  cur="\${COMP_WORDS[COMP_CWORD]}"
+  prev="\${COMP_WORDS[COMP_CWORD-1]}"
+  cmd="_"
+  opts=()
+  listFiles=0
+
+  _lazy_test_complete() {
+    local action="\$1"; shift
+    mapfile -t values < <( lazy-test completions complete "\${action}" "\${@}" 2>/dev/null )
+    for i in "\${values[@]}"; do
+      opts+=("\$i")
+    done
+  }
+
+  _lazy_test_expand() {
+    [ "\$cur" != "\${cur%\\\\\\\\}" ] && cur="\$cur\\\\\\\\"
+  
+    # expand ~username type directory specifications
+    if [[ "\$cur" == \\\\~*/* ]]; then
+      # shellcheck disable=SC2086
+      eval cur=\$cur
+      
+    elif [[ "\$cur" == \\\\~* ]]; then
+      cur=\${cur#\\\\~}
+      # shellcheck disable=SC2086,SC2207
+      COMPREPLY=( \$( compgen -P '~' -u \$cur ) )
+      return \${#COMPREPLY[@]}
+    fi
+  }
+
+  # shellcheck disable=SC2120
+  _lazy_test_file_dir() {
+    listFiles=1
+    local IFS=\$'\\\\t\\\\n' xspec #glob
+    _lazy_test_expand || return 0
+  
+    if [ "\${1:-}" = -d ]; then
+      # shellcheck disable=SC2206,SC2207,SC2086
+      COMPREPLY=( \${COMPREPLY[@]:-} \$( compgen -d -- \$cur ) )
+      #eval "\$glob"    # restore glob setting.
+      return 0
+    fi
+  
+    xspec=\${1:+"!*.\$1"}\\t# set only if glob passed in as \$1
+    # shellcheck disable=SC2206,SC2207
+    COMPREPLY=( \${COMPREPLY[@]:-} \$( compgen -f -X "\$xspec" -- "\$cur" )           \$( compgen -d -- "\$cur" ) )
+  }
+
+  __lazy_test() {
+    opts=(-h --help clone completions)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 1 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+    esac
+  }
+
+  __lazy_test_clone() {
+    opts=(-h --help -r --recursive -b --branch -c --color mirror)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 2 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+      -r|--recursive)  ;;
+      -b|--branch) opts=(); _lazy_test_complete branch clone ;;
+      -c|--color) opts=(); _lazy_test_complete color clone ;;
+    esac
+  }
+
+  __lazy_test_clone_mirror() {
+    opts=(-h --help)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 3 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+    esac
+  }
+
+  __lazy_test_completions() {
+    opts=(-h --help bash fish zsh)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 2 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+    esac
+  }
+
+  __lazy_test_completions_bash() {
+    opts=(-h --help -n --name)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 3 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+      -n|--name) opts=(); _lazy_test_complete string completions bash ;;
+    esac
+  }
+
+  __lazy_test_completions_fish() {
+    opts=(-h --help -n --name)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 3 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+      -n|--name) opts=(); _lazy_test_complete string completions fish ;;
+    esac
+  }
+
+  __lazy_test_completions_zsh() {
+    opts=(-h --help -n --name)
+    
+    if [[ \${cur} == -* || \${COMP_CWORD} -eq 3 ]] ; then
+      return 0
+    fi
+    case "\${prev}" in
+      -h|--help) opts=() ;;
+      -n|--name) opts=(); _lazy_test_complete string completions zsh ;;
+    esac
+  }
+
+  for word in "\${COMP_WORDS[@]}"; do
+    case "\${word}" in
+      -*) ;;
+      *)
+        cmd_tmp="\${cmd}_\${word//[^[:alnum:]]/_}"
+        if type "\${cmd_tmp}" &>/dev/null; then
+          cmd="\${cmd_tmp}"
+        fi
+    esac
+  done
+
+  \${cmd}
+
+  if [[ listFiles -eq 1 ]]; then
+    return 0
+  fi
+
+  if [[ \${#opts[@]} -eq 0 ]]; then
+    # shellcheck disable=SC2207
+    COMPREPLY=(\$(compgen -f "\${cur}"))
+    return 0
+  fi
+
+  local values
+  values="\$( printf "\\\\n%s" "\${opts[@]}" )"
+  local IFS=\$'\\\\n'
+  # shellcheck disable=SC2207
+  local result=(\$(compgen -W "\${values[@]}" -- "\${cur}"))
+  if [[ \${#result[@]} -eq 0 ]]; then
+    # shellcheck disable=SC2207
+    COMPREPLY=(\$(compgen -f "\${cur}"))
+  else
+    # shellcheck disable=SC2207
+    COMPREPLY=(\$(printf '%q\\\\n' "\${result[@]}"))
+  fi
+
+  return 0
+}
+
+complete -F _lazy_test -o bashdefault -o default lazy-test
+\`
+stderr:
+""
+`;
+
+snapshot[`lazy command completions integration > should generate fish completions 1`] = `
+stdout:
+\`#!/usr/bin/env fish
+# fish completion support for lazy-test
+
+function __fish_lazy_test_using_command
+  set -l cmds __lazy_test __lazy_test_clone __lazy_test_clone_mirror __lazy_test_completions __lazy_test_completions_bash __lazy_test_completions_fish __lazy_test_completions_zsh
+  set -l words (commandline -opc)
+  set -l cmd "_"
+  for word in \$words
+    switch \$word
+      case '-*'
+        continue
+      case '*'
+        set word (string replace -r -a '\\\\W' '_' \$word)
+        set -l cmd_tmp \$cmd"_\$word"
+        if contains \$cmd_tmp \$cmds
+          set cmd \$cmd_tmp
+        end
+    end
+  end
+  if test "\$cmd" = "\$argv[1]"
+    return 0
+  end
+  return 1
+end
+
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test' -k -f -a clone -d 'Clone a repository.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_clone' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_clone' -s r -l recursive -k -f -d 'Clone recursive.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_clone' -s b -l branch -k -f -r -a '(lazy-test completions complete branch clone 2>/dev/null)' -d 'Branch.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_clone' -s c -l color -k -f -r -a '(lazy-test completions complete color clone 2>/dev/null)' -d 'Color option.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_clone' -k -f -a mirror -d 'Mirror a repository.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_clone_mirror' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test' -k -f -a completions -d 'Generate shell completions.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions' -k -f -a bash -d 'Generate shell completions for bash.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions_bash' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions_bash' -s n -l name -k -f -r -a '(lazy-test completions complete string completions bash 2>/dev/null)' -d 'The name of the main command.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions' -k -f -a fish -d 'Generate shell completions for fish.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions_fish' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions_fish' -s n -l name -k -f -r -a '(lazy-test completions complete string completions fish 2>/dev/null)' -d 'The name of the main command.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions' -k -f -a zsh -d 'Generate shell completions for zsh.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions_zsh' -s h -l help -x -k -f -d 'Show this help.'
+complete -c lazy-test -n '__fish_lazy_test_using_command __lazy_test_completions_zsh' -s n -l name -k -f -r -a '(lazy-test completions complete string completions zsh 2>/dev/null)' -d 'The name of the main command.'
+\`
+stderr:
+""
+`;
+
+snapshot[`lazy command completions integration > should generate zsh completions 1`] = `
+stdout:
+\`#compdef lazy-test
+
+# zsh completion support for lazy-test
+
+autoload -U is-at-least
+
+# shellcheck disable=SC2154
+(( \$+functions[__lazy_test_complete] )) ||
+function __lazy_test_complete {
+  local name="\$1"; shift
+  local action="\$1"; shift
+  integer ret=1
+  local -a values
+  local expl lines
+  _tags "\$name"
+  while _tags; do
+    if _requested "\$name"; then
+      # shellcheck disable=SC2034
+      lines="\$(lazy-test completions complete "\${action}" "\${@}" 2>/dev/null)"
+      values=("\${(ps:\\\\n:)lines}")
+      if (( \${#values[@]} )); then
+        while _next_label "\$name" expl "\$action"; do
+          compadd -S '' "\${expl[@]}" "\${values[@]}"
+        done
+      fi
+    fi
+  done
+}
+
+# shellcheck disable=SC2154
+_lazy_test() {
+  local state
+
+  function _commands() {
+    local -a commands
+    # shellcheck disable=SC2034
+    commands=(
+      'clone:Clone a repository.'
+      'completions:Generate shell completions.'
+    )
+    _describe 'command' commands
+  }
+
+  function _command_args() {
+    case "\${words[1]}" in
+      clone) _lazy_test_clone ;;
+      completions) _lazy_test_completions ;;
+    esac
+  }
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '1:command:_commands' \\\\
+    '*::sub command:->command_args'
+
+  case "\$state" in
+    command_args) _command_args ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_lazy_test_clone] )) || _lazy_test_clone() {
+
+  function _commands() {
+    local -a commands
+    # shellcheck disable=SC2034
+    commands=(
+      'mirror:Mirror a repository.'
+    )
+    _describe 'command' commands
+  }
+
+  function _command_args() {
+    case "\${words[1]}" in
+      mirror) _lazy_test_clone_mirror ;;
+    esac
+  }
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -r --recursive)'{-r,--recursive}'[Clone recursive.]' \\\\
+    '(-h --help -b --branch)'{-b,--branch}'[Branch.]:name:->name-branch' \\\\
+    '(-h --help -c --color)'{-c,--color}'[Color option.]:val:->val-color' \\\\
+    '1:command:_commands' \\\\
+    '*::sub command:->command_args'
+
+  case "\$state" in
+    command_args) _command_args ;;
+    name-branch) __lazy_test_complete name branch clone ;;
+    val-color) __lazy_test_complete val color clone ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_lazy_test_clone_mirror] )) || _lazy_test_clone_mirror() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]'
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_lazy_test_completions] )) || _lazy_test_completions() {
+
+  function _commands() {
+    local -a commands
+    # shellcheck disable=SC2034
+    commands=(
+      'bash:Generate shell completions for bash.'
+      'fish:Generate shell completions for fish.'
+      'zsh:Generate shell completions for zsh.'
+    )
+    _describe 'command' commands
+  }
+
+  function _command_args() {
+    case "\${words[1]}" in
+      bash) _lazy_test_completions_bash ;;
+      fish) _lazy_test_completions_fish ;;
+      zsh) _lazy_test_completions_zsh ;;
+    esac
+  }
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '1:command:_commands' \\\\
+    '*::sub command:->command_args'
+
+  case "\$state" in
+    command_args) _command_args ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_lazy_test_completions_bash] )) || _lazy_test_completions_bash() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -n --name)'{-n,--name}'[The name of the main command.]:command-name:->command-name-string'
+
+  case "\$state" in
+    command-name-string) __lazy_test_complete command-name string completions bash ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_lazy_test_completions_fish] )) || _lazy_test_completions_fish() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -n --name)'{-n,--name}'[The name of the main command.]:command-name:->command-name-string'
+
+  case "\$state" in
+    command-name-string) __lazy_test_complete command-name string completions fish ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+(( \$+functions[_lazy_test_completions_zsh] )) || _lazy_test_completions_zsh() {
+
+  _arguments -w -s -S -C \\\\
+    '(- *)'{-h,--help}'[Show this help.]' \\\\
+    '(-h --help -n --name)'{-n,--name}'[The name of the main command.]:command-name:->command-name-string'
+
+  case "\$state" in
+    command-name-string) __lazy_test_complete command-name string completions zsh ;;
+  esac
+}
+
+# shellcheck disable=SC2154
+if [ "\${funcstack[1]}" = "_lazy-test" ]; then
+  _lazy_test "\${@}"
+else
+  compdef _lazy_test lazy-test;
+fi
+\`
+stderr:
+""
+`;

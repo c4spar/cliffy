@@ -23,8 +23,9 @@ To enable bash completions for this program add following line to your ${
       })
       .noGlobals()
       .option("-n, --name <command-name>", "The name of the main command.")
-      .action(({ name = this.getMainCommand().getName() }) => {
+      .action(async ({ name = this.getMainCommand().getName() }) => {
         const baseCmd = this.#cmd || this.getMainCommand();
+        await baseCmd.loadCommandTree();
         console.log(BashCompletionsGenerator.generate(name, baseCmd));
       });
   }
