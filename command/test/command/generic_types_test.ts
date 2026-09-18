@@ -549,14 +549,20 @@ import { assertType, type IsAny, type IsExact } from "@std/testing/types";
       const maybeEnabled = Math.random() > 0.5;
 
       new Command()
-        .option("--kept <val:string>", "", { enabled: true })
-        .option("--dropped <val:string>", "", { enabled: false })
+        .option("--enabled <val:string>", "", { enabled: true })
+        .option("--disabled <val:string>", "", { enabled: false })
+        .option("--required <val:string>", "", {
+          required: true,
+          enabled: maybeEnabled,
+        })
         .option("--maybe <val:string>", "", { enabled: maybeEnabled })
         .action((options, ...args) => {
           assertType<IsExact<typeof args, []>>(true);
           assertType<
             IsExact<typeof options, {
-              kept?: string;
+              enabled?: string;
+              disabled?: string;
+              required?: string;
               maybe?: string;
             }>
           >(true);
