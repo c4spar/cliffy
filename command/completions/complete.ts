@@ -20,15 +20,23 @@ export class CompleteCommand extends Command<
       .arguments("<action:string> [command...:string]")
       .action(async (_, action: string, ...commandNames: Array<string>) => {
         let parent: Command | undefined;
-        const completeCommand: Command = commandNames
-          ?.reduce((cmd: Command, name: string): Command => {
-            parent = cmd;
-            const childCmd: Command | undefined = cmd.getCommand(name, false);
-            if (!childCmd) {
-              throw new UnknownCompletionCommandError(name, cmd.getCommands());
-            }
-            return childCmd;
-          }, cmd || this.getMainCommand()) ?? (cmd || this.getMainCommand());
+        let completeCommand: Command = cmd || this.getMainCommand();
+
+        for (const name of commandNames ?? []) {
+          parent = completeCommand;
+          await completeCommand.loadCommands(false);
+          const childCmd: Command | undefined = completeCommand.getCommand(
+            name,
+            false,
+          );
+          if (!childCmd) {
+            throw new UnknownCompletionCommandError(
+              name,
+              completeCommand.getCommands(),
+            );
+          }
+          completeCommand = childCmd;
+        }
 
         const completion: Completion | undefined = completeCommand
           .getCompletion(action);

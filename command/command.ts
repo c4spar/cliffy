@@ -3322,6 +3322,18 @@ export class Command<
   }
 
   /**
+   * Lazy load all commands and their sub commands, recursively.
+   *
+   * @param hidden Include hidden commands.
+   */
+  public async loadCommandTree(hidden = true): Promise<void> {
+    await this.loadCommands(hidden);
+    await Promise.all(
+      this.getBaseCommands(hidden).map((cmd) => cmd.loadCommandTree(hidden)),
+    );
+  }
+
+  /**
    * Get global commands.
    *
    * @param hidden Include hidden commands.

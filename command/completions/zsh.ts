@@ -27,8 +27,9 @@ To enable zsh completions for this program add following line to your ${
         "The name of the main command.",
         { default: () => this.getMainCommand().getName() },
       )
-      .action(({ name }) => {
+      .action(async ({ name }) => {
         const baseCmd = this.#cmd || this.getMainCommand();
+        await baseCmd.loadCommandTree();
         console.log(ZshCompletionsGenerator.generate(name, baseCmd));
       });
   }
