@@ -17,7 +17,7 @@ export class HelpCommand
       .action(async (_, name?: string) => {
         if (!cmd) {
           cmd = name
-            ? this.getGlobalParent()?.getBaseCommand(name)
+            ? await this.getGlobalParent()?.loadBaseCommand(name)
             : this.getGlobalParent();
         }
         if (!cmd) {
@@ -27,7 +27,7 @@ export class HelpCommand
             ...this.getAliases(),
           ]);
         }
-        await checkVersion(cmd);
+        await Promise.all([checkVersion(cmd), cmd.loadCommands()]);
         cmd.showHelp();
         if (this.shouldExit()) {
           exit(0);

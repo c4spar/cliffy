@@ -2616,7 +2616,7 @@ export class Command<
           action: async function (this: Command<any>) {
             await Promise.all([
               checkVersion(this),
-              this.loadBaseCommands(),
+              this.loadCommands(),
             ]);
             const long = this.getRawArgs().includes(
               `--${this.getHelpOption()?.name}`,
@@ -2653,6 +2653,7 @@ export class Command<
       !ctx.parsedFlags.length && !this.settings.actionHandler &&
       this.isAutoHelpEnabled()
     ) {
+      await this.loadCommands();
       this.showHelp();
       this.exit();
     }
@@ -3293,6 +3294,31 @@ export class Command<
         this.loadBaseCommand(name, hidden)
       ),
     );
+  }
+
+  /**
+   * Lazy load all global commands, which are registered on a parent command.
+   *
+   * @param hidden Include hidden commands.
+   */
+  public async loadGlobalCommands(hidden?: boolean): Promise<void> {
+    await Promise.all(
+      this.getGlobalCommands(hidden).map((cmd) =>
+        cmd.parent?.loadBaseCommand(cmd.getName(), hidden)
+      ),
+    );
+  }
+
+  /**
+   * Lazy load all commands.
+   *
+   * @param hidden Include hidden commands.
+   */
+  public async loadCommands(hidden?: boolean): Promise<void> {
+    await Promise.all([
+      this.loadBaseCommands(hidden),
+      this.loadGlobalCommands(hidden),
+    ]);
   }
 
   /**

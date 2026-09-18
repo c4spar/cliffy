@@ -1,0 +1,111 @@
+export const snapshot = {};
+
+snapshot[`lazy command help integration > should print the auto help of a container command 1`] = `
+stdout:
+"
+Usage: lazy-test
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  clone              - Clone a repository.                         
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help option output 1`] = `
+stdout:
+"
+Usage: lazy-test
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  clone              - Clone a repository.                         
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help of a lazy sub command 1`] = `
+stdout:
+"
+Usage: lazy-test clone
+
+Description:
+
+  Clone a repository.
+
+Options:
+
+  -h, --help       - Show this help.   
+  -r, --recursive  - Clone recursive.  
+
+Commands:
+
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+  mirror             - Mirror a repository.                        
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help command output 1`] = `
+stdout:
+"
+Usage: lazy-test
+
+Options:
+
+  -h, --help  - Show this help.  
+
+Commands:
+
+  clone              - Clone a repository.                         
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+
+"
+stderr:
+""
+`;
+
+snapshot[`lazy command help integration > should print the help command output of a lazy sub command 1`] = `
+stdout:
+"
+Usage: lazy-test clone
+
+Description:
+
+  Clone a repository.
+
+Options:
+
+  -h, --help       - Show this help.   
+  -r, --recursive  - Clone recursive.  
+
+Commands:
+
+  global             - Global command.                             
+  help    [command]  - Show this help or the help of a sub-command.
+  mirror             - Mirror a repository.                        
+
+"
+stderr:
+""
+`;
