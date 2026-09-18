@@ -1,3 +1,18 @@
+# [Changelog](https://github.com/c4spar/deno-cliffy
+
+# [v1.3.1](https://github.com/c4spar/deno-cliffy/compare/v1.3.0...30b763b4) (Sep 18, 2026)
+
+### 🩹 Bug Fixes
+
+- **command:** load lazy sub commands for shell completions (#929)
+- **command:** load lazy sub commands for help output
+- **command:** improve conditional type logic for enabled option (#927)
+
+### 🏡 Chore
+
+- fix workspace setup (#928)
+- **ci:** add workflow_dispatch for manual releases
+
 # [v1.3.0](https://github.com/c4spar/deno-cliffy/compare/v1.2.1...v1.3.0) (Sep 13, 2026)
 
 Read the [Cliffy v1.3.0 blog post](https://cliffy.io/blog/cliffy-v1-3-0) for
